@@ -1,0 +1,373 @@
+# setwd('C:/Users/germa/Box Sync/My_Documents') #dell
+setwd('C:/Users/germanm2/Box Sync/My_Documents') #CPSC
+# setwd("/home/germanm2")
+# setwd('~')
+
+source('./Codes_useful/R.libraries.R')
+source('./Codes_useful/gm_functions.R')
+
+# library(randomForest)
+# library(ranger)
+# library(mlr)
+source('./vr_value_v2/Codes/parameters.R')
+# Pn = 0.87 * 2
+
+# eonr_mukey_dt2 <- readRDS("./vr_value_v2/Data/files_rds/eonr_mukey_dt2.rds")
+grid10_tiles_sf6 <- readRDS("./vr_value_v2/Data/Grid/grid10_tiles_sf6.rds") 
+grid10_soils_dt5 <- readRDS("./vr_value_v2/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
+yc_yearly_dt3 <- readRDS("./vr_value_v2/Data/files_rds/yc_yearly_dt3.rds")
+grid10_fields_sf2 <- readRDS('./vr_value_v2/Data/Grid/grid10_fields_sf2.rds')
+
+#======================================================================================
+# if(FALSE){
+#   # SAMPLE LOCS FOR REGIONAL TESTING
+#   # MRTN had 80 locs in IL
+#   # Sample 80 fields. Equal number by region. Assume that each field is heavily explored and different soils are mapped and sampled every year.
+#   full_fields_dt <- grid10_soils_dt5[,.(long = mean(long),
+#                                     lat = mean(lat),
+#                                     region = mean(region),
+#                                     field_soils_cnt = length(unique(mukey))), by = .(id_10, id_field)]
+#   
+#   full_fields_dt[,fields_cell := length(unique(id_field)), by = id_10]
+#   table(full_fields_dt$id_field)
+#   
+#   
+#   #Choose stations from cells with 4 fields, to avoid loosing field in cells with few fields.
+#   # Choose fields with more than 2 soils to get some variability
+#   stations_dt <- full_fields_dt[field_soils_cnt > 1 & fields_cell == 4 & id_field %in% c(3,4) ]
+#   
+#   #Only if 3 and 4 meet the requirements (one could have only 1 soil)
+#   stations_dt[,N := .N, by = id_10]
+#   stations_dt <- stations_dt[N==2, -'N']
+#   
+#   # stations_by_region <- round(nrow(stations_dt)*0.05/3,0)
+#   stations_by_region <- 40
+#   
+#   # Also, only one station by id_10
+#   set.seed(123)
+#   stations_sample_cells_dt <- stations_dt[, .(lat = mean(lat),
+#                                               long = mean(long)),by = .(region, id_10)]
+#   
+#   # Equally distributed by region
+#   stations_sample_cells_dt <- stations_sample_cells_dt[order(region, lat)]
+#   
+#   #Split the fields of each region into the number of stations we are getting by region, and then select one from each group
+#   stations_sample_cells_dt[,quantile := cut(lat, quantile(lat, probs = 0:stations_by_region/stations_by_region),
+#                     labels = FALSE, include.lowest = TRUE), by = region]
+# 
+#   stations_sample_cells_dt <- stations_sample_cells_dt[,.SD[sample(.N, 1)],by = .(region, quantile)][,-c('long', 'quantile', 'lat')]
+#   
+#   #Select fields for each sampled id_10
+#   stations_dt2 <- grid10_soils_dt5[id_10 %in% stations_sample_cells_dt$id_10 &
+#                                      id_field %in% c(3,4), .(region, id_10, id_field, mukey, lat, long)]
+#   
+#   stations_dt2[,.N,.(id_10, id_field)][,.N, by = .(id_10)]
+#   
+#   #-------------------
+#   #Remove fields that are stations
+#   remove_this <- filter_dt_in_dt(grid10_soils_dt5, filter_dt = unique(stations_dt2[,.(id_10, id_field)]))
+#   # remove_this <- c(remove_this, filter_dt_in_dt(fields_dt, filter_dt = data.table(id_10 = 296, id_field = 3)))
+#   full_fields_dt2 <- grid10_soils_dt5[-remove_this, .(region, id_10, id_field, mukey, lat, long)]
+#   length(unique(full_fields_dt2$id_10))
+#   
+# 
+# }else{
+#   reg_model_stuff <- readRDS( "./vr_value_v2/Data/files_rds/reg_model_stuff.rds")
+#   stations_dt2 <- reg_model_stuff[['stations']]
+#   full_fields_dt2 <- reg_model_stuff[['full_fields']]
+#   model1b_eonr <- reg_model_stuff[['model1b_eonr']]
+#   model2b_eonr <- reg_model_stuff[['model2b_eonr']]
+#   rm(reg_model_stuff)
+# }
+#======================================================================================
+  if(FALSE){
+    fields_cnt <- grid10_soils_dt5[,.N, by = .(id_10, id_field)] %>% .[,.(field_cnt = .N), by = id_10]
+    
+    grid10_soils_dt5 <- merge(grid10_soils_dt5, fields_cnt, by = 'id_10')
+    candidates_dt <- grid10_soils_dt5[field_cnt == 4 & id_field %in% c(1,2)]
+    
+    set.seed(256)
+    stations_dt <- data.table()
+    stations_by_region <- 40
+    for(region_n in c(1,2,3)){
+      # region_n <- 1
+      candidates_region_dt <- candidates_dt[region == region_n]
+      id_10_sample <- sample(unique(candidates_region_dt$id_10), stations_by_region, replace = F)
+      stations_dt <- rbind(stations_dt, candidates_region_dt[id_10 %in% id_10_sample])
+    }
+    
+    #-------------------
+    #Remove fields that are stations
+    remove_this <- filter_dt_in_dt(grid10_soils_dt5, filter_dt = unique(stations_dt[,.(id_10, id_field)]))
+    # remove_this <- c(remove_this, filter_dt_in_dt(fields_dt, filter_dt = data.table(id_10 = 296, id_field = 3)))
+    full_fields_dt <- grid10_soils_dt5[-remove_this, .(region, id_10, id_field, mukey, lat, long)]
+    length(unique(full_fields_dt$id_10))
+  }else{
+    reg_model_stuff <- readRDS("./vr_value_v2/Data/files_rds/reg_model_stuff.rds")
+    full_fields_dt <- reg_model_stuff[['full_fields']]
+    stations_dt <- reg_model_stuff[['stations']]
+    rm(reg_model_stuff)
+  }
+
+# EXPLORE THE DATA-------------------
+yld_explore_dt <- yc_yearly_dt3[,.(Yld = mean(Yld)), by = z]
+yld_explore_dt[,z:= as.numeric(z)]
+yld_explore_dt <- yld_explore_dt[order(z)]
+
+
+eonr_explore_dt <- yc_yearly_dt3[, P := Yld * Pc - N_fert * Pn] %>% 
+  .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
+setnames(eonr_explore_dt, 'N_fert', 'eonr')
+eonr_explore_dt[,z:= as.numeric(z)]
+eonr_explore_dt[,.(eonr = mean(eonr)), by = z][order(z)]
+ggplot(eonr_explore_dt) +
+  geom_boxplot(aes(x = factor(z), y = eonr))
+
+ggplot(eonr_explore_dt) +
+  geom_boxplot(aes(x = factor(z), y = n_deep_v5))
+
+eonr_explore_dt[,set := ifelse(z %in% training_z, '1training', '2testing')]
+eonr_explore_dt[z %in% c(5,10), set := 'discard']
+eonr_explore_dt[,.(eonr = mean(eonr)), by = set]
+
+ggplot(eonr_explore_dt) +
+  geom_boxplot(aes(x = set, y = eonr))
+
+# SPLIT THE DATA (TRAINING, VALIDATION)-------------------
+# training_z <- 1:10
+# set.seed(234)
+# training_z <- sort(sample(1:30, 10, replace = F))
+
+training_z <- c(1:4, 16:21)
+training_z <- c(4, 6, 8, 11, 13, 15, 16, 17, 28, 25)
+training_z <- c(11:20)
+
+z_odd = c(1,3,5,7,9,11,13,15,17,19,21,23,25,27,29)
+z_even = z_odd+1
+
+indx <- filter_dt_in_dt(yc_yearly_dt3, filter_dt = unique(stations_dt[,.(id_10, mukey)]))
+
+TrainSet <- yc_yearly_dt3[indx]
+TrainSet <- TrainSet[z %in% training_z]
+
+z_dry <- TrainSet[,.(Yld = mean(Yld), .N), by = z][Yld < 5000]$z
+TrainSet <- TrainSet[!z %in% z_dry]
+
+# Filter the right training z, depending on odd or even fields. Remove some z that are coming from fields 1 and 2 that are not RS
+stations_dt[,z_type := ifelse(id_field == 1, 'odd', 'even')]
+TrainSet[,z_type := ifelse(z %in% z_odd, 'odd', 'even')]
+
+right_mukey_z_combination <- unique(stations_dt[,.(id_10, mukey, z_type)])
+right_mukey_z_combination[, right_comb := 1]
+
+right_mukey_z_combination[,.N, by = id_10]
+right_mukey_z_combination[id_10 == 440]
+stations_dt[id_10 == 440]
+
+TrainSet2 <- merge(TrainSet, right_mukey_z_combination, all.x = T)
+TrainSet2 <- TrainSet2[!is.na(right_comb)]
+TrainSet2[ ,right_comb := NULL]
+# Plot a relationship
+TrainSet_eonr <- TrainSet2[, P := Yld * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% 
+  .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
+setnames(TrainSet_eonr, 'N_fert', 'eonr')
+
+TrainSet_eonr[id_10 == 440]
+unique(stations_dt[,.(id_10, id_field, mukey)]) %>% .[,.N, by = .(id_10, id_field)] %>% .[,.(N = mean(N))]
+
+ggplot(data = TrainSet_eonr, aes(x = n_0_60cm_v5, y = eonr)) + 
+  geom_point() + geom_smooth(formula = 'y ~ x', method = lm)
+
+# Make a Validation set
+ValidSet <- yc_yearly_dt3[-indx]
+
+sets_rf <- unique(ValidSet[,.(id_10, mukey)])
+sets_rf <- sets_rf[sample(1:nrow(sets_rf), 100)]
+ValidSet2 <- filter_dt_in_dt(ValidSet, filter_dt = sets_rf, return_table = T)
+
+ValidSet2_eonr <- ValidSet2[, P := Yld * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% 
+  .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
+setnames(ValidSet2_eonr, 'N_fert', 'eonr')
+
+ggplot(data = ValidSet2_eonr, aes(x = n_0_60cm_v5, y = eonr)) + 
+  geom_point() + geom_smooth(formula = 'y ~ x', method = lm)
+
+# Save the objects that will be needed later
+reg_model_stuff <- list()
+reg_model_stuff[['ValidSet']] <- ValidSet2
+reg_model_stuff[['TrainSet']] <- TrainSet2
+
+#======================================================================================
+# EXPLORE STATIONS MAP
+
+full_fields_dt[,rf := 1]
+stations_dt[,rs := 1]
+
+regularfields_sf <- dplyr::left_join(grid10_fields_sf2, full_fields_dt[,.(id_10, id_field, rf)], 
+                                     by = c('id_10', 'id_field')) %>% dplyr::filter(!is.na(rf)) %>%
+  dplyr::select(-rf)
+
+
+stations_sf <- dplyr::left_join(grid10_fields_sf2, stations_dt[,.(id_10, id_field, rs)], 
+                                     by = c('id_10', 'id_field')) %>% dplyr::filter(!is.na(rs)) %>%
+  dplyr::select(-rs)
+
+stations_sf %>% data.table() %>% .[,.N, by = .(id_10, id_field)] %>% nrow() == stations_by_region * 6
+
+# grid10_tiles_sf2 <- grid10_tiles_sf7 %>% mutate(corn_ha_cell = corn5_cell*30*30/10000/11)
+# grid10_tiles_sf2$region <- as.character(grid10_tiles_sf2$region)
+
+grid10_region <- grid10_tiles_sf6 %>% group_by(region) %>% summarize()
+
+# #install.packages('smoothr')
+# library(smoothr)
+# area_thresh <- units::set_units(10*10+10, km^2)
+# grid10_region2 <- fill_holes(grid10_region, threshold = area_thresh)
+grid10_region_by_hand <- sf::read_sf('./vr_value_v2/Data/shapefiles/grid10_region_by_hand.shp')
+grid10_region_by_hand <- st_transform(grid10_region_by_hand, crs = st_crs(stations_sf))
+
+
+(fields_map_clean <- tm_shape(grid10_tiles_sf6) + tm_borders() +
+    tm_shape(grid10_region_by_hand) + tm_borders(lwd = 4) +
+    tm_shape(stations_sf) + tm_dots(size = 0.3, col = 'black') +
+    tm_shape(regularfields_sf) + tm_dots(size = 0.04) +
+    tm_layout(legend.text.size = 0.7,
+              #main.title = 'Final fields map',
+              main.title.position = "center",
+              main.title.size = 1))
+
+# install.packages('tmap')
+library('tmap')
+tmap_save(fields_map_clean, filename = "./vr_value_v2/Data/figures/fields_map_and_stations.jpg", height = 8, width = 6)  
+
+st_write(stations_sf, "./vr_value_v2/Data/shapefiles/stations_sf.shp", delete_dsn = TRUE)
+st_write(regularfields_sf, "./vr_value_v2/Data/shapefiles/regularfields_sf.shp", delete_dsn = TRUE)
+# st_write(grid10_region, "./vr_value_v2/Data/shapefiles/grid10_region.shp", delete_dsn = TRUE)
+
+#======================================================================================
+# SPLIT THE DATA (TRAINING, VALIDATION)
+# training_z <- 1:10
+# set.seed(234)
+# training_z <- sort(sample(1:30, 10, replace = F))
+# # training_z <- c(2,9, 8, 12, 14, 15, 17, 18, 21, 29)
+# 
+# 
+# z_odd = c(1,3,5,7,9,11,13,15,17,19,21,23,25,27,29)
+# z_even = z_odd+1
+# 
+# indx <- filter_dt_in_dt(yc_yearly_dt3, filter_dt = unique(stations_dt2[,.(id_10, mukey)]))
+# StationsSet <- yc_yearly_dt3[indx]
+# ValidSet <- yc_yearly_dt3[-indx]
+# 
+# sets_rf <- unique(ValidSet[,.(id_10, mukey)])
+# sets_rf <- sets_rf[sample(1:nrow(sets_rf), 100)]
+# ValidSet2 <- filter_dt_in_dt(ValidSet, filter_dt = sets_rf, return_table = T)
+# 
+# # Filter the right training z, depending on odd or even fields. Remove some z that are coming from fields 1 and 2 that are not RS
+# stations_dt2[,z_type := ifelse(id_field == 3, 'odd', 'even')]
+# StationsSet[,z_type := ifelse(z %in% z_odd, 'odd', 'even')]
+# StationsSet <- merge(StationsSet, stations_dt2[,.(id_10, mukey, z_type)])
+# 
+# ValidSet2[,.N, by = .(id_10, mukey,z)][,.N, by = z]
+# 
+# yld_explore_dt <- StationsSet[,.(Yld = mean(Yld)), by = z]
+# yld_explore_dt[,z:= as.numeric(z)]
+# yld_explore_dt <- yld_explore_dt[order(z)]
+# 
+# ggplot(yld_explore_dt, aes(x = z, y = Yld))+
+#   geom_bar(stat="identity")
+# 
+# TrainSet <- StationsSet[z %in% training_z]
+# z_dry <- TrainSet[,.(Yld = mean(Yld), .N), by = z][Yld < 5000]$z
+# TrainSet <- TrainSet[!z %in% z_dry]
+# 
+# ValidSet3 <- ValidSet2[!z %in% training_z]
+# 
+# reg_model_stuff <- list()
+# reg_model_stuff[['ValidSet']] <- ValidSet3
+# reg_model_stuff[['TrainSet']] <- TrainSet
+
+# =========================================================================================================================================================
+# Make a random training set
+# sets_rf <- unique(yc_yearly_dt3[,.(id_10, mukey)])
+# sets_rf <- sets_rf[sample(1:nrow(sets_rf), 200)]
+# TrainSet <- filter_dt_in_dt(yc_yearly_dt3, filter_dt = sets_rf[1:100], return_table = T)
+# ValidSet <- filter_dt_in_dt(yc_yearly_dt3, filter_dt = sets_rf[101:200], return_table = T)
+# 
+# TrainSet <- TrainSet[z %in% training_z]
+# ValidSet3 <- ValidSet[!z %in% training_z]
+# 
+# TrainSet_eonr <- TrainSet[, P := Yld * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
+# setnames(TrainSet_eonr, 'N_fert', 'eonr')
+# ValidSet3_eonr <- ValidSet3[, P := Yld * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
+# setnames(ValidSet3_eonr, 'N_fert', 'eonr')
+# # =========================================================================================================================================================
+# 
+# yc_yearly_sample <- yc_yearly_dt3[mukey %in% sample(unique(yc_yearly_dt3$mukey), 100),]
+# yc_yearly_sample[, P := Yld * Pc - N_fert * Pn]
+# yc_yearly_sample[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5]
+# 
+# yc_yearly_sample_eonr <- yc_yearly_sample[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
+# setnames(yc_yearly_sample_eonr, 'N_fert', 'eonr')
+# 
+# ggplot(data = yc_yearly_sample_eonr, aes(x = n_0_60cm_v5, y = eonr)) + 
+#   geom_point() + geom_smooth()
+# 
+# 
+# 
+# ggplot(data = TrainSet_eonr, aes(x = n_0_60cm_v5, y = eonr)) + 
+#   geom_point() + geom_smooth()
+# 
+# ggplot(data = ValidSet3_eonr, aes(x = n_0_60cm_v5, y = eonr)) + 
+#   geom_point() + geom_smooth()
+
+
+# =========================================================================================================================================================
+# CREATE THE REGIONAL MINIMUM MODEL
+
+#Analysis included only responsive sites (sawyer 2006)
+TrainSet2[, Yld_response := max(Yld) - min(Yld), by = .(id_10, mukey,z)]
+TrainSet_RMM <- TrainSet2[Yld_response > 500]
+
+
+#Select a few rates
+#Alll this comes from https://rcompanion.org/handbook/I_11.html
+# N_rates_trial <- c(10, 90,170,250, 330)
+N_rates_trial <- seq(10,330,10)
+
+quadratic_dt <- TrainSet_RMM[,list(intercept=coef(lm(Yld~N_fert + I(N_fert^2)))[1], 
+                                coef1=coef(lm(Yld ~ N_fert + I(N_fert^2)))[2],
+                                coef2=coef(lm(Yld ~ N_fert + I(N_fert^2)))[3]),by=.(id_10, mukey,z, region)]
+
+# Expand and calculate yield
+N_rates_int <- seq(min(N_rates_trial),max(N_rates_trial), by = 10)
+quadratic_dt2 <- quadratic_dt[rep(x = 1:nrow(quadratic_dt), each = length(N_rates_int))]
+
+
+
+quadratic_dt2[,N_fert := rep(N_rates_int, nrow(quadratic_dt))]
+quadratic_dt2[,Yld := intercept + coef1 * N_fert + coef2 * (N_fert^2)]
+quadratic_dt2[,P:= Yld * Pc - N_fert * Pn]
+
+#Average all curves
+quadratic_dt3 <- quadratic_dt2[,.(P_avg = mean(P)), by = .(region, N_fert)]
+ggplot(quadratic_dt3) + geom_point(aes(x = N_fert, y = P_avg, colour = interaction(region)))
+
+#Select EONR
+model_minimum_regional <- quadratic_dt3[, .SD[ P_avg == max( P_avg)], by = .(region)][,.( region, N_fert)]
+setnames(model_minimum_regional, 'N_fert', 'eonr_pred')
+
+
+# reg_model_stuff <- readRDS("./vr_value_v2/Data/files_rds/reg_model_stuff.rds")
+
+reg_model_stuff[['model_minimum_regional']] <-  model_minimum_regional
+
+# =========================================================================================================================================================
+
+reg_model_stuff[['full_fields']] <-  full_fields_dt[,-'rf']
+reg_model_stuff[['stations']] <-  stations_dt[,-'rs']
+reg_model_stuff[['training_z']] <-  training_z
+# reg_model_stuff[['trial_rates']] <-  trial_rates
+
+saveRDS(reg_model_stuff, "./vr_value_v2/Data/files_rds/reg_model_stuff.rds")
+
