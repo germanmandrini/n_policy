@@ -8,7 +8,6 @@ source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
 source('./n_policy/Codes/parameters.R')
 
-
 # source('./Codes_useful/gm_functions.R')
 
 grid10_tiles_sf7 <- readRDS("./n_policy/Data/Grid/grid10_tiles_sf7.rds") 
