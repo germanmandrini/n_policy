@@ -22,6 +22,7 @@ perfomances_dt <- readRDS("./n_policy/Data/files_rds/perfomances_dt.rds")
 # perfomances_dt[,policy_name := lapply(perfomances_dt$policy, function(x) str_split(x, pattern = '_')[[1]][1])]
 
 
+
 perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
 perfomances_dt[,.N, .(id_10, id_field, mukey, policy, method)] %>% .[,N] %>% table() #number of z by mukey. SHould be all equal
 perfomances_dt[,.N, .(policy, method)]%>% .[,N] %>% table() #number of rows by policy method. SHould be all equal
