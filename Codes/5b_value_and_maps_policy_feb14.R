@@ -15,7 +15,6 @@ grid10_soils_dt5 <- readRDS("./n_policy/Data/Grid/grid10_soils_dt5.rds") %>% dat
 grid10_fields_sf2 <- readRDS('./n_policy/Data/Grid/grid10_fields_sf2.rds')
 # reg_model_stuff <- readRDS("./n_policy/Data/files_rds/reg_model_stuff.rds")
 
-
 perfomances_dt <- readRDS("./n_policy/Data/files_rds/perfomances_dt.rds")
 
 # perfomances_dt[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
