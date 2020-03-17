@@ -2,6 +2,7 @@
 # setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
 # setwd("/home/germanm2")
 # setwd('~')
+rm(list=ls())
 
 source('./Codes_useful/R.libraries.R')
 # library(scales)
@@ -110,7 +111,7 @@ perfomances_dt5[,policy_name := lapply(perfomances_dt5$policy, function(x) str_s
 saveRDS(perfomances_dt5, "./n_policy/Data/files_rds/perfomances_dt5.rds")
 
 perfomances_dt5 <- readRDS("./n_policy/Data/files_rds/perfomances_dt5.rds")
-
+perfomances_dt5[policy_name == 'ratio']
 #---------------------------------------------------------------------------
 # IMPROVE FROM CURRENT SITUATION (-15% by 2025, -45% by 2035)
 unique(perfomances_dt5$policy)
@@ -119,26 +120,30 @@ policies_f <- c("fee_0", "ratio_9", "fee_8", 'nred_0.85', 'nred_0.7')
 methods_f <- c('1', '4')
 
 table_dt <- perfomances_dt5[policy %in% policies_f & method %in% methods_f]
-table_dt[policy == 'fee_0', gov := 0]
-table_dt[policy_name == 'ratio', gov := 0]
 table_dt[policy == 'fee_0' & method == '1', order := 1]
 table_dt[policy == 'fee_0' & method == '4', order := 2] #science
 table_dt[policy == 'yr_0.9' & method == '1', order := 3] #ecological model
 table_dt[policy == 'ratio_9' & method == '1', order := 4] #tax
 table_dt[policy == 'fee_8' & method == '1', order := 5] #fee
-table_dt[policy == 'yr_0.9' & method == '4', order := 6] #ecological model + science
+table_dt[policy == 'nred_0.85' & method == '4', order := 6] #ecological model + science
 table_dt[policy == 'ratio_9' & method == '4', order := 7] #tax+science
 table_dt[policy == 'fee_8' & method == '4', order := 8] #fee+science
+table_dt[policy == 'nred_0.7' & method == '4', order := 9] #ecological model strong  + science
 table_dt <- table_dt[order(order)]
 
 # table_dt[,leach_corr := leach_n2 - gov / 8]
-table_dt
+table_dt <- perfomances_dt5[ method %in% methods_f]
 baselevel_n <- table_dt[policy == 'fee_0' & method == 1, leach_n2] 
 table_dt[, abatement := baselevel_n - leach_n2]
 table_dt[,abat_prop := round((abatement)/ baselevel_n,2)]
-table_dt[,soc_welfare := P + gov]
-baselevel_welfare <- table_dt[policy == 'fee_0' & method == 1, soc_welfare] 
-table_dt[,abat_cost := (soc_welfare - baselevel_welfare)/abatement]
+table_dt[,soc_benefits := P + gov]
+target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
+table_dt[,externatility := ifelse((leach_n2 - target_n) > 0, (leach_n2 -target_n)*Pe_med,0)]
+table_dt[,soc_welfare := soc_benefits - externatility ]
+table_dt[order(-soc_welfare)][1:40]
+
+baselevel_benefits <- table_dt[policy == 'fee_0' & method == 1, soc_benefits] 
+table_dt[,abat_cost := (soc_benefits - baselevel_benefits)/abatement]
 
 
 # DT[order(match(y, as.numeric(k)))]
@@ -164,29 +169,32 @@ ggplot(plot_dt3)+
 #==========================================================================
 # RATIO CHART 2
 
-plot_dt <- perfomances_dt5[policy_name == 'ratio' & method %in% c(1,2,3,4,5) & policy_val <= 15 ] 
+plot_dt <- perfomances_dt5[policy_name == 'ratio' & method %in% c(1,2,3,4,5) & policy_val <= 20 ] 
 
-plot_dt[,.N, by = .(policy, method)]
-plot_dt[,soc_welfare := P + gov - ifelse((leach_n2 -target_n) > 0, (leach_n2 -target_n)*Pe_med,0) ]
-plot_dt[order(-soc_welfare)]
-
+plot_dt[,soc_benefits := P + gov]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
+plot_dt[,externatility := ifelse((leach_n2 - target_n) > 0, (leach_n2 -target_n)*Pe_med,0)]
+plot_dt[,soc_welfare := soc_benefits - externatility ]
+plot_dt[order(-soc_welfare)][1:40]
 
-plot_dt1 <- melt(plot_dt, id.vars = c('policy_val', 'method'), measure.vars = c('Yld', 'leach_n2', 'N_fert', 'P', 'gov', 'soc_welfare'))
+
+plot_dt1 <- melt(plot_dt, id.vars = c('policy_val', 'method'), measure.vars = c('Yld', 'leach_n2', 'N_fert', 
+                                                                                'P', 'gov', 'externatility','soc_welfare'))
 
 plot_dt1[variable == 'N_fert', plot_name := 'a) N Rate']
 plot_dt1[variable == 'leach_n2', plot_name := 'b) N Leaching']
 plot_dt1[variable == 'Yld', plot_name := 'c) Yield']
 plot_dt1[variable == 'P', plot_name := 'd) Profits']
 plot_dt1[variable == 'gov', plot_name := 'e) Tax revenue']
-plot_dt1[variable == 'soc_welfare', plot_name := 'f) soc_welfare']
+plot_dt1[variable == 'externatility', plot_name := 'f) externatility']
+plot_dt1[variable == 'soc_welfare', plot_name := 'g) soc_welfare']
 plot_dt1[order(variable)]
 
 
 plot_1 <- ggplot(plot_dt1[variable %in% c('N_fert', 'leach_n2', 'Yld')])+
   geom_line(aes(x = policy_val, y =  value, colour = method)) +
   facet_grid(plot_name~., scales = "free") +
-  scale_x_continuous(breaks = seq(1,15,1), labels = seq(1,15,1)) + 
+  scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
   # ylab('Yield (kg/ha)')+
   theme_bw()+
@@ -200,7 +208,7 @@ ggsave(plot = plot_1, filename = "./n_policy/Data/figures/ratio_all_vars_part1.j
 plot_1 <- ggplot(plot_dt1[!variable %in% c('N_fert', 'leach_n2', 'Yld')])+
   geom_line(aes(x = policy_val, y =  value, colour = method)) +
   facet_grid(plot_name~., scales = "free") +
-  scale_x_continuous(breaks = seq(1,15,1), labels = seq(1,15,1)) + 
+  scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
   # ylab('Yield (kg/ha)')+
   theme_bw()+

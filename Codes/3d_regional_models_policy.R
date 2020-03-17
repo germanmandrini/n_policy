@@ -25,8 +25,6 @@ for(n in remove_list){
   reg_model_stuff[[n]] <- NULL
 }
 
-
-
 # stations_dt <- reg_model_stuff[['stations']]
 # full_fields_dt <- reg_model_stuff[['full_fields']]
 
