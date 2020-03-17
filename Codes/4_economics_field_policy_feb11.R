@@ -3,6 +3,7 @@
 # setwd("/home/germanm2")
 setwd('~')
 rm(list=ls())
+
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
 source('./n_policy/Codes/parameters.R')

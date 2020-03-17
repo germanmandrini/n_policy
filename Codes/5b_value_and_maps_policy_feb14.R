@@ -67,9 +67,6 @@ names(perfomances_dt)
 do_not_aggregate = c('policy','id_10', 'region','method', 'tech', 'z')
 do_aggregate =  c("Yld", "leach_n2", "N_fert","P", 'gov')
 
-
-
-
 if(FALSE){
   #First aggregate without z so then we can get the leach_extreme
   perfomances_dt3 <- aggregate_by_area(data_dt = perfomances_dt2, variables = do_aggregate, 
