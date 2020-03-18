@@ -131,11 +131,36 @@ table_dt[policy == 'fee_8' & method == '4', order := 8] #fee+science
 table_dt[policy == 'nred_0.7' & method == '4', order := 9] #ecological model strong  + science
 table_dt <- table_dt[order(order)]
 
-# table_dt[,leach_corr := leach_n2 - gov / 8]
+
+#---------------------------------------------------------------------------
+# BEST OPTION 1: FARMERS FOCUSED. Given a yield restriction of 90%, what is the maximum we could reduce N leaching hurting the less the farmers 
+# and not caring about the externality cost (we are already sending less N, that's it my friends)
+
 table_dt <- perfomances_dt5[ method %in% methods_f]
 baselevel_n <- table_dt[policy == 'fee_0' & method == 1, leach_n2] 
-table_dt[, abatement := baselevel_n - leach_n2]
+baselevel_yld <- table_dt[policy == 'fee_0' & method == 1, Yld ]
+table_dt[,yld_red := round((Yld / baselevel_yld),2)]
+
+table_dt <- table_dt[yld_red > 0.9] #remove those that decrease yield too much
+
+table_dt[,abatement := baselevel_n - leach_n2]
 table_dt[,abat_prop := round((abatement)/ baselevel_n,2)]
+target_abat_prop <- table_dt[order(-abat_prop)] %>% .[1:10, abat_prop] %>% mean()
+
+table_dt <- table_dt[abat_prop > (target_abat_prop - 0.01)]
+table_dt[,soc_benefits := P + gov] #only farmers
+
+
+#---------------------------------------------------------------------------
+# BEST OPTION 2: considering a cost of the externality, what method would maximize the welfare of the society
+
+table_dt <- perfomances_dt5[ method %in% methods_f]
+baselevel_n <- table_dt[policy == 'fee_0' & method == 1, leach_n2] 
+table_dt[,abatement := baselevel_n - leach_n2]
+table_dt[,abat_prop := round((abatement)/ baselevel_n,2)]
+baselevel_yld <- table_dt[policy == 'fee_0' & method == 1, Yld ]
+table_dt[,yld_red := round((Yld / baselevel_yld),2)]
+
 table_dt[,soc_benefits := P + gov]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
 table_dt[,externatility := ifelse((leach_n2 - target_n) > 0, (leach_n2 -target_n)*Pe_med,0)]
@@ -150,6 +175,8 @@ table_dt[,abat_cost := (soc_benefits - baselevel_benefits)/abatement]
 
 10800000 * 0.404686 * 42 / 1e6 #millons to expend in RS and recovering
 +1-(33/45)
+
+
 
 #---------------------------------------------------------------------------
 # YR CHART
