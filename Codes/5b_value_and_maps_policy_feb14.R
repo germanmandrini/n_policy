@@ -17,15 +17,16 @@ grid10_fields_sf2 <- readRDS('./n_policy/Data/Grid/grid10_fields_sf2.rds')
 # reg_model_stuff <- readRDS("./n_policy/Data/files_rds/reg_model_stuff.rds")
 
 perfomances_dt <- readRDS("./n_policy/Data/files_rds/perfomances_dt.rds")
+setnames(perfomances_dt, 'method', 'NMS')
 
 # perfomances_dt[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
 # perfomances_dt[,policy_name := lapply(perfomances_dt$policy, function(x) str_split(x, pattern = '_')[[1]][1])]
 
 perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
-perfomances_dt[,.N, .(id_10, id_field, mukey, policy, method)] %>% .[,N] %>% table() #number of z by mukey. SHould be all equal
-perfomances_dt[,.N, .(policy, method)]%>% .[,N] %>% table() #number of rows by policy method. SHould be all equal
+perfomances_dt[,.N, .(id_10, id_field, mukey, policy, NMS)] %>% .[,N] %>% table() #number of z by mukey. SHould be all equal
+perfomances_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of rows by policy NMS. SHould be all equal
 
-summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, method, tech, z)]$area_ha)
+summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NMS, tech, z)]$area_ha)
 
 #-------------------------------------------------------------------------
 #-------------------------------------------------------------------------
@@ -35,7 +36,7 @@ summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, polic
 # library(car)
 
 names(perfomances_dt)
-do_not_aggregate = c("policy",'region','id_10', 'method', 'tech', 'z', 'id_field')
+do_not_aggregate = c("policy",'region','id_10', 'NMS', 'tech', 'z', 'id_field')
 do_aggregate =  c("Yld", "leach_n2", "N_fert","P", "gov")
 
 if(FALSE){
@@ -54,15 +55,15 @@ if(FALSE){
 
 str(perfomances_dt2)
 
-# perfomances_dt2[,method := factor(method, levels = 1:12)]
+# perfomances_dt2[,NMS := factor(NMS, levels = 1:12)]
 # perfomances_dt2[,id_10 := as.character(id_10)]
 
-perfomances_dt2 <- perfomances_dt2[order(id_10, z,id_field, method)]
+perfomances_dt2 <- perfomances_dt2[order(id_10, z,id_field, NMS)]
 
 #-------------------------------------------------------------------------
 # AGGREGATE THE DATA TO CELL X Z LEVEL CONSIDERING THE AREA
 names(perfomances_dt)
-do_not_aggregate = c('policy','id_10', 'region','method', 'tech', 'z')
+do_not_aggregate = c('policy','id_10', 'region','NMS', 'tech', 'z')
 do_aggregate =  c("Yld", "leach_n2", "N_fert","P", 'gov')
 
 if(FALSE){
@@ -89,7 +90,7 @@ perfomances_dt4 <- perfomances_dt3[, .(Yld =  mean(Yld),
                                        N_fert = mean(N_fert),
                                        P = mean(P), 
                                        gov = mean(gov),
-                                       area_ha = mean(area_ha)), by = .(policy,region, id_10, method, tech)] #cell 
+                                       area_ha = mean(area_ha)), by = .(policy,region, id_10, NMS, tech)] #cell 
 
 #---------------------------------------------------------------------------
 # AGGREGATE AGAIN CONSIDERING THE CORN PRODUCTION OF THE CELL
@@ -102,7 +103,7 @@ perfomances_dt4 <- merge(perfomances_dt4, grid10_tiles_dt, by = 'id_10')
 
 
 perfomances_dt5 <- aggregate_by_area(data_dt = perfomances_dt4, variables = c("Yld", "leach_n2", "leach_ext", "N_fert","P", "gov"), 
-                                         weight = 'corn_avg_ha', by_c = c('policy','method', 'tech')) #state level, weighted by corn_ha
+                                         weight = 'corn_avg_ha', by_c = c('policy','NMS', 'tech')) #state level, weighted by corn_ha
 perfomances_dt5[order(-P)]
 
 perfomances_dt5[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
@@ -120,18 +121,18 @@ perfomances_dt5[policy_name == 'ratio']
 unique(perfomances_dt5$policy)
 
 policies_f <- c("fee_0", "ratio_9", "fee_8", 'nred_0.85', 'nred_0.7')
-methods_f <- c('1', '4')
+NMSs_f <- c('1', '4')
 
-table_dt <- perfomances_dt5[policy %in% policies_f & method %in% methods_f]
-table_dt[policy == 'fee_0' & method == '1', order := 1]
-table_dt[policy == 'fee_0' & method == '4', order := 2] #science
-table_dt[policy == 'yr_0.9' & method == '1', order := 3] #ecological model
-table_dt[policy == 'ratio_9' & method == '1', order := 4] #tax
-table_dt[policy == 'fee_8' & method == '1', order := 5] #fee
-table_dt[policy == 'nred_0.85' & method == '4', order := 6] #ecological model + science
-table_dt[policy == 'ratio_9' & method == '4', order := 7] #tax+science
-table_dt[policy == 'fee_8' & method == '4', order := 8] #fee+science
-table_dt[policy == 'nred_0.7' & method == '4', order := 9] #ecological model strong  + science
+table_dt <- perfomances_dt5[policy %in% policies_f & NMS %in% NMSs_f]
+table_dt[policy == 'fee_0' & NMS == '1', order := 1]
+table_dt[policy == 'fee_0' & NMS == '4', order := 2] #science
+table_dt[policy == 'yr_0.9' & NMS == '1', order := 3] #ecological model
+table_dt[policy == 'ratio_9' & NMS == '1', order := 4] #tax
+table_dt[policy == 'fee_8' & NMS == '1', order := 5] #fee
+table_dt[policy == 'nred_0.85' & NMS == '4', order := 6] #ecological model + science
+table_dt[policy == 'ratio_9' & NMS == '4', order := 7] #tax+science
+table_dt[policy == 'fee_8' & NMS == '4', order := 8] #fee+science
+table_dt[policy == 'nred_0.7' & NMS == '4', order := 9] #ecological model strong  + science
 table_dt <- table_dt[order(order)]
 
 
@@ -139,9 +140,9 @@ table_dt <- table_dt[order(order)]
 # BEST OPTION 1: FARMERS FOCUSED. Given a yield restriction of 90%, what is the maximum we could reduce N leaching hurting the less the farmers 
 # and not caring about the externality cost (we are already sending less N, that's it my friends)
 
-table_dt <- perfomances_dt5[ method %in% methods_f]
-baselevel_n <- table_dt[policy == 'fee_0' & method == 1, leach_n2] 
-baselevel_yld <- table_dt[policy == 'fee_0' & method == 1, Yld ]
+table_dt <- perfomances_dt5[ NMS %in% NMSs_f]
+baselevel_n <- table_dt[policy == 'fee_0' & NMS == 1, leach_n2] 
+baselevel_yld <- table_dt[policy == 'fee_0' & NMS == 1, Yld ]
 table_dt[,yld_red := round((Yld / baselevel_yld),2)]
 
 table_dt <- table_dt[yld_red > 0.9] #remove those that decrease yield too much
@@ -155,13 +156,13 @@ table_dt[,soc_benefits := P + gov] #only farmers
 
 
 #---------------------------------------------------------------------------
-# BEST OPTION 2: considering a cost of the externality, what method would maximize the welfare of the society
-methods_f <- c('1','2','4')
-table_dt <- perfomances_dt5[ method %in% methods_f]
-baselevel_n <- table_dt[policy == 'fee_0' & method == 1, leach_n2] 
+# BEST OPTION 2: considering a cost of the externality, what NMS would maximize the welfare of the society
+NMSs_f <- c('1','2','4')
+table_dt <- perfomances_dt5[ NMS %in% NMSs_f]
+baselevel_n <- table_dt[policy == 'fee_0' & NMS == 1, leach_n2] 
 table_dt[,abatement := baselevel_n - leach_n2]
 table_dt[,abat_prop := round((abatement)/ baselevel_n,2)]
-baselevel_yld <- table_dt[policy == 'fee_0' & method == 1, Yld ]
+baselevel_yld <- table_dt[policy == 'fee_0' & NMS == 1, Yld ]
 table_dt[,yld_red := round((Yld / baselevel_yld),2)]
 
 table_dt[,soc_benefits := P + gov]
@@ -170,7 +171,7 @@ table_dt[,externatility := ifelse((leach_n2 - target_n) > 0, (leach_n2 -target_n
 table_dt[,soc_welfare := soc_benefits - externatility ]
 table_dt[order(-soc_welfare)][1:40]
 
-baselevel_benefits <- table_dt[policy == 'fee_0' & method == 1, soc_benefits] 
+baselevel_benefits <- table_dt[policy == 'fee_0' & NMS == 1, soc_benefits] 
 table_dt[,abat_cost := (soc_benefits - baselevel_benefits)/abatement]
 
 
@@ -184,8 +185,8 @@ table_dt[,abat_cost := (soc_benefits - baselevel_benefits)/abatement]
 #---------------------------------------------------------------------------
 # YR CHART
 
-plot_dt <- perfomances_dt5[policy_name == 'yr' & method == '4'] 
-plot_dt[,.N, by = .(policy, method)]
+plot_dt <- perfomances_dt5[policy_name == 'yr' & NMS == '4'] 
+plot_dt[,.N, by = .(policy, NMS)]
 
 plot_dt1 <- melt(plot_dt, id.vars = 'policy_val', measure.vars = c('Yld', 'leach_n2', 'N_fert', 'P'))
 plot_dt2 <- melt(plot_dt[policy_val == 1], id.vars = 'policy_val', measure.vars = c('Yld', 'leach_n2', 'N_fert', 'P'))
@@ -199,7 +200,7 @@ ggplot(plot_dt3)+
 #==========================================================================
 # RATIO CHART 2
 
-plot_dt <- perfomances_dt5[policy_name == 'ratio' & method %in% c('1','2','3','4','5') & policy_val <= 20 ] 
+plot_dt <- perfomances_dt5[policy_name == 'ratio' & NMS %in% c('1','2','3','4','5') & policy_val <= 20 ] 
 
 plot_dt[,soc_benefits := P + gov]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
@@ -208,7 +209,7 @@ plot_dt[,soc_welfare := soc_benefits - externatility ]
 plot_dt[order(-soc_welfare)][1:40]
 
 
-plot_dt1 <- melt(plot_dt, id.vars = c('policy_val', 'method'), measure.vars = c('Yld', 'leach_n2', 'N_fert', 
+plot_dt1 <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Yld', 'leach_n2', 'N_fert', 
                                                                                 'P', 'gov', 'externatility','soc_welfare'))
 
 plot_dt1[variable == 'N_fert', plot_name := 'a) N Rate']
@@ -222,7 +223,7 @@ plot_dt1[order(variable)]
 
 
 plot_1 <- ggplot(plot_dt1[variable %in% c('N_fert', 'leach_n2', 'Yld')])+
-  geom_line(aes(x = policy_val, y =  value, colour = method)) +
+  geom_line(aes(x = policy_val, y =  value, colour = NMS)) +
   facet_grid(plot_name~., scales = "free") +
   scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
@@ -237,7 +238,7 @@ ggsave(plot = plot_1, filename = "./n_policy/Data/figures/ratio_all_vars_part1.j
        units = 'in')
 
 plot_1 <- ggplot(plot_dt1[!variable %in% c('N_fert', 'leach_n2', 'Yld')])+
-  geom_line(aes(x = policy_val, y =  value, colour = method)) +
+  geom_line(aes(x = policy_val, y =  value, colour = NMS)) +
   facet_grid(plot_name~., scales = "free") +
   scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
@@ -269,14 +270,14 @@ rmse_dt <- perfomances_dt[stringr::str_detect(string = perfomances_dt$policy, pa
                     RMSE = mlr::measureRMSE(truth = N_fert_12, response = N_fert),
                     overpred = sum(overpred)/.N,
                     subpred = sum(subpred)/.N,
-                    angulo = sum(angulo)/.N), by = .( method, policy)][order(-P)]
+                    angulo = sum(angulo)/.N), by = .( NMS, policy)][order(-P)]
 
 rmse_dt[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
 rmse_dt[,policy_name := lapply(policy, function(x) str_split(x, pattern = '_')[[1]][1])]
-rmse_dt <- rmse_dt[ method %in% c('1','2','3','4','5')]
+rmse_dt <- rmse_dt[ NMS %in% c('1','2','3','4','5')]
 
 plot_1 <- ggplot(rmse_dt)+
-  geom_line(aes(x = policy_val, y =  RMSE, colour = method)) +
+  geom_line(aes(x = policy_val, y =  RMSE, colour = NMS)) +
   scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
   geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
@@ -289,7 +290,7 @@ ggsave(plot = plot_1, filename = "./n_policy/Data/figures/rmse.jpg", width = 5, 
        units = 'in')
 
 plot_1 <- ggplot(rmse_dt)+
-  geom_line(aes(x = policy_val, y =  overpred, colour = method))+
+  geom_line(aes(x = policy_val, y =  overpred, colour = NMS))+
   scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
   geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
@@ -298,7 +299,7 @@ plot_1 <- ggplot(rmse_dt)+
   theme(panel.grid = element_blank())
 
 plot_2 <- ggplot(rmse_dt)+
-  geom_line(aes(x = policy_val, y =  subpred, colour = method))+
+  geom_line(aes(x = policy_val, y =  subpred, colour = NMS))+
   scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
   geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
@@ -310,7 +311,7 @@ grid.arrange(plot_1 , plot_2)
 
 #---------------------------------------------------------------------------
 # BOXPLOT OF EXPOST RATES
-boxplot_dt <- perfomances_dt[stringr::str_detect(string = perfomances_dt$policy, pattern = 'ratio') & method ==12]
+boxplot_dt <- perfomances_dt[stringr::str_detect(string = perfomances_dt$policy, pattern = 'ratio') & NMS ==12]
 boxplot_dt[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
 boxplot_dt[,policy_name := lapply(policy, function(x) str_split(x, pattern = '_')[[1]][1])]
 class(boxplot_dt$policy_val)
@@ -325,7 +326,7 @@ plot_1 <- ggplot(boxplot_dt)+
   theme(panel.grid = element_blank())
 plot_1
 
-ggsave(plot = plot_1, filename = "./n_policy/Data/figures/boxplot_method12.jpg", width = 5, height = 5,
+ggsave(plot = plot_1, filename = "./n_policy/Data/figures/boxplot_NMS12.jpg", width = 5, height = 5,
        units = 'in')
 
 plot_1 <- ggplot(boxplot_dt[policy_val %in% c(2,8,15)])+
@@ -338,38 +339,38 @@ plot_1 <- ggplot(boxplot_dt[policy_val %in% c(2,8,15)])+
 
 plot_1
 
-ggsave(plot = plot_1, filename = "./n_policy/Data/figures/boxplot_method12.jpg", width = 5, height = 5,
+ggsave(plot = plot_1, filename = "./n_policy/Data/figures/boxplot_NMS12.jpg", width = 5, height = 5,
        units = 'in')
 
 
 #---------------------------------------------------------------------------
 #Value of information 
 # MAKE A MAP OF ECONOMIC VALUE OF INFORMATION SS
-profits_dt <- perfomances_dt5[policy_name == 'ratio'  & method %in% c(1,2,4,5)]
+profits_dt <- perfomances_dt5[policy_name == 'ratio'  & NMS %in% c(1,2,4,5)]
 ggplot(profits_dt)+
-  geom_line(aes(x = policy_val, y =  P, colour = method))
+  geom_line(aes(x = policy_val, y =  P, colour = NMS))
 
 value_long_dt <- data.table()
-value_dt <- perfomances_dt5[policy_name == 'ratio'  & method %in% c(1,2)]
-value_dt[method == 1, P := -P]
+value_dt <- perfomances_dt5[policy_name == 'ratio'  & NMS %in% c(1,2)]
+value_dt[NMS == 1, P := -P]
 value_dt <- value_dt[, .(P = sum(P)), by = .(policy_val)]
 value_dt[, variable := 'val_info']
 value_long_dt <- rbind(value_long_dt, value_dt)
 
-value_dt <- perfomances_dt5[policy_name == 'ratio'  & method %in% c(2,4)]
-value_dt[method == 2, P := -P]
+value_dt <- perfomances_dt5[policy_name == 'ratio'  & NMS %in% c(2,4)]
+value_dt[NMS == 2, P := -P]
 value_dt <- value_dt[, .(P = sum(P)), by = .(policy_val)]
 value_dt[, variable := 'val_ss']
 value_long_dt <- rbind(value_long_dt, value_dt)
 
-value_dt <- perfomances_dt5[policy_name == 'ratio'  & method %in% c(2,3)]
-value_dt[method == 2, P := -P]
+value_dt <- perfomances_dt5[policy_name == 'ratio'  & NMS %in% c(2,3)]
+value_dt[NMS == 2, P := -P]
 value_dt <- value_dt[, .(P = sum(P)), by = .(policy_val)]
 value_dt[, variable := 'val_tech']
 value_long_dt <- rbind(value_long_dt, value_dt)
 
-value_dt <- perfomances_dt5[policy_name == 'ratio'  & method %in% c(4,5)]
-value_dt[method == 4, P := -P]
+value_dt <- perfomances_dt5[policy_name == 'ratio'  & NMS %in% c(4,5)]
+value_dt[NMS == 4, P := -P]
 value_dt <- value_dt[, .(P = sum(P)), by = .(policy_val)]
 value_dt[, variable := 'val_tech_ss']
 value_long_dt <- rbind(value_long_dt, value_dt)
@@ -392,7 +393,7 @@ ggsave(plot = plot_1, filename = "./n_policy/Data/figures/valueISST_by_ratio.jpg
 #==========================================================================
 # FEE CHART
 
-plot_dt <- perfomances_dt5[policy_name == 'fee' & method == '1'] 
+plot_dt <- perfomances_dt5[policy_name == 'fee' & NMS == '1'] 
 
 plot_dt1 <- melt(plot_dt, id.vars = 'policy_val', measure.vars = c('Yld', 'leach_n2', 'N_fert', 'P', 'gov'))
 plot_dt2 <- melt(plot_dt[policy_val == 6], id.vars = 'policy_val', measure.vars = c('Yld', 'leach_n2', 'N_fert', 'P', 'gov'))
@@ -412,14 +413,14 @@ ggplot(plot_dt3) +
 # cols <- c( 'RMSE', 'MAE', 'RMSE_MAE')
 # rmse_dt[, (cols) := lapply(.SD, function(x) round(x,1)), .SDcols = cols]
 
-# rmse_dt[,method := factor(method, levels= c('1', '2', '3','4', '5', '6', '7', '8', '9', '10', '11', '12'))]
+# rmse_dt[,NMS := factor(NMS, levels= c('1', '2', '3','4', '5', '6', '7', '8', '9', '10', '11', '12'))]
 
-# (p1 <- ggplot(rmse_dt, aes(x = method, y = RMSE))+
+# (p1 <- ggplot(rmse_dt, aes(x = NMS, y = RMSE))+
 #     geom_bar(stat="identity") )
-# rmse_dt[,method := as.integer(method)]
-# rmse_dt <- rmse_dt[order(method)]
+# rmse_dt[,NMS := as.integer(NMS)]
+# rmse_dt <- rmse_dt[order(NMS)]
 
-# perfomances_dt4[,method := as.integer(method)]
+# perfomances_dt4[,NMS := as.integer(NMS)]
 latex_table_dt <- perfomances_dt5[,-'corn_avg_ha']
 
 cols_1 <- c('Yld', 'leach_n2', 'leach_ext', 'N_fert', 'P')
@@ -441,25 +442,25 @@ print(xtable(latex_table_dt, type = "latex", auto = TRUE, label = 'tab:state_out
 ?print.xtable
 ?xtable
 
-latex_table_dt[method==2, ]$Profits - latex_table_dt[method==1, ]$Profits 
-latex_table_dt[method==4, ]$Profits - latex_table_dt[method==1, ]$Profits #Value of infomation
-latex_table_dt[method==5, ]$Profits - latex_table_dt[method==4, ]$Profits #Ex-ante Value of T
-latex_table_dt[method==12, ]$Profits - latex_table_dt[method==11, ]$Profits #Ex-ost Value of T
+latex_table_dt[NMS==2, ]$Profits - latex_table_dt[NMS==1, ]$Profits 
+latex_table_dt[NMS==4, ]$Profits - latex_table_dt[NMS==1, ]$Profits #Value of infomation
+latex_table_dt[NMS==5, ]$Profits - latex_table_dt[NMS==4, ]$Profits #Ex-ante Value of T
+latex_table_dt[NMS==12, ]$Profits - latex_table_dt[NMS==11, ]$Profits #Ex-ost Value of T
 
 
-latex_table_dt[method==2, ]$'N leaching' - latex_table_dt[method==1, ]$'N leaching'
-latex_table_dt[method==4, ]$'N leaching' - latex_table_dt[method==1, ]$'N leaching' #EB of infomation
-latex_table_dt[method==5, ]$'N leaching' - latex_table_dt[method==4, ]$'N leaching' #EB of T
+latex_table_dt[NMS==2, ]$'N leaching' - latex_table_dt[NMS==1, ]$'N leaching'
+latex_table_dt[NMS==4, ]$'N leaching' - latex_table_dt[NMS==1, ]$'N leaching' #EB of infomation
+latex_table_dt[NMS==5, ]$'N leaching' - latex_table_dt[NMS==4, ]$'N leaching' #EB of T
 
--(latex_table_dt[method==4, 'N leaching'] - latex_table_dt[method==1, 'N leaching'])/latex_table_dt[method==1, 'N leaching'] #% Decrease in N leaching
--(latex_table_dt[method==4, 'N leach ext'] - latex_table_dt[method==1, 'N leach ext'])/latex_table_dt[method==1, 'N leach ext'] #% Decrease in N leaching extreme
--(latex_table_dt[method==4, 'N rate'] - latex_table_dt[method==1, 'N rate'])/latex_table_dt[method==1, 'N rate'] #% Decrease in N use
+-(latex_table_dt[NMS==4, 'N leaching'] - latex_table_dt[NMS==1, 'N leaching'])/latex_table_dt[NMS==1, 'N leaching'] #% Decrease in N leaching
+-(latex_table_dt[NMS==4, 'N leach ext'] - latex_table_dt[NMS==1, 'N leach ext'])/latex_table_dt[NMS==1, 'N leach ext'] #% Decrease in N leaching extreme
+-(latex_table_dt[NMS==4, 'N rate'] - latex_table_dt[NMS==1, 'N rate'])/latex_table_dt[NMS==1, 'N rate'] #% Decrease in N use
 
 #=====================================================================================================================
-# MRTN vs Minimum method
-reg_method_stuff <- readRDS( "./n_policy/Data/files_rds/reg_method_stuff.rds")
-method_minimum_regional <- reg_method_stuff$method_minimum_regional
-rm(reg_method_stuff)
+# MRTN vs Minimum NMS
+reg_NMS_stuff <- readRDS( "./n_policy/Data/files_rds/reg_NMS_stuff.rds")
+NMS_minimum_regional <- reg_NMS_stuff$NMS_minimum_regional
+rm(reg_NMS_stuff)
 
 mrtn_dt <- data.table(region = c(3,3,2,2,1,1), 
            prev_crop = c(0,1,0,1,0,1),
@@ -467,27 +468,27 @@ mrtn_dt <- data.table(region = c(3,3,2,2,1,1),
 mrtn_dt <- mrtn_dt[prev_crop == 0]
 mrtn_dt[,MRTN_rate := round(MRTN_Rate_lbN_ac * 1.12,0)] #1 pound per acre = 1.12 kilograms per hectare
 
-method_minimum_regional2 <- merge(method_minimum_regional, mrtn_dt[,-c('prev_crop','MRTN_Rate_lbN_ac')], by = c('region'))
-# method_minimum_regional2[,prev_crop := ifelse(prev_crop == 0, 'Soybean', 'Corn')]
-method_minimum_regional2[,region := ifelse(region == 1, '1_South', ifelse(region == 2, '2_Central', '3_North'))]
-setnames(method_minimum_regional2, 'eonr_pred', 'method1_rate')
-method_minimum_regional2[order(-region)]
+NMS_minimum_regional2 <- merge(NMS_minimum_regional, mrtn_dt[,-c('prev_crop','MRTN_Rate_lbN_ac')], by = c('region'))
+# NMS_minimum_regional2[,prev_crop := ifelse(prev_crop == 0, 'Soybean', 'Corn')]
+NMS_minimum_regional2[,region := ifelse(region == 1, '1_South', ifelse(region == 2, '2_Central', '3_North'))]
+setnames(NMS_minimum_regional2, 'eonr_pred', 'NMS1_rate')
+NMS_minimum_regional2[order(-region)]
 
-print.xtable(xtable(method_minimum_regional2, type = "latex", auto = TRUE, 
-             label = 'tab:method1', 
-             caption = 'Method 1 predictions paired with MRTN recommendations for the same region'),
-             file = "./n_policy/Data/figures/method1.tex", include.rownames=FALSE)
+print.xtable(xtable(NMS_minimum_regional2, type = "latex", auto = TRUE, 
+             label = 'tab:NMS1', 
+             caption = 'NMS 1 predictions paired with MRTN recommendations for the same region'),
+             file = "./n_policy/Data/figures/NMS1.tex", include.rownames=FALSE)
 
 #=====================================================================================================================
 #-----------------------------------------VALUE OF INFORMATION--------------------------------------------------------
 #=====================================================================================================================
-# MAKE A MAP OF TOTAL LEACHING WITH method 1 AND REDUCTION WITH method 4
-value_dt <- perfomances_dt4[method %in% c(1, 4), .(id_10, method, leach_n2, corn_avg_ha, leach_ext)]
+# MAKE A MAP OF TOTAL LEACHING WITH NMS 1 AND REDUCTION WITH NMS 4
+value_dt <- perfomances_dt4[NMS %in% c(1, 4), .(id_10, NMS, leach_n2, corn_avg_ha, leach_ext)]
 
 value_dt[, leach_n2_cell := leach_n2 * corn_avg_ha]
 value_dt[, leach_ext_cell := leach_ext * corn_avg_ha]
 
-value_dt <- dcast(value_dt, id_10 ~ method, value.var = c('leach_n2_cell', 'leach_ext_cell', 'leach_n2'))
+value_dt <- dcast(value_dt, id_10 ~ NMS, value.var = c('leach_n2_cell', 'leach_ext_cell', 'leach_n2'))
 value_dt[,leach_n2_4 := NULL]
 
 # setnames(value_dt, c('1', '4'), c('leach_n2_m1', 'leach_n2_m2'))
@@ -530,13 +531,13 @@ breaks_n <- c(50000,100000,200000,300000,400000)
               main.title.size = 1.2,
               legend.position = c('left', 'bottom'))) #Leaching with MRTN (baseline_characterization_map)
 #---------------------------------------------------------------------------------------------------
-# MAKE A MAP OF RMSE (In what areas are the methods more off?) -----
-rmse_map_dt <- perfomances_dt[method %in% c(1,4) ,.(RMSE = mlr::measureRMSE(truth = N_fert_12, response = N_fert),
+# MAKE A MAP OF RMSE (In what areas are the NMSs more off?) -----
+rmse_map_dt <- perfomances_dt[NMS %in% c(1,4) ,.(RMSE = mlr::measureRMSE(truth = N_fert_12, response = N_fert),
                               MAE = mlr::measureMAE(truth = N_fert_12, response = N_fert),
                               subpred = sum(subpred)/.N,
-                              overpred = sum(overpred)/.N), by = .(id_10, method)]
+                              overpred = sum(overpred)/.N), by = .(id_10, NMS)]
 
-rmse_map_dt2 <- dcast(rmse_map_dt, id_10 ~ method, value.var = c('RMSE', 'MAE', 'subpred', 'overpred'))
+rmse_map_dt2 <- dcast(rmse_map_dt, id_10 ~ NMS, value.var = c('RMSE', 'MAE', 'subpred', 'overpred'))
 
 
 rmse_map_sf <- merge(grid10_tiles_sf7, rmse_map_dt2, by = 'id_10', all.x = T)
@@ -544,40 +545,40 @@ rmse_map_sf <- merge(grid10_tiles_sf7, rmse_map_dt2, by = 'id_10', all.x = T)
 tm_shape(rmse_map_sf) + tm_polygons(c('RMSE_1', 'RMSE_4', 'overpred_4', 'subpred_4'))
 
 #---------------------------------------------------------------------------------------------------
-# MAKE A MAP OF EONR for method 1, 4, 12 -----
-rates_map_dt <-  perfomances_dt3[method %in% c(1,4, 12)] 
+# MAKE A MAP OF EONR for NMS 1, 4, 12 -----
+rates_map_dt <-  perfomances_dt3[NMS %in% c(1,4, 12)] 
 
-rates_map_dt2 <- dcast(rates_map_dt, id_10 ~ method, value.var = c('leach_n2','N_fert', 'P', 'Yld'))
+rates_map_dt2 <- dcast(rates_map_dt, id_10 ~ NMS, value.var = c('leach_n2','N_fert', 'P', 'Yld'))
 
 rates_map_sf <- merge(grid10_tiles_sf7, rates_map_dt2, by = 'id_10', all.x = T)
 
-rates_map_sf <- merge(grid10_tiles_sf7, rates_map_dt[,.(id_10, method, Yld, leach_n2, N_fert, P)], by = 'id_10', all = T)
+rates_map_sf <- merge(grid10_tiles_sf7, rates_map_dt[,.(id_10, NMS, Yld, leach_n2, N_fert, P)], by = 'id_10', all = T)
 
-empty_cells_sf <- rates_map_sf[is.na(rates_map_sf$method),]
-rates_map_sf2  <- rates_map_sf[!is.na(rates_map_sf$method),]
+empty_cells_sf <- rates_map_sf[is.na(rates_map_sf$NMS),]
+rates_map_sf2  <- rates_map_sf[!is.na(rates_map_sf$NMS),]
 
 
-for(method_n in c(1,4,12)){
-  rates_map_sf2 <- rbind(rates_map_sf2, empty_cells_sf %>% mutate(method = method_n))
+for(NMS_n in c(1,4,12)){
+  rates_map_sf2 <- rbind(rates_map_sf2, empty_cells_sf %>% mutate(NMS = NMS_n))
   
 }
 
-rates_map_sf3 <- melt(rates_map_sf2, id.vars = c("id_10", "geometry", 'method'), measure.vars = c("Yld", "leach_n2", "N_fert", "P"))
+rates_map_sf3 <- melt(rates_map_sf2, id.vars = c("id_10", "geometry", 'NMS'), measure.vars = c("Yld", "leach_n2", "N_fert", "P"))
 rates_map_sf3 <- st_sf(rates_map_sf3)
 
 nrow(grid10_tiles_sf7)*3
 
-rates_map_sf3$method <- factor(rates_map_sf3$method, levels = c(1,4,12))
+rates_map_sf3$NMS <- factor(rates_map_sf3$NMS, levels = c(1,4,12))
 
 tm_shape(rates_map_sf3) + tm_polygons('value')+
-  tm_facets(c("method", "variable"), ncol = 3, free.scales= T, as.layers = T)
+  tm_facets(c("NMS", "variable"), ncol = 3, free.scales= T, as.layers = T)
 
 (p1 <- tm_shape(rates_map_sf3[rates_map_sf3$variable == 'Yld',]) + 
   tm_polygons('value',  
               title = c("Yld (kg/ha)"),
               palette = "Greys", 
               colorNA = 'white')+
-  tm_facets(c("method"), free.scales = F, as.layers = T) +
+  tm_facets(c("NMS"), free.scales = F, as.layers = T) +
   tm_layout(legend.outside = F))
 
 (p2 <- tm_shape(rates_map_sf3[rates_map_sf3$variable == 'leach_n2',]) + 
@@ -586,17 +587,17 @@ tm_shape(rates_map_sf3) + tm_polygons('value')+
                 title = c("N Leaching (kg/ha)"),
                 palette = "Greys", 
                 colorNA = 'white')+
-    tm_facets(c("method"), free.scales = F, as.layers = T) +
+    tm_facets(c("NMS"), free.scales = F, as.layers = T) +
     tm_layout(legend.outside = F, 
               panel.label.height = 0
     ))
 
 
 rates_map_sf4 <- rates_map_sf3
-rates_map_sf4[  rates_map_sf4$variable == 'N_fert' & rates_map_sf4$method ==  1 &   rates_map_sf4$value == 180 & 
+rates_map_sf4[  rates_map_sf4$variable == 'N_fert' & rates_map_sf4$NMS ==  1 &   rates_map_sf4$value == 180 & 
                   !(is.na(rates_map_sf4$value)),]$value <- 0
 
-rates_map_sf4[  rates_map_sf4$variable == 'N_fert' & rates_map_sf4$method ==  1 & !(is.na(rates_map_sf4$value)),]$value %>% table()
+rates_map_sf4[  rates_map_sf4$variable == 'N_fert' & rates_map_sf4$NMS ==  1 & !(is.na(rates_map_sf4$value)),]$value %>% table()
 
 (p3 <- tm_shape(rates_map_sf3[rates_map_sf3$variable == 'N_fert',]) + 
   tm_polygons('value',
@@ -604,7 +605,7 @@ rates_map_sf4[  rates_map_sf4$variable == 'N_fert' & rates_map_sf4$method ==  1 
               palette = "Greys", 
               title = c("N Fert (kg/ha)"),
               colorNA = 'white') +
-    tm_facets(c("method"), free.scales = T) +
+    tm_facets(c("NMS"), free.scales = T) +
     tm_layout(legend.outside = F, 
               panel.label.height = 0,
               legend.position = c('left', 'bottom')
@@ -616,7 +617,7 @@ rates_map_sf4[  rates_map_sf4$variable == 'N_fert' & rates_map_sf4$method ==  1 
               title = c("P ($/ha)"),
               palette = "Greys", 
               colorNA = 'white')+
-    tm_facets(c("method"), free.scales = F, as.layers = T) +
+    tm_facets(c("NMS"), free.scales = F, as.layers = T) +
     tm_layout(legend.outside = F, 
               panel.label.height = 0
     ))
@@ -627,14 +628,14 @@ tmap_save(tmap_arrange(p1,p2,p3,p4, ncol = 1), "./n_policy/Data/figures/appendix
           units = 'in')
 #---------------------------------------------------------------------------------------------------
 # MAKE A MAP OF ECONOMIC VALUE OF INFORMATION SS
-value_dt <- perfomances_dt4[method %in% c(1,4)]
+value_dt <- perfomances_dt4[NMS %in% c(1,4)]
 
 #make one negative
-value_dt[method == 1, Yld := -Yld]
-value_dt[method == 1, leach_n2 := -leach_n2]
-value_dt[method == 1, leach_ext := -leach_ext]
-value_dt[method == 1, N_fert := -N_fert]
-value_dt[method == 1, P := -P]
+value_dt[NMS == 1, Yld := -Yld]
+value_dt[NMS == 1, leach_n2 := -leach_n2]
+value_dt[NMS == 1, leach_ext := -leach_ext]
+value_dt[NMS == 1, N_fert := -N_fert]
+value_dt[NMS == 1, P := -P]
 
 # Add values by group
 value_dt <- value_dt[, .(Yld =  sum(Yld),
@@ -643,7 +644,7 @@ value_dt <- value_dt[, .(Yld =  sum(Yld),
                          N_fert = sum(N_fert),
                          P = sum(P)), by = .(id_10)]
 
-# baseline_leaching_dt <- perfomances_dt3[method == 1, .(id_10, baseline_leach = leach_n2)]
+# baseline_leaching_dt <- perfomances_dt3[NMS == 1, .(id_10, baseline_leach = leach_n2)]
 # value_dt <- merge(value_dt, baseline_leaching_dt, by = 'id_10')
 # 
 # ggplot(data = value_dt, aes(x = baseline_leach, y = P)) +
@@ -669,7 +670,7 @@ breaks_n <- c(-60000,-40000,-10000,0)
               main.title.size = 1.2,
               title.snap.to.legend = F,
               legend.width = 1,
-              legend.position = c('left', 'bottom'))) #Enviromental benefit of method 4
+              legend.position = c('left', 'bottom'))) #Enviromental benefit of NMS 4
 
 
 value_sf <- dplyr::mutate(value_sf, P_r = round(P, 0))
@@ -699,7 +700,7 @@ breaks_n <- c(-20,0,10,20, 30,40)
               main.title.size = 1.2,
               title.snap.to.legend = F,
               legend.width = 1,
-              legend.position = c('left', 'bottom'))) #Economic V of method 4
+              legend.position = c('left', 'bottom'))) #Economic V of NMS 4
 
 tmap_save(tmap_arrange(p1, p2, p3, p4, ncol = 2) , "./n_policy/Data/figures/information_characterization_map.jpg", 
           width = 10, height = 10,
@@ -709,14 +710,14 @@ tmap_save(tmap_arrange(p1, p2, p3, p4, ncol = 2) , "./n_policy/Data/figures/info
 #-----------------------------------------VALUE OF TECHNOLOGY--------------------------------------------------------
 #=====================================================================================================================
 #1) MAKE A MAP OF VALUE TECHNOLOGY (EX POST VALUE)
-#Select the two methods of interest
-value_dt <- perfomances_dt3[method %in% c(11,12)]
+#Select the two NMSs of interest
+value_dt <- perfomances_dt3[NMS %in% c(11,12)]
 #make one negative
-value_dt[method == 11, Yld := -Yld]
-value_dt[method == 11, leach_n2 := -leach_n2]
-value_dt[method == 11, leach_ext := -leach_ext]
-value_dt[method == 11, N_fert := -N_fert]
-value_dt[method == 11, P := -P]
+value_dt[NMS == 11, Yld := -Yld]
+value_dt[NMS == 11, leach_n2 := -leach_n2]
+value_dt[NMS == 11, leach_ext := -leach_ext]
+value_dt[NMS == 11, N_fert := -N_fert]
+value_dt[NMS == 11, P := -P]
 
 # Add values by group
 value_post_dt <- value_dt[, .(Yld =  sum(Yld),
@@ -749,13 +750,13 @@ breaks_n <- c(min(value_post_dt$P), 5,10,15, 20, max(value_post_dt$P))
 
 #---------------------------------------------------------------------------
 #2) MAKE A MAP OF VALUE TECHNOLOGY (EX ANTE VALUE)
-value_dt <- perfomances_dt3[method %in% c(4,5)]
+value_dt <- perfomances_dt3[NMS %in% c(4,5)]
 #make one negative
-value_dt[method == 4, Yld := -Yld]
-value_dt[method == 4, leach_n2 := -leach_n2]
-value_dt[method == 4, leach_ext := -leach_ext]
-value_dt[method == 4, N_fert := -N_fert]
-value_dt[method == 4, P := -P]
+value_dt[NMS == 4, Yld := -Yld]
+value_dt[NMS == 4, leach_n2 := -leach_n2]
+value_dt[NMS == 4, leach_ext := -leach_ext]
+value_dt[NMS == 4, N_fert := -N_fert]
+value_dt[NMS == 4, P := -P]
 
 # Add values by group
 value_ante_dt <- value_dt[, .(Yld =  sum(Yld),
@@ -813,13 +814,13 @@ ggplot(data = value_comp_dt, aes(x= P_post, y = P_ante)) +
 # 3) MAKE A MAP OF TECHNOLOGY MARKET CAP BY CELL
 
 # MAKE A MAP OF VALUE TECHNOLOGY (EX ANTE VALUE)
-value_dt <- perfomances_dt3[method %in% c(4,5)]
+value_dt <- perfomances_dt3[NMS %in% c(4,5)]
 #make one negative
-value_dt[method == 4, Yld := -Yld]
-value_dt[method == 4, leach_n2 := -leach_n2]
-value_dt[method == 4, leach_ext := -leach_ext]
-value_dt[method == 4, N_fert := -N_fert]
-value_dt[method == 4, P := -P]
+value_dt[NMS == 4, Yld := -Yld]
+value_dt[NMS == 4, leach_n2 := -leach_n2]
+value_dt[NMS == 4, leach_ext := -leach_ext]
+value_dt[NMS == 4, N_fert := -N_fert]
+value_dt[NMS == 4, P := -P]
 
 # Add values by group
 value_dt <- value_dt[, .(Yld =  sum(Yld),
@@ -834,7 +835,7 @@ value_dt2[,mkt_value := P * corn_avg_ha]
 value_dt2[,.(sum(mkt_value))]
 
 value_sf <- merge(grid10_tiles_sf7, value_dt2[,.(id_10, mkt_value)], by = 'id_10', all.x = T) %>%
-  dplyr::mutate(method = 'ex_ante')
+  dplyr::mutate(NMS = 'ex_ante')
 
 
 sum(value_sf$mkt_value, na.rm = TRUE)
@@ -874,19 +875,19 @@ st_write(value_sf, "./n_policy/Data/shapefiles/vr_cell_value_sf.shp", delete_dsn
 # 4) MAKE A MAP OF TECHNOLOGY MARKET CAP BY FIELD (for QGIS)
 # AGGREGATE THE DATA TO CELL X Z LEVEL CONSIDERING THE AREA
 names(perfomances_dt)
-do_not_aggregate = c('id_10', 'id_field','region','method', 'tech')
+do_not_aggregate = c('id_10', 'id_field','region','NMS', 'tech')
 do_aggregate =  c("Yld", "leach_n2", "N_fert","P")
 
 perfomances_field_dt <- aggregate_by_area(data_dt = perfomances_dt, variables = do_aggregate, 
                                      weight = 'area_ha', by_c = do_not_aggregate) #cell x z level (mukey and field are out)
 
 # MAKE A MAP OF VALUE TECHNOLOGY (EX ANTE VALUE)
-value_dt <- perfomances_field_dt[method %in% c(4,5)]
+value_dt <- perfomances_field_dt[NMS %in% c(4,5)]
 #make one negative
-value_dt[method == 4, Yld := -Yld]
-value_dt[method == 4, leach_n2 := -leach_n2]
-value_dt[method == 4, N_fert := -N_fert]
-value_dt[method == 4, P := -P]
+value_dt[NMS == 4, Yld := -Yld]
+value_dt[NMS == 4, leach_n2 := -leach_n2]
+value_dt[NMS == 4, N_fert := -N_fert]
+value_dt[NMS == 4, P := -P]
 
 # Add values by group
 value_dt <- value_dt[, .(Yld =  sum(Yld),
@@ -899,7 +900,7 @@ value_dt <- value_dt[, .(Yld =  sum(Yld),
 # value_dt[,.(sum(mkt_value))]
 
 value_sf <- merge(grid10_fields_sf2, value_dt[,.(id_10, id_field, n_policy)], by = c('id_10', 'id_field'), all.x = T) %>%
-  dplyr::mutate(method = 'ex_ante')
+  dplyr::mutate(NMS = 'ex_ante')
 
 value_sf <- value_sf[!is.na(value_sf$n_policy),]
 
@@ -915,28 +916,28 @@ st_write(value_sf, "./n_policy/Data/shapefiles/vr_field_value_sf.shp", delete_ds
 
 
 #---------------------------------------------------------------------------
-# MAKE A MAP OF THE BEST METHOD
-#Select the two methods of interest
-best_method_dt <- perfomances_dt3[method %in% 1:10]
-# best_method_dt[method == 5, P := P-3]
-best_method_dt <- best_method_dt[,.SD[P==max(P)], by = id_10]
+# MAKE A MAP OF THE BEST NMS
+#Select the two NMSs of interest
+best_NMS_dt <- perfomances_dt3[NMS %in% 1:10]
+# best_NMS_dt[NMS == 5, P := P-3]
+best_NMS_dt <- best_NMS_dt[,.SD[P==max(P)], by = id_10]
 
-best_method_dt[,.N, by = .(method)][order(-N)]
+best_NMS_dt[,.N, by = .(NMS)][order(-N)]
 
-value_sf <- merge(grid10_tiles_sf7, best_method_dt[,.(id_10, method)], 
+value_sf <- merge(grid10_tiles_sf7, best_NMS_dt[,.(id_10, NMS)], 
                    by = 'id_10', all = T)
 
-value_sf <- dplyr::mutate(value_sf, method = ifelse(method <6, NA, method))
+value_sf <- dplyr::mutate(value_sf, NMS = ifelse(NMS <6, NA, NMS))
 
 
-(p <- tm_shape(value_sf) + tm_polygons(c('method'), n =10)+
-    tm_text('method')+
+(p <- tm_shape(value_sf) + tm_polygons(c('NMS'), n =10)+
+    tm_text('NMS')+
     tm_layout(legend.text.size = 0.7,
-              main.title = paste('Best Method by cell'),
+              main.title = paste('Best NMS by cell'),
               main.title.position = "center",
               main.title.size = 1.2))
 
-tmap_save(p, "./n_policy/Data/figures/best_method_map.jpg")
+tmap_save(p, "./n_policy/Data/figures/best_NMS_map.jpg")
 
 #==============================================================================================================
 #==============================================================================================================
@@ -946,9 +947,9 @@ tmap_save(p, "./n_policy/Data/figures/best_method_map.jpg")
 
 
 yc_yearly_dt3 <- readRDS("./n_policy/Data/files_rds/yc_yearly_dt3.rds")
-reg_method_stuff <- readRDS( "./n_policy/Data/files_rds/reg_method_stuff.rds")
-training_z <- reg_method_stuff$training_z
-rm(reg_method_stuff)
+reg_NMS_stuff <- readRDS( "./n_policy/Data/files_rds/reg_NMS_stuff.rds")
+training_z <- reg_NMS_stuff$training_z
+rm(reg_NMS_stuff)
 
 # tile_n = 10
 cell_n = 765#755#763#765
@@ -960,7 +961,7 @@ testing_set_dt <- perfomances_dt[id_10 == cell_n]
 testing_set_dt[,mean(Yld), by = mukey]
 
 testing_set_plot <- testing_set_dt[mukey == mukey_n]
-testing_set_plot[,method := factor(method, levels= c('1', '2', '3','4', '5', '6', '7', '8', '9', '10', '11', '12'))]
+testing_set_plot[,NMS := factor(NMS, levels= c('1', '2', '3','4', '5', '6', '7', '8', '9', '10', '11', '12'))]
 ic_field_plot <- yc_yearly_dt3[mukey == mukey_n & id_10 == cell_n ] %>% .[!z %in% training_z ]
 
 # testing_set_plot[,z := gsub(pattern = 'A', replacement = 'z', x = z)]
@@ -980,7 +981,7 @@ z_labels <- ic_field_plot[N_fert == max(ic_field_plot$N_fert), .(N_fert, Yld, z)
 z_labels[seq(1, nrow(z_labels), by = 2), N_fert := N_fert - 50]
 
 ggplot() +
-    geom_point(data = testing_set_plot, aes(x = N_fert, y = Yld, colour = method, size = method)) +
+    geom_point(data = testing_set_plot, aes(x = N_fert, y = Yld, colour = NMS, size = NMS)) +
     geom_line(data = ic_field_plot, aes(x = N_fert, y = Yld, group=z), show.legend = FALSE) +
     scale_size_manual(values=c(rep(2, 11), 4)) +
     scale_color_manual(values=colors_sample)+
@@ -992,11 +993,11 @@ ggplot() +
 
 
 # (plot_n1 <- ggplot() +
-#     geom_point(data = testing_set_plot[z == z_n & method == '12' & prev_crop == 1], 
-#                aes(x = N_fert, y = Yld ,  size = method)) +
+#     geom_point(data = testing_set_plot[z == z_n & NMS == '12' & prev_crop == 1], 
+#                aes(x = N_fert, y = Yld ,  size = NMS)) +
 #     geom_line(data = ic_field_plot[z == z_n & prev_crop == 1], aes(x = N_fert, y = Yld, linetype = "Yield")) +
-#     geom_point(data = testing_set_plot[z == z_n & method == '12' & prev_crop == 1], 
-#                aes(x = N_fert, y = leach_n2*150,  size = method)) +
+#     geom_point(data = testing_set_plot[z == z_n & NMS == '12' & prev_crop == 1], 
+#                aes(x = N_fert, y = leach_n2*150,  size = NMS)) +
 #     geom_line(data = ic_field_plot[z == z_n & prev_crop == 1], aes(x = N_fert, y = leach_n2*150, linetype = "N Leaching")) +
 #     # scale_size_manual(values=c(rep(2, 11), 4)) +
 #     ## scale_color_manual(values=colors_sample)+
@@ -1026,7 +1027,7 @@ z_n = 23
 ic_field_plot2 <- melt(ic_field_plot[z == z_n ], id.vars = 'N_fert', measure.vars = c('Yld', 'leach_n2'))
 ic_field_plot2[variable == 'leach_n2', value := value * 150]
 
-testing_set_plot2 <- melt(testing_set_plot[z == z_n & method == '12'], id.vars = 'N_fert', measure.vars = c('Yld', 'leach_n2'))
+testing_set_plot2 <- melt(testing_set_plot[z == z_n & NMS == '12'], id.vars = 'N_fert', measure.vars = c('Yld', 'leach_n2'))
 testing_set_plot2[variable == 'leach_n2', value := value * 150]
 
 
@@ -1055,7 +1056,7 @@ exclude_z = testing_set_plot[Yld == min(Yld)]$z[1]
 (plot_n2 <- ggplot() +
     
     geom_line(data = ic_field_plot[ !(z == exclude_z) ], aes(x = N_fert, y = Yld, group = z), show.legend = F) +
-    geom_point(data = testing_set_plot[method == '12' & !(z == exclude_z) ], aes(x = N_fert, y = Yld , shape = 'EONR'), size = 2) +
+    geom_point(data = testing_set_plot[NMS == '12' & !(z == exclude_z) ], aes(x = N_fert, y = Yld , shape = 'EONR'), size = 2) +
     scale_shape_manual( values = 16,
                         labels = c(bquote (paste('EONR'^'ex post')))) +
     # scale_color_manual(values=colors_sample)+
@@ -1073,9 +1074,9 @@ exclude_z = testing_set_plot[Yld == min(Yld)]$z[1]
     guides(color = FALSE) + #remove legend for color
   annotate("text", x=300, y=15000, label= "b)", size = 10)) 
 
-summary(testing_set_plot[method == '12']$N_fert)
+summary(testing_set_plot[NMS == '12']$N_fert)
 
-perfomances_champaign_dt <- perfomances_dt[id_10 %in% unique(dplyr::filter(grid10_tiles_sf7, county_name == 'Champaign')$id_10) & method == 12]
+perfomances_champaign_dt <- perfomances_dt[id_10 %in% unique(dplyr::filter(grid10_tiles_sf7, county_name == 'Champaign')$id_10) & NMS == 12]
 
 (plot_n3 <- ggplot() + 
     geom_density(data = perfomances_champaign_dt, aes( x= N_fert,  y = ..density..), alpha = 0.4)+
@@ -1133,19 +1134,19 @@ grid.arrange(grid.arrange(plot_n1, plot_n2, nrow=1), plot_n3, nrow = 2)
 
 
 #---------------------------------------------------------------------------
-# MAKE A MAP OF THE BEST METHOD
-#Select the two methods of interest
-best_method_dt <- perfomances_dt3[method %in% 1:10]
-best_method_dt <- best_method_dt[,.SD[P==max(P)], by = id_10]
-best_method_dt <- merge(best_method_dt, perfomances_dt3[method == 1, .(id_10, P_1 = P)], by = 'id_10')
-best_method_dt[,P_improve := P-P_1]
+# MAKE A MAP OF THE BEST NMS
+#Select the two NMSs of interest
+best_NMS_dt <- perfomances_dt3[NMS %in% 1:10]
+best_NMS_dt <- best_NMS_dt[,.SD[P==max(P)], by = id_10]
+best_NMS_dt <- merge(best_NMS_dt, perfomances_dt3[NMS == 1, .(id_10, P_1 = P)], by = 'id_10')
+best_NMS_dt[,P_improve := P-P_1]
 
-best_method_dt[,.N, by = .(region, method)]
+best_NMS_dt[,.N, by = .(region, NMS)]
 
-best_method_sf <- merge(grid10_tiles_sf7, best_method_dt, by = 'id_10', all.x = T)
+best_NMS_sf <- merge(grid10_tiles_sf7, best_NMS_dt, by = 'id_10', all.x = T)
 
-(p <- tm_shape(best_method_sf) + tm_polygons(c('method','P_improve'), n =10)+
-    tm_text('method')+
+(p <- tm_shape(best_NMS_sf) + tm_polygons(c('NMS','P_improve'), n =10)+
+    tm_text('NMS')+
     tm_layout(legend.text.size = 0.7,
               main.title = paste('VALUE OF TECHNOLOGY AND INFORMATION'),
               main.title.position = "center",
@@ -1175,14 +1176,14 @@ ic_field_dt[, P := Yld * Pc - N_fert * Pn]
 
 performance_set_dt <- filter_dt_in_dt(perfomances_dt , filter_dt = mukey_n, return_table = TRUE)
  
-performance_set_dt[,method := as.character(method)]
+performance_set_dt[,NMS := as.character(NMS)]
 
-performance_set_dt[prev_crop == 0 & method != 11, .N, by = .(method, z)]
+performance_set_dt[prev_crop == 0 & NMS != 11, .N, by = .(NMS, z)]
 
 # P plot with P at eonr
 (plot_n <- ggplot() +
-    geom_point(data = performance_set_dt[prev_crop == 0 & method != 11], aes(x = N_fert, y = P, colour = method)) +
-    geom_point(data = performance_set_dt[prev_crop == 0 & method == 11], aes(x = N_fert, y = P), size = 3, show.legend = FALSE) +
+    geom_point(data = performance_set_dt[prev_crop == 0 & NMS != 11], aes(x = N_fert, y = P, colour = NMS)) +
+    geom_point(data = performance_set_dt[prev_crop == 0 & NMS == 11], aes(x = N_fert, y = P), size = 3, show.legend = FALSE) +
     geom_line(data = ic_field_dt[prev_crop == 0], aes(x = N_fert, y = P, group=interaction(z)), show.legend = FALSE) +
     ggtitle(paste('P plot with P at eonr', mukey_n$mukey)))
 
@@ -1190,8 +1191,8 @@ ggsave(plot_n, filename = "./n_policy/Data/figures/yield_curve_example.jpg")
 
 # leach_n2o3 plot with leaching at eonr
 (plot_n <- ggplot() +
-    geom_point(data = performance_set_dt[prev_crop == 0 & method != 11], aes(x = N_fert, y = leach_n22, colour = method)) +
-    geom_point(data = performance_set_dt[prev_crop == 0 & method == 11], aes(x = N_fert, y = leach_n22), size = 3, show.legend = FALSE) +
+    geom_point(data = performance_set_dt[prev_crop == 0 & NMS != 11], aes(x = N_fert, y = leach_n22, colour = NMS)) +
+    geom_point(data = performance_set_dt[prev_crop == 0 & NMS == 11], aes(x = N_fert, y = leach_n22), size = 3, show.legend = FALSE) +
     geom_line(data = ic_field_dt[prev_crop == 0], aes(x = N_fert, y = leach_n22, group=interaction(z)), show.legend = FALSE) +
     ggtitle(paste('leach_n2o3 plot with leaching at eonr', mukey_n$mukey)))
 
