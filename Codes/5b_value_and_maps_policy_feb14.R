@@ -112,8 +112,11 @@ saveRDS(perfomances_dt5, "./n_policy/Data/files_rds/perfomances_dt5.rds")
 
 perfomances_dt5 <- readRDS("./n_policy/Data/files_rds/perfomances_dt5.rds")
 perfomances_dt5[policy_name == 'ratio']
+
 #---------------------------------------------------------------------------
-# IMPROVE FROM CURRENT SITUATION (-15% by 2025, -45% by 2035)
+# COMPARE A SAMPLE OF THE DIFFERENT MODELS THAT WOULD GET US TO THE 15% 
+# REDUCTION TARGET FROM CURRENT SITUATION (-15% by 2025, -45% by 2035)
+
 unique(perfomances_dt5$policy)
 
 policies_f <- c("fee_0", "ratio_9", "fee_8", 'nred_0.85', 'nred_0.7')
@@ -153,7 +156,7 @@ table_dt[,soc_benefits := P + gov] #only farmers
 
 #---------------------------------------------------------------------------
 # BEST OPTION 2: considering a cost of the externality, what method would maximize the welfare of the society
-
+methods_f <- c('1','2','4')
 table_dt <- perfomances_dt5[ method %in% methods_f]
 baselevel_n <- table_dt[policy == 'fee_0' & method == 1, leach_n2] 
 table_dt[,abatement := baselevel_n - leach_n2]
@@ -196,7 +199,7 @@ ggplot(plot_dt3)+
 #==========================================================================
 # RATIO CHART 2
 
-plot_dt <- perfomances_dt5[policy_name == 'ratio' & method %in% c(1,2,3,4,5) & policy_val <= 20 ] 
+plot_dt <- perfomances_dt5[policy_name == 'ratio' & method %in% c('1','2','3','4','5') & policy_val <= 20 ] 
 
 plot_dt[,soc_benefits := P + gov]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
@@ -223,6 +226,7 @@ plot_1 <- ggplot(plot_dt1[variable %in% c('N_fert', 'leach_n2', 'Yld')])+
   facet_grid(plot_name~., scales = "free") +
   scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
+  geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
   # ylab('Yield (kg/ha)')+
   theme_bw()+
   theme(panel.grid = element_blank())
@@ -237,6 +241,7 @@ plot_1 <- ggplot(plot_dt1[!variable %in% c('N_fert', 'leach_n2', 'Yld')])+
   facet_grid(plot_name~., scales = "free") +
   scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
+  geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
   # ylab('Yield (kg/ha)')+
   theme_bw()+
   theme(panel.grid = element_blank())
@@ -250,6 +255,8 @@ ggsave(plot = plot_1, filename = "./n_policy/Data/figures/ratio_all_vars_part2.j
 
 #---------------------------------------------------------------------------
 # Get RMSE
+# install.packages('mlr')
+library(mlr) 
 
 rmse_dt <- perfomances_dt[stringr::str_detect(string = perfomances_dt$policy, pattern = 'ratio'),
                .(Yld =  mean(Yld),
@@ -266,12 +273,13 @@ rmse_dt <- perfomances_dt[stringr::str_detect(string = perfomances_dt$policy, pa
 
 rmse_dt[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
 rmse_dt[,policy_name := lapply(policy, function(x) str_split(x, pattern = '_')[[1]][1])]
-
+rmse_dt <- rmse_dt[ method %in% c('1','2','3','4','5')]
 
 plot_1 <- ggplot(rmse_dt)+
   geom_line(aes(x = policy_val, y =  RMSE, colour = method)) +
-  scale_x_continuous(breaks = seq(1,15,1), labels = seq(1,15,1)) + 
+  scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
+  geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
   # ylab('Yield (kg/ha)')+
   theme_bw()+
   theme(panel.grid = element_blank())
@@ -282,16 +290,18 @@ ggsave(plot = plot_1, filename = "./n_policy/Data/figures/rmse.jpg", width = 5, 
 
 plot_1 <- ggplot(rmse_dt)+
   geom_line(aes(x = policy_val, y =  overpred, colour = method))+
-  scale_x_continuous(breaks = seq(1,10,1), labels = seq(1,10,1)) + 
+  scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
+  geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
   # ylab('Yield (kg/ha)')+
   theme_bw()+
   theme(panel.grid = element_blank())
 
 plot_2 <- ggplot(rmse_dt)+
   geom_line(aes(x = policy_val, y =  subpred, colour = method))+
-  scale_x_continuous(breaks = seq(1,10,1), labels = seq(1,10,1)) + 
+  scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
+  geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
   # ylab('Yield (kg/ha)')+
   theme_bw()+
   theme(panel.grid = element_blank())
@@ -325,6 +335,7 @@ plot_1 <- ggplot(boxplot_dt[policy_val %in% c(2,8,15)])+
   # ylab('Yield (kg/ha)')+
   theme_bw()+
   theme(panel.grid = element_blank())
+
 plot_1
 
 ggsave(plot = plot_1, filename = "./n_policy/Data/figures/boxplot_method12.jpg", width = 5, height = 5,
@@ -367,8 +378,9 @@ plot_1 <- ggplot(value_long_dt)+
   geom_line(aes(x = policy_val, y =  P, colour = variable), show.legend = F) +
   # scale_y_continuous(breaks = seq(1,10,1), labels = seq(1,10,1)) + 
   facet_grid(variable~., scales = "free" ) +
-  scale_x_continuous(breaks = seq(1,15,1), labels = seq(1,15,1)) + 
+  scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
+  geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
   ylab('Value ($/ha)')+
   theme_bw()+
   theme(panel.grid = element_blank())
