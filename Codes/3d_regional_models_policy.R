@@ -152,13 +152,14 @@ fee_seq <- seq(0, Pe_max, by = 2)
 source('./n_policy/Codes/parameters.R')
 set.seed(123)
 
-test_comp_dt <- merge(test_comp[[1]][,.(id_10, mukey, z, N_fert, Yld, leach_n2)], 
-      test_comp[[2]][,.(id_10, mukey, z, N_fert, Yld, leach_n2)], by = c('id_10', 'mukey', 'z', 'N_fert'))
-
-test_comp_dt[,Yld_same := (Yld.x == Yld.y)]
-test_comp_dt[,leach_same := (leach_n2.x == leach_n2.y)]
-table(test_comp_dt$Yld_same)
-table(test_comp_dt$leach_same)
+# CHECK IF THE DATA FOR CURRENT RATIO IS THE SAME THAN FEE_0
+# test_comp_dt <- merge(test_comp[[1]][,.(id_10, mukey, z, N_fert, Yld, leach_n2)], 
+#       test_comp[[2]][,.(id_10, mukey, z, N_fert, Yld, leach_n2)], by = c('id_10', 'mukey', 'z', 'N_fert'))
+# 
+# test_comp_dt[,Yld_same := (Yld.x == Yld.y)]
+# test_comp_dt[,leach_same := (leach_n2.x == leach_n2.y)]
+# table(test_comp_dt$Yld_same)
+# table(test_comp_dt$leach_same)
 
 for(fee_n in fee_seq){
   # fee_n = 0
