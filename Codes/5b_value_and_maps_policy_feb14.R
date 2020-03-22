@@ -153,7 +153,8 @@ target_abat_prop <- table_dt[order(-abat_prop)] %>% .[1:10, abat_prop] %>% mean(
 
 table_dt <- table_dt[abat_prop > (target_abat_prop - 0.01)]
 table_dt[,soc_benefits := P + gov] #only farmers
-
+table_dt <- table_dt[order(-soc_benefits)]
+table_dt
 
 #---------------------------------------------------------------------------
 # BEST OPTION 2: considering a cost of the externality, what NMS would maximize the welfare of the society
@@ -167,9 +168,10 @@ table_dt[,yld_red := round((Yld / baselevel_yld),2)]
 
 table_dt[,soc_benefits := P + gov]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
-table_dt[,externatility := ifelse((leach_n2 - target_n) > 0, (leach_n2 -target_n)*Pe_med,0)]
+table_dt[,externatility := ifelse((leach_n2 - target_n) > 0, (leach_n2 -target_n)*Pe_med,0)] #externalities are pay for each kg above the 45% target
 table_dt[,soc_welfare := soc_benefits - externatility ]
-table_dt[order(-soc_welfare)][1:40]
+table_dt <- table_dt[order(-soc_welfare)][1:40]
+table_dt
 
 baselevel_benefits <- table_dt[policy == 'fee_0' & NMS == 1, soc_benefits] 
 table_dt[,abat_cost := (soc_benefits - baselevel_benefits)/abatement]
@@ -181,21 +183,6 @@ table_dt[,abat_cost := (soc_benefits - baselevel_benefits)/abatement]
 +1-(33/45)
 
 
-
-#---------------------------------------------------------------------------
-# YR CHART
-
-plot_dt <- perfomances_dt5[policy_name == 'yr' & NMS == '4'] 
-plot_dt[,.N, by = .(policy, NMS)]
-
-plot_dt1 <- melt(plot_dt, id.vars = 'policy_val', measure.vars = c('Yld', 'leach_n2', 'N_fert', 'P'))
-plot_dt2 <- melt(plot_dt[policy_val == 1], id.vars = 'policy_val', measure.vars = c('Yld', 'leach_n2', 'N_fert', 'P'))
-
-plot_dt3 <- merge(plot_dt1, plot_dt2[,.(variable, value_max = value)], by = c('variable'))
-plot_dt3[, value_rel := value/value_max]
-
-ggplot(plot_dt3)+
-  geom_line(aes(x = policy_val, y =  value_rel, colour = variable))
 
 #==========================================================================
 # RATIO CHART 2
@@ -209,21 +196,28 @@ plot_dt[,soc_welfare := soc_benefits - externatility ]
 plot_dt[order(-soc_welfare)][1:40]
 
 
-plot_dt1 <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Yld', 'leach_n2', 'N_fert', 
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Yld', 'leach_n2', 'N_fert', 
                                                                                 'P', 'gov', 'externatility','soc_welfare'))
 
-plot_dt1[variable == 'N_fert', plot_name := 'a) N Rate']
-plot_dt1[variable == 'leach_n2', plot_name := 'b) N Leaching']
-plot_dt1[variable == 'Yld', plot_name := 'c) Yield']
-plot_dt1[variable == 'P', plot_name := 'd) Profits']
-plot_dt1[variable == 'gov', plot_name := 'e) Tax revenue']
-plot_dt1[variable == 'externatility', plot_name := 'f) externatility']
-plot_dt1[variable == 'soc_welfare', plot_name := 'g) soc_welfare']
-plot_dt1[order(variable)]
+plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate']
+plot_dt_long[variable == 'leach_n2', plot_name := 'b) N Leaching']
+plot_dt_long[variable == 'Yld', plot_name := 'c) Yield']
+plot_dt_long[variable == 'P', plot_name := 'd) Profits']
+plot_dt_long[variable == 'gov', plot_name := 'e) Tax revenue']
+plot_dt_long[variable == 'externatility', plot_name := 'f) externatility']
+plot_dt_long[variable == 'soc_welfare', plot_name := 'g) soc_welfare']
+plot_dt_long[order(variable)]
 
+plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'leach_n2', 'Yld')] 
 
-plot_1 <- ggplot(plot_dt1[variable %in% c('N_fert', 'leach_n2', 'Yld')])+
-  geom_line(aes(x = policy_val, y =  value, colour = NMS)) +
+hline_dt <- data.table(plot_name = unique(plot_dt_long1$plot_name))
+hline_dt[plot_name == 'c) Yield', y_line := baselevel_yld*0.95]
+hline_dt[plot_name == 'c) Yield', y_label := '95% baselevel']
+
+plot_1 <- ggplot()+
+  geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+  geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+  geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
   facet_grid(plot_name~., scales = "free") +
   scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
@@ -237,7 +231,9 @@ plot_1
 ggsave(plot = plot_1, filename = "./n_policy/Data/figures/ratio_all_vars_part1.jpg", width = 10, height = 10,
        units = 'in')
 
-plot_1 <- ggplot(plot_dt1[!variable %in% c('N_fert', 'leach_n2', 'Yld')])+
+plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'leach_n2', 'Yld')] 
+
+plot_1 <- ggplot(plot_dt_long2)+
   geom_line(aes(x = policy_val, y =  value, colour = NMS)) +
   facet_grid(plot_name~., scales = "free") +
   scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
@@ -388,6 +384,71 @@ plot_1 <- ggplot(value_long_dt)+
 plot_1
 
 ggsave(plot = plot_1, filename = "./n_policy/Data/figures/valueISST_by_ratio.jpg", width = 10, height = 10,
+       units = 'in')
+
+#==========================================================================
+# nred CHART #===============================================================
+#==========================================================================
+unique(perfomances_dt5$policy_name)
+plot_dt <- perfomances_dt5[policy_name == 'nred' & NMS %in% c('1_ok','2','3','4','5')  ] 
+
+plot_dt[,soc_benefits := P + gov]
+target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
+plot_dt[,externatility := ifelse((leach_n2 - target_n) > 0, (leach_n2 -target_n)*Pe_med,0)]
+plot_dt[,soc_welfare := soc_benefits - externatility ]
+plot_dt[order(-soc_welfare)][1:40]
+
+
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Yld', 'leach_n2', 'N_fert', 
+                                                                                 'P', 'externatility','soc_welfare'))
+plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate']
+plot_dt_long[variable == 'leach_n2', plot_name := 'b) N Leaching']
+plot_dt_long[variable == 'Yld', plot_name := 'c) Yield']
+plot_dt_long[variable == 'P', plot_name := 'd) Profits']
+# plot_dt_long[variable == 'gov', plot_name := 'e) Tax revenue']
+plot_dt_long[variable == 'externatility', plot_name := 'f) externatility']
+plot_dt_long[variable == 'soc_welfare', plot_name := 'g) soc_welfare']
+plot_dt_long[order(variable)]
+
+plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'leach_n2', 'Yld')] 
+
+hline_dt <- data.table(plot_name = unique(plot_dt_long1$plot_name))
+hline_dt[plot_name == 'c) Yield', y_line := baselevel_yld*0.95]
+hline_dt[plot_name == 'c) Yield', y_label := '95% baselevel']
+
+plot_1 <- ggplot()+
+  geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+  geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+  geom_text(data = hline_dt, aes(x = .95, y = y_line, label =y_label ))+
+  facet_grid(plot_name~., scales = "free") +
+  # scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
+  xlab('N reduction level')+
+  geom_vline(xintercept = 1, linetype = 'dashed', color = 'grey', size = 1)+
+  # ylab('Yield (kg/ha)')+
+  theme_bw()+
+  theme(panel.grid = element_blank())
+
+plot_1
+
+ggsave(plot = plot_1, filename = "./n_policy/Data/figures/nred_all_vars_part1.jpg", width = 10, height = 10,
+       units = 'in')
+
+plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'leach_n2', 'Yld')] 
+
+plot_1 <- ggplot(plot_dt_long2)+
+  geom_line(aes(x = policy_val, y =  value, colour = NMS)) +
+  facet_grid(plot_name~., scales = "free") +
+  # scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
+  xlab('N reduction level')+
+  geom_vline(xintercept = 1, linetype = 'dashed', color = 'grey', size = 1)+
+  # ylab('Yield (kg/ha)')+
+  theme_bw()+
+  theme(panel.grid = element_blank())
+
+plot_1
+
+ggsave(plot = plot_1, filename = "./n_policy/Data/figures/nred_all_vars_part2.jpg", 
+       width = 10, height = 10,
        units = 'in')
 
 #==========================================================================
