@@ -165,7 +165,6 @@ for(fee_n in fee_seq){
   TrainSet2[, Yld_response := max(Yld) - min(Yld), by = .(id_10, mukey,z)]
   TrainSet_RMM <- TrainSet2[Yld_response > 500]
   
-  
   #Select a few rates
   #Alll this comes from https://rcompanion.org/handbook/I_11.html
   # N_rates_trial <- c(10, 90,170,250, 330)
@@ -256,12 +255,15 @@ TrainSet_nr[,leach_rel := leach_n2/leach_base]
 
 red_seq <- seq(0.55, 1, by = 0.05)
 for(n_red in red_seq){
-  # n_red = 0.80
+  # n_red = 0.50
   print(n_red)
   small_model_list <- list()
 
   # CREATE THE REGIONAL MINIMUM MODEL
   model_minimum_ok <- TrainSet_nr[, .(leach_rel = mean(leach_rel)), by = .(N_fert , region)]
+  
+  ggplot(model_minimum_ok) + geom_line(aes(x = N_fert, y = leach_rel, colour = factor(region)))
+  
   model_minimum_ok <- model_minimum_ok[leach_rel >= n_red] %>%
     .[, .SD[ leach_rel == min( leach_rel)], by = .(region)] %>% #select minimum leach_rel
     .[, .SD[ N_fert == min( N_fert)], by = .(region)] %>% #select minimum rate in case one is repeated
