@@ -19,7 +19,7 @@ grid10_fields_sf2 <- readRDS('./n_policy/Data/Grid/grid10_fields_sf2.rds')
 reg_model_stuff <- readRDS( "./n_policy/Data/files_rds/reg_model_stuff.rds")
 grid10_soils_sf2 <- readRDS('./n_policy/Data/Grid/grid10_soils_sf2.rds')
 #======================================================================================
-# Do a plot with Yld and Leaching for a static N_rate across the state
+# Do a plot with Yld and Leaching for a static N_fert across the state
 
 areas_dt <- data.table(grid10_soils_sf2) %>% .[,.(area_ha = sum(area_ha)), by = .(id_10, mukey)]
 
@@ -28,7 +28,9 @@ state_agg_dt <- merge(yc_yearly_dt3, areas_dt, by = c('id_10', 'mukey'))
 state_agg_dt2  <- aggregate_by_area(data_dt = state_agg_dt, variables = c('Yld', 'leach_n2'), 
                                                 weight = 'area_ha', by_c = c('N_fert'))# %>% .[,-'area_ha']
 
-
+ggplot(data = state_agg_dt2) + 
+  geom_line(aes(x = N_fert, Yld)) +
+  geom_line(aes(x = N_fert, leach_n2*200))
 
 #======================================================================================
 # GET THE FIELDS THAT CAN BE RUN
