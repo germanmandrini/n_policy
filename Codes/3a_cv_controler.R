@@ -1,3 +1,5 @@
+#CV = CROSS VALIDATION: The idea is to iterate and do a cv by sampling different z,
+# training and then testing the models. Results should be the average of training and testing over all the z. 
 
 # source('./Codes_useful/R.libraries.R')
 # source('./Codes_useful/gm_functions.R')
