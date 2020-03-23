@@ -28,9 +28,25 @@ state_agg_dt <- merge(yc_yearly_dt3, areas_dt, by = c('id_10', 'mukey'))
 state_agg_dt2  <- aggregate_by_area(data_dt = state_agg_dt, variables = c('Yld', 'leach_n2'), 
                                                 weight = 'area_ha', by_c = c('N_fert'))# %>% .[,-'area_ha']
 
-ggplot(data = state_agg_dt2) + 
-  geom_line(aes(x = N_fert, Yld)) +
-  geom_line(aes(x = N_fert, leach_n2*200))
+plot_1 <- ggplot(data = state_agg_dt2) + 
+  geom_line(aes(x = N_fert, y = Yld, linetype = "Yield")) +
+  geom_line(aes(x = N_fert, y = leach_n2*200, linetype = "N Leaching")) +
+  labs(y = 'Yield (kg/ha)',
+                x = 'N rate (kg/ha)',
+                colour = "Parameter")+
+           scale_y_continuous(sec.axis = sec_axis(~./200, name = "N leaching (kg/ha)"))+
+           scale_linetype_manual(values = c("dashed", "solid"))+
+      theme_bw()+
+      guides(linetype = guide_legend(order=2),
+             size = guide_legend(order=1)) +
+      theme(legend.title =  element_blank(),
+            legend.position = c(0.85, 0.15),
+            panel.grid = element_blank())
+
+plot_1
+
+ggsave(plot = plot_1, filename = "./n_policy/Data/figures/state_response_curve.jpg", width = 10, height = 10,
+       units = 'in')
 
 #======================================================================================
 # GET THE FIELDS THAT CAN BE RUN
