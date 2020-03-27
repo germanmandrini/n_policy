@@ -1,0 +1,1 @@
+system('singularity exec apsim_nov13.simg /usr/bin/mono /usr/local/APSIMClassic/Model/Apsim.exe /projects/aces/germanm2/vr_value_v2/apsim_temp/**/**/*.apsim')
