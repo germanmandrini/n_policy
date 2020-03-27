@@ -18,6 +18,44 @@ grid10_soils_dt5 <- readRDS("./n_policy/Data/Grid/grid10_soils_dt5.rds") %>% dat
 grid10_fields_sf2 <- readRDS('./n_policy/Data/Grid/grid10_fields_sf2.rds')
 reg_model_stuff <- readRDS( "./n_policy/Data/files_rds/reg_model_stuff.rds")
 grid10_soils_sf2 <- readRDS('./n_policy/Data/Grid/grid10_soils_sf2.rds')
+#======================================================================================
+# Do a plot with Yld and Leaching for a static N_fert across the state
+
+areas_dt <- data.table(grid10_soils_sf2) %>% .[,.(area_ha = sum(area_ha)), by = .(id_10, mukey)]
+
+state_agg_dt <- merge(yc_yearly_dt3, areas_dt, by = c('id_10', 'mukey'))
+
+state_agg_dt2  <- aggregate_by_area(data_dt = state_agg_dt, variables = c('Yld', 'leach_n2'), 
+                                                weight = 'area_ha', by_c = c('N_fert'))# %>% .[,-'area_ha']
+baselevel_leach <- 45.6537
+baselevel_leach <- 47
+baselevel_yld <- 11136.46
+baselevel_nfert <- 186.5601
+
+state_agg_dt2[,leach_prop := round((leach_n2 / baselevel_leach) - 1,2)*100 ]
+
+plot_1 <- ggplot(data = state_agg_dt2[N_fert < 250]) + 
+  geom_line(aes(x = N_fert, y = Yld, linetype = "Yield")) +
+  geom_line(aes(x = N_fert, y = leach_n2*200, linetype = "N Leaching")) +
+  #geom_hline(yintercept = baselevel_yld, linetype = 'dashed', color = 'grey', size = 1)+
+  geom_vline(xintercept = baselevel_nfert, linetype = 'dashed', color = 'grey', size = 1)+
+  labs(y = 'Yield (kg/ha)',
+                x = 'N rate (kg/ha)',
+                colour = "Parameter")+
+           scale_y_continuous(sec.axis = sec_axis(~./200, name = "N leaching (kg/ha)", breaks = seq(30,80,5), labels = seq(30,80,5))) +
+           scale_linetype_manual(values = c("dashed", "solid"))+
+      theme_bw()+
+      # guides(linetype = guide_legend(order=2),
+      #        size = guide_legend(order=1)) +
+      theme(legend.title =  element_blank(),
+            legend.position = c(0.87, 0.15),
+            legend.text=element_text(size=8),
+            panel.grid = element_blank())
+
+plot_1
+
+ggsave(plot = plot_1, filename = "./n_policy/Data/figures/state_response_curve.jpg", width = 5, height = 3,
+       units = 'in')
 
 #======================================================================================
 # GET THE FIELDS THAT CAN BE RUN

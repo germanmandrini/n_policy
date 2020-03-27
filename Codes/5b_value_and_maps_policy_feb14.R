@@ -112,7 +112,6 @@ perfomances_dt5[,policy_name := lapply(perfomances_dt5$policy, function(x) str_s
 saveRDS(perfomances_dt5, "./n_policy/Data/files_rds/perfomances_dt5.rds")
 
 perfomances_dt5 <- readRDS("./n_policy/Data/files_rds/perfomances_dt5.rds")
-perfomances_dt5[policy_name == 'ratio']
 
 #---------------------------------------------------------------------------
 # COMPARE A SAMPLE OF THE DIFFERENT MODELS THAT WOULD GET US TO THE 15% 
@@ -141,8 +140,10 @@ table_dt <- table_dt[order(order)]
 # and not caring about the externality cost (we are already sending less N, that's it my friends)
 
 table_dt <- perfomances_dt5[ NMS %in% NMSs_f]
-baselevel_n <- table_dt[policy == 'fee_0' & NMS == 1, leach_n2] 
+baselevel_nleach <- table_dt[policy == 'fee_0' & NMS == 1, leach_n2] 
 baselevel_yld <- table_dt[policy == 'fee_0' & NMS == 1, Yld ]
+baselevel_nfert <- table_dt[policy == 'fee_0' & NMS == 1, N_fert ]
+
 table_dt[,yld_red := round((Yld / baselevel_yld),2)]
 
 table_dt <- table_dt[yld_red > 0.9] #remove those that decrease yield too much
@@ -182,12 +183,15 @@ table_dt[,abat_cost := (soc_benefits - baselevel_benefits)/abatement]
 10800000 * 0.404686 * 42 / 1e6 #millons to expend in RS and recovering
 +1-(33/45)
 
-
-
 #==========================================================================
 # RATIO CHART 2
 
 plot_dt <- perfomances_dt5[policy_name == 'ratio' & NMS %in% c('1','2','3','4','5') & policy_val <= 20 ] 
+current_ratio_dt <- perfomances_dt5[policy == 'fee_0' & NMS %in% c('1','2','3','4','5')]
+current_ratio_dt[,policy_name := 'ratio']
+current_ratio_dt[,policy_val := Pn/Pc]
+current_ratio_dt[,policy := paste('ratio', round(Pn/Pc,1), sep = '_')]   
+plot_dt <- rbind(plot_dt, current_ratio_dt)
 
 plot_dt[,soc_benefits := P + gov]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
@@ -195,26 +199,29 @@ plot_dt[,externatility := ifelse((leach_n2 - target_n) > 0, (leach_n2 -target_n)
 plot_dt[,soc_welfare := soc_benefits - externatility ]
 plot_dt[order(-soc_welfare)][1:40]
 
+plot_dt[,leach_n2 := round((leach_n2 / baselevel_n) - 1,2)*100 ]
+
+ggplot(plot_dt) + geom_line(aes(x = policy_val, y = leach_n2, color = NMS))
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Yld', 'leach_n2', 'N_fert', 
                                                                                 'P', 'gov', 'externatility','soc_welfare'))
-
-plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate']
-plot_dt_long[variable == 'leach_n2', plot_name := 'b) N Leaching']
-plot_dt_long[variable == 'Yld', plot_name := 'c) Yield']
-plot_dt_long[variable == 'P', plot_name := 'd) Profits']
-plot_dt_long[variable == 'gov', plot_name := 'e) Tax revenue']
-plot_dt_long[variable == 'externatility', plot_name := 'f) externatility']
-plot_dt_long[variable == 'soc_welfare', plot_name := 'g) soc_welfare']
+plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
+plot_dt_long[variable == 'leach_n2', plot_name := 'b) N Leaching (% change)']
+plot_dt_long[variable == 'Yld', plot_name := 'c) Yield kg/ha']
+plot_dt_long[variable == 'P', plot_name := 'd) Profits $/ha']
+plot_dt_long[variable == 'gov', plot_name := 'e) Tax revenue $/ha']
+plot_dt_long[variable == 'externatility', plot_name := 'f) Externatility $/ha']
+plot_dt_long[variable == 'soc_welfare', plot_name := 'g) soc_welfare $/ha']
 plot_dt_long[order(variable)]
 
 plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'leach_n2', 'Yld')] 
 
 hline_dt <- data.table(plot_name = unique(plot_dt_long1$plot_name))
-hline_dt[plot_name == 'c) Yield', y_line := baselevel_yld*0.95]
-hline_dt[plot_name == 'c) Yield', y_label := '95% baselevel']
+hline_dt[plot_name == 'c) Yield kg/ha', y_line := baselevel_yld*0.95]
+hline_dt[plot_name == 'c) Yield kg/ha', y_label := '95% baselevel']
+hline_dt[plot_name == 'b) N Leaching (% change)', y_line  := 0]
 
-plot_1 <- ggplot()+
+plot_1 <- ggplot() +
   geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
   geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
   geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
