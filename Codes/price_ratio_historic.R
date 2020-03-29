@@ -14,9 +14,9 @@ price_ratio_historic <- fread('./n_policy/Data/price_ratio_historic.xlsx')
 library('xlsx')
 
 price_ratio_historic_dt <- read.xlsx('./n_policy/Data/price_ratio_historic.xlsx', sheetName = "price_ratio_historic") %>% data.table()
-setnames(price_ratio_historic_dt, c('Corn.USD.tn', 'NH3.USD.N.tn'), c('Corn', 'NH3'))
+setnames(price_ratio_historic_dt, c('Corn.USD.tn', 'NH3.USD.N.tn'), c('Pc', 'Pn'))
 
-price_ratio_long_dt <- melt(price_ratio_historic_dt, id.vars = c("year"), measure.vars = c("Corn", "NH3", "Ratio")) 
+price_ratio_long_dt <- melt(price_ratio_historic_dt, id.vars = c("year"), measure.vars = c("Pc", "Pn", "Ratio")) 
 price_ratio_long_dt[variable == 'Ratio' , value := value * 100]
 
 plot_1 <- ggplot() +
@@ -29,9 +29,9 @@ plot_1 <- ggplot() +
   scale_linetype_manual(values = c('dotted', "dashed", "solid"))+
   theme_bw()+
   theme(legend.title =  element_blank(),
-        legend.position = c(0.15, 0.9),
+        legend.position = c(0.15, 0.8),
         # legend.text=element_text(size=8),
         panel.grid = element_blank())
 
-ggsave(plot = plot_1, filename = "./n_policy/Data/figures/price_ratio_historic.jpg", width = 5, height = 3,
+ggsave(plot = plot_1, filename = "./n_policy/Data/figures/price_ratio_historic.jpg", width = 5, height = 3.5,
        units = 'in')
