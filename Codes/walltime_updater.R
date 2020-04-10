@@ -13,9 +13,9 @@ id_10_runned <- unique(sapply(strsplit(as.character(files_all), split="_"), "[",
 
 id_10_walltime_dt <- readRDS("./n_policy/Data/files_rds/id_10_walltime_dt.rds")
 id_10_walltime_dt <- id_10_walltime_dt[!id_10 %in% id_10_runned]
-# id_10_walltime_dt[,dur := N *  6]
-# id_10_walltime_dt[N >2, dur := N *  4]
-# id_10_walltime_dt[N >4, dur := N *  3]
+id_10_walltime_dt[,dur := N *  6]
+id_10_walltime_dt[N >2, dur := N *  4]
+id_10_walltime_dt[N >4, dur := N *  3]
 
 print(nrow(id_10_walltime_dt))
 print(table(id_10_walltime_dt$dur))
