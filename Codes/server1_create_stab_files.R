@@ -70,7 +70,7 @@ if(any(one_cell_dt$id_field %in% c(2,4))){
 }else{instructions2 <- data.table()}
 
 instructions <- rbind(instructions1, instructions2) %>% setcolorder(c('id_10',  'mukey', 'z', 'type'))
-if(cpsc) {instructions <- instructions[1,]}
+if(test_small) {instructions <- instructions[1,]}
 print(instructions )
 "C:/Users/germanm2/Documents/n_policy/Codes/apsim_create_files_nov18.R"
 source(paste0(codes_folder, '/n_policy/Codes/apsim_create_files_nov18.R'))

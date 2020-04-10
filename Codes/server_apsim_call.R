@@ -18,9 +18,10 @@ if(server){
 }else{
   setwd('/projects/aces/germanm2/')
   cluster <- TRUE	
-  codes_folder <- '/projects/aces/germanm2/'
+  codes_folder <- '/projects/aces/germanm2'
 }
 
+test_small <- FALSE #makes a small run 
 
 # id_10_seq <- unique(grid10_soils_dt4$id_10)
 
@@ -68,7 +69,7 @@ id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
   start3 <- Sys.time()
   "C:/Users/germanm2/Documents/n_policy/Codes/server_merge_results.R"
   source(paste0(codes_folder, '/n_policy/Codes/server_merge_results.R'))
-  
+
   #CREATE ALL YC FILES
   start4 <- Sys.time()
   "C:/Users/germanm2/Documents/n_policy/Codes/server2_create_yc_files.R"
@@ -110,3 +111,4 @@ id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
   saveRDS(time_track_tmp, paste0('./n_policy/Data/time_track/time_track_',id10_n,'.rds'))
   
   unlink(directory, recursive = TRUE)
+}

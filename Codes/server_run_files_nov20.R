@@ -39,6 +39,7 @@ if(server){
   if(any(str_detect(string = flist, pattern = '_yc_'))) {
     flist <- flist[str_detect(string = flist, pattern = '_yc_150|Nminus|Nrich')] #OJO!!!!
   }
+  
   result <- parLapply(cl, flist, function(x) system2( 'C:/Program Files (x86)/APSIM710-r4158/Model/Apsim.exe',  x ))  
   stopCluster(cl) 
 
@@ -54,8 +55,11 @@ if(server){
   flist = list.files(directory, full.names = TRUE, recursive = TRUE, pattern = '.apsim')
   if(any(str_detect(string = flist, pattern = '_yc_'))) {
     flist <- flist[str_detect(string = flist, pattern = '_yc_')] #OJO!!!!
+    if(test_small) {
+      flist <- flist[str_detect(string = flist, pattern = '_yc_150')] #OJO!!!!
+    }
   }
-
+  
   file_name = file.path(directory, 'files_to_run.txt')
   write.table(flist, file_name, row.names = FALSE, col.names = FALSE, quote = FALSE)
   
