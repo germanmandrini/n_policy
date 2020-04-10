@@ -36,9 +36,9 @@ library(data.table)
 
 
 make_yearly_summary <- function(file_n){
-  # file_n =  "S:/Bioinformatics Lab/germanm2/vr_value_v2_cluster/yc_output/324_680866.rds"
+  # file_n =  "S:/Bioinformatics Lab/germanm2/n_policy_cluster/yc_output/324_680866.rds"
   # file_n <- files_daily[1]
-  # file_n <- "S:/Bioinformatics Lab/germanm2/vr_value_v2_cluster/yc_output/1060_173466.rds"
+  # file_n <- "S:/Bioinformatics Lab/germanm2/n_policy_cluster/yc_output/1060_173466.rds"
   #--------------------------
   # preparation
   #--------------------------
@@ -50,7 +50,7 @@ make_yearly_summary <- function(file_n){
   
     daily_yc_dt <- readRDS(file_n) 
     
-    weather_cell_dt <- readRDS(paste('./vr_value_v2/Data/met_files/weather_z_cell', unique(daily_yc_dt$id_10), '_dt.rds', sep = '')) %>%
+    weather_cell_dt <- readRDS(paste('./n_policy/Data/met_files/weather_z_cell', unique(daily_yc_dt$id_10), '_dt.rds', sep = '')) %>%
       .[year == 2010]
     
     initial_conditions_dt <- readRDS(str_replace(file_n, pattern = 'yc_output', replacement = 'initial_conditions')) %>%
@@ -111,50 +111,58 @@ make_yearly_summary <- function(file_n){
       prev_yield <- initial_conditions_dt[z == z_n] %>% .[,.(Yld_prev = max(Y, na.rm = T)/0.85), by = .(id_10, z)]
       yearly_data <- merge(yearly_data[year == 2010], prev_yield, by = c('id_10', 'z'))
       
+      #Add soy yield
+      soy_yield <- daily_yc_dt2[year == 2011,.(Yld_soy = max(Y, na.rm = T)/0.85), by = .(id_10, mukey, z, sim_name)]
+      yearly_data <- merge(yearly_data, soy_yield, by = c('id_10', 'mukey','z', 'sim_name'))
+      
       #Add sowing date
       sowing_day <- daily_yc_dt2[stage_name == 'sowing', .(sim_name, day)]
       setnames(sowing_day, 'day', 'day_sow')
       yearly_data <- merge(yearly_data, sowing_day, by = c('sim_name'))
       #=====================================================================================================#
       # LEACHING April to April
-      daily_yc_dt2[,leach_period := ifelse(year == 2010 & day > 100, 1, 
-                                          ifelse(year == 2011 & day <= 100, 1, 0))]
-  
-      leach_data <- daily_yc_dt2[leach_period == 1, .(leach_n = sum(leach_no3)), by = .(id_10, mukey, z, sim_name)]
+      # daily_yc_dt2[,leach_period := ifelse(year == 2010 & day > 100, 1, 
+      #                                     ifelse(year == 2011 & day <= 100, 1, 0))]
+      # 
+      # daily_yc_dt2[,leach_period := ifelse(year == 2010, 1
+      
+      leach_data <- daily_yc_dt2[, .(leach_n = sum(leach_no3)), by = .(id_10, mukey, z, sim_name, year)]
+      leach_data[,year := ifelse(year==2010,'leach_1','leach_2')]
+      leach_data <- dcast(leach_data, id_10 + mukey + z + sim_name ~ year , value.var = "leach_n")
       
       yearly_data <- merge(yearly_data, leach_data, by = c('id_10', 'mukey',  'z', 'sim_name'))
       
       #=====================================================================================================#
-      #Delta N (define leaching as all N going below 150)
-      n_below150cm <- daily_yc_dt2[year == 2011 & day == 100, .(id_10, mukey, z, sim_name, n_deep, nh4_10, nh4_11, no3_10, no3_11)]
-  
-      n_below150cm[,n_low_150cm := nh4_10 + nh4_11 + no3_10 + no3_11]
-  
-      yearly_data <- merge(yearly_data, n_below150cm[, .(id_10, mukey, z, sim_name,n_low_150cm) ], by = c('id_10', 'mukey', 'z', 'sim_name'))
-      
-      
-      yearly_data[, leach_n2 := leach_n + n_low_150cm]  #assuming that any increase in N in the soil solution will be eventually leached
-      yearly_data <- yearly_data[,-'n_low_150cm']
+      # #Delta N (define leaching as all N going below 150)
+      # n_below150cm <- daily_yc_dt2[year == 2011 & day == 100, .(id_10, mukey, z, sim_name, n_deep, nh4_10, nh4_11, no3_10, no3_11)]
+      # 
+      # n_below150cm[,n_low_150cm := nh4_10 + nh4_11 + no3_10 + no3_11]
+      # 
+      # yearly_data <- merge(yearly_data, n_below150cm[, .(id_10, mukey, z, sim_name,n_low_150cm) ], by = c('id_10', 'mukey', 'z', 'sim_name'))
+      # 
+      # 
+      # yearly_data[, leach_n2 := leach_n + n_low_150cm]  #assuming that any increase in N in the soil solution will be eventually leached
+      # yearly_data <- yearly_data[,-'n_low_150cm']
       
       #=====================================================================================================#
       # Increase in N on top 150 cm
-      n_top_cols <- c(paste0('no3_', 1:9), paste0('nh4_', 1:9))
-      n_data1 <- daily_yc_dt2[year == 2010 & day == 101, c('id_10', 'mukey',  'z',  'sim_name', n_top_cols), with = F] %>%
-        .[,n_top15_1 := no3_1+no3_2+no3_3+no3_4+no3_5+no3_6+no3_7+no3_8+no3_9+nh4_1+nh4_2+nh4_3+nh4_4+nh4_5+nh4_6+nh4_7+nh4_8+nh4_9] %>% 
-        .[,-n_top_cols, with = F]
-      
-      n_data2 <- daily_yc_dt2[year == 2011 & day == 100, c('id_10', 'mukey',  'z',  'sim_name', n_top_cols), with = F] %>%
-        .[,n_top15_2 := no3_1+no3_2+no3_3+no3_4+no3_5+no3_6+no3_7+no3_8+no3_9+nh4_1+nh4_2+nh4_3+nh4_4+nh4_5+nh4_6+nh4_7+nh4_8+nh4_9] %>% 
-        .[,-n_top_cols, with = F]
-      
-      n_delta <- merge(n_data1 , n_data2, by = c('id_10', 'mukey',  'z',  'sim_name'))
+      # n_top_cols <- c(paste0('no3_', 1:9), paste0('nh4_', 1:9))
+      # n_data1 <- daily_yc_dt2[year == 2010 & day == 101, c('id_10', 'mukey',  'z',  'sim_name', n_top_cols), with = F] %>%
+      #   .[,n_top15_1 := no3_1+no3_2+no3_3+no3_4+no3_5+no3_6+no3_7+no3_8+no3_9+nh4_1+nh4_2+nh4_3+nh4_4+nh4_5+nh4_6+nh4_7+nh4_8+nh4_9] %>% 
+      #   .[,-n_top_cols, with = F]
       # 
-      n_delta[,n_top15_delta := n_top15_2 - n_top15_1 ]
+      # n_data2 <- daily_yc_dt2[year == 2011 & day == 100, c('id_10', 'mukey',  'z',  'sim_name', n_top_cols), with = F] %>%
+      #   .[,n_top15_2 := no3_1+no3_2+no3_3+no3_4+no3_5+no3_6+no3_7+no3_8+no3_9+nh4_1+nh4_2+nh4_3+nh4_4+nh4_5+nh4_6+nh4_7+nh4_8+nh4_9] %>% 
+      #   .[,-n_top_cols, with = F]
       # 
-      yearly_data <- merge(yearly_data, n_delta[, .(id_10, mukey, z, sim_name,n_top15_delta) ], by = c('id_10', 'mukey',   'z',  'sim_name'))
-      # yearly_data[, leach_n2 := ifelse(n_delta > 0, leach_n + n_delta, leach_n)]  #assuming that any increase in N in the soil solution will be eventually leached
-      
-      
+      # n_delta <- merge(n_data1 , n_data2, by = c('id_10', 'mukey',  'z',  'sim_name'))
+      # # 
+      # n_delta[,n_top15_delta := n_top15_2 - n_top15_1 ]
+      # # 
+      # yearly_data <- merge(yearly_data, n_delta[, .(id_10, mukey, z, sim_name,n_top15_delta) ], by = c('id_10', 'mukey',   'z',  'sim_name'))
+      # # yearly_data[, leach_n2 := ifelse(n_delta > 0, leach_n + n_delta, leach_n)]  #assuming that any increase in N in the soil solution will be eventually leached
+      # 
+      # 
       
       #=====================================================================================================#
       # SOIL FILES
@@ -222,8 +230,8 @@ make_yearly_summary <- function(file_n){
   #REAL WORK:if there is no error
   if(!inherits(possibleError, "error")){
     # return(rbindlist(all_summaries, fill = TRUE))
-    if(!dir.exists("./vr_value_v2/Data/yc_output_summary")){dir.create("./vr_value_v2/Data/yc_output_summary")}
-    saveRDS(rbindlist(all_summaries, fill = TRUE), paste0("./vr_value_v2/Data/yc_output_summary/", basename(file_n)))
+    if(!dir.exists("./n_policy/Data/yc_output_summary")){dir.create("./n_policy/Data/yc_output_summary")}
+    saveRDS(rbindlist(all_summaries, fill = TRUE), paste0("./n_policy/Data/yc_output_summary/", basename(file_n)))
   } else {
     return(c(file_n, possibleError))
   }
@@ -231,7 +239,7 @@ make_yearly_summary <- function(file_n){
   
 }
 
-grid10_horizons_v2_dt <- readRDS("./vr_value_v2/Data/Grid/grid10_horizons_v2_dt.rds")
+grid10_horizons_v2_dt <- readRDS("./n_policy/Data/Grid/grid10_horizons_v2_dt.rds")
 
 # start <- Sys.time()
 results_list <- list()
@@ -242,9 +250,9 @@ for(file_n in files_daily){
 # time_lasted <- Sys.time() - start
 # print(time_lasted)
 
-# files_all <- list.files('~/vr_value_v2/Data/yc_output/',full.names = T, recursive = T, pattern = '_YC.rds')
+# files_all <- list.files('~/n_policy/Data/yc_output/',full.names = T, recursive = T, pattern = '_YC.rds')
 
-# files_all <- list.files('//aces-dfs-03.ad.uillinois.edu/cpsc-share/Bioinformatics Lab/germanm2/vr_value_v2/yc_output',full.names = T, recursive = T, pattern = '_YC.rds')
+# files_all <- list.files('//aces-dfs-03.ad.uillinois.edu/cpsc-share/Bioinformatics Lab/germanm2/n_policy/yc_output',full.names = T, recursive = T, pattern = '_YC.rds')
 
 # re_runned <- c(1000, 1080, 1138, 280, 283, 435, 52, 813, 960)
 # pattern_find <- paste0('cell_', re_runned, collapse = '|')
@@ -264,17 +272,17 @@ for(file_n in files_daily){
 # 
 # start <- Sys.time()
 # results_list <- parallel::parLapply(cl,files_daily2[1], function(x) make_yearly_summary(x))
-# saveRDS(results_list, './vr_value_v2/Data/files_rds/results_list.rds')
+# saveRDS(results_list, './n_policy/Data/files_rds/results_list.rds')
 # time_lasted <- Sys.time() - start
 # print(time_lasted)
 
 # no_file <- which(!sapply(results_list, is.data.table))
 # no_file2 <- files_all[no_file]
-# saveRDS(no_file2, './vr_value_v2/Data/files_rds/no_file2.rds')
+# saveRDS(no_file2, './n_policy/Data/files_rds/no_file2.rds')
 
 # start <- Sys.time()
 # results_list <- parallel::parLapply(cl,no_file2, function(x) make_yearly_summary(x))
-# saveRDS(results_list, './vr_value_v2/Data/files_rds/results_list.rds')
+# saveRDS(results_list, './n_policy/Data/files_rds/results_list.rds')
 # time_lasted <- Sys.time() - start
 # print(time_lasted)
 
@@ -283,7 +291,7 @@ for(file_n in files_daily){
 #length(results_list2)
 #yc_yearly_dt <- rbindlist(results_list2, fill = TRUE)
 
-#saveRDS(yc_yearly_dt, './vr_value_v2/Data/files_rds/yc_yearly_dt.rds')
+#saveRDS(yc_yearly_dt, './n_policy/Data/files_rds/yc_yearly_dt.rds')
 
 #-----------------------------------------------------------------------
 #Update re-runs
@@ -294,7 +302,7 @@ for(file_n in files_daily){
 # update_dt1 <- update_dt1[,-'prev_crop']
 # 
 # 
-# yc_yearly_dt <- readRDS('./vr_value_v2/Data/files_rds/yc_yearly_dt.rds')
+# yc_yearly_dt <- readRDS('./n_policy/Data/files_rds/yc_yearly_dt.rds')
 # update_dt2 <- yc_yearly_dt[id_10 %in% re_runned]
 # yc_yearly_dt <- yc_yearly_dt[!id_10 %in% re_runned]
 # 
@@ -312,4 +320,4 @@ for(file_n in files_daily){
 # update_dt1 <- unique(update_dt1)
 # yc_yearly_dt <- rbind(yc_yearly_dt, update_dt1)
 # 
-# saveRDS(yc_yearly_dt, './vr_value_v2/Data/files_rds/yc_yearly_dt.rds')
+# saveRDS(yc_yearly_dt, './n_policy/Data/files_rds/yc_yearly_dt.rds')

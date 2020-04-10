@@ -3,7 +3,7 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions){
   # sim_name <- paste(unlist(instructions_tmp[,.(id_10, mukey, type)]), collapse = '_')
   
   
-  file_name <- paste0('./vr_value_v2/Data/initial_conditions/', instructions_tmp$id_10,'_', instructions_tmp$mukey,'.rds')
+  file_name <- paste0('./n_policy/Data/initial_conditions/', instructions_tmp$id_10,'_', instructions_tmp$mukey,'.rds')
   # file_name <- gsub(pattern = '_yc', replacement = '', file_name)
   # file_name <- gsub(pattern = paste0('_', instructions_tmp$z, '_'), replacement = '_1_', file_name) #only A1 is run as stabilization period
   

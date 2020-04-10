@@ -30,7 +30,7 @@ apsim_create_files <- function(i){
  	
   #--- load the base apsim file ---# 
   if(instructions_tmp$type == 'stab'){
-    base_doc <- xml2::read_xml("./vr_value_v2/Data/apsim_files/vr_value_v6.apsim")
+    base_doc <- xml2::read_xml("./n_policy/Data/apsim_files/vr_value_v6.apsim")
     }else{
     base_doc <- xml2::read_xml(instructions_tmp$path)
     # unlink(dirname(instructions_tmp$path), recursive = TRUE)
@@ -51,11 +51,11 @@ apsim_create_files <- function(i){
   #--------------------------
   # CLOCK
   #--------------------------
-  year_start <- ifelse(instructions_tmp$type == 'stab', 2001, 2010)
-  date_end <- ifelse(instructions_tmp$type == 'stab', '31/12/2010', '30/04/2011') #should be 2009. This is to compare cont vs seq
+  date_start <- ifelse(instructions_tmp$type == 'stab', '01/01/2001', '01/01/2010')
+  date_end <- ifelse(instructions_tmp$type == 'stab', '31/12/2010', '31/12/2011') #should be 2009. This is to compare cont vs seq
                    
   node <- xml_find_all(base_doc,'//clock/start_date')
-  xml_text(node) <- paste('01/01/',year_start, sep = '')
+  xml_text(node) <- date_start
   
   node <-  xml_find_all(base_doc,'//clock/end_date')
   xml_text(node) <- date_end
@@ -92,7 +92,8 @@ apsim_create_files <- function(i){
   }
   
   if(instructions_tmp$type == 'yc'){
-    source('./vr_value_v2/Codes/update_ic_nov18.R')
+    "C:/Users/germanm2/Documents/n_policy/Codes/update_ic_nov18.R"
+    source(paste0(codes_folder, '/n_policy/Codes/update_ic_nov18.R'))
     base_doc <- update_ic(base_doc, instructions_tmp)
   }
   
@@ -108,8 +109,8 @@ apsim_create_files <- function(i){
   
   #--- Set the rate for the YC period ---#
   if(instructions_tmp$type == 'yc'){
-    # N_rates <- c(seq(0, 320, 10), 'n_minus', 'n_rich')
-    N_rates <- c('Nminus', 'Nrich')
+    N_rates <- c(seq(0, 320, 10), 'n_minus', 'n_rich')
+    # N_rates <- c('Nminus', 'Nrich')
     # N_rates <- 150
     for(N_n in N_rates){
       # N_n = 'n_minus'
@@ -184,7 +185,7 @@ apsim_create_files <- function(i){
 }
 
 
-keep <- c('keep', 'apsim_create_files', 'instructions', 'directory')
+keep <- c('keep', 'apsim_create_files', 'instructions', 'directory', 'codes_folder')
 # if(unique(instructions$type) == 'YC'){ keep <- append(keep, 'initial_conditions' )}
 # # #rm(list = ls()[!ls() %in% keep])
 

@@ -3,22 +3,21 @@ library(dplyr)
 library(parallel)
 library(XML)
 
-grid10_soils_dt4 <- readRDS("./vr_value_v2/Data/Grid/grid10_soils_dt4.rds")
-grid10_horizons_v1_dt <- readRDS("./vr_value_v2/Data/Grid/grid10_horizons_v1_dt.rds")
-grid10_fields_sf2 <- readRDS("./vr_value_v2/Data/Grid/grid10_fields_sf2.rds")
+grid10_soils_dt4 <- readRDS("./n_policy/Data/Grid/grid10_soils_dt4.rds")
+grid10_horizons_v1_dt <- readRDS("./n_policy/Data/Grid/grid10_horizons_v1_dt.rds")
+grid10_fields_sf2 <- readRDS("./n_policy/Data/Grid/grid10_fields_sf2.rds")
 
-source('./vr_value_v2/Data/APssurgo_master/R/calc_apsim_variables_onesoil.R')
-source('./vr_value_v2/Data/APssurgo_master/R/make_apsoils_toolbox.R')
-source('./vr_value_v2/Codes/make_met_files.R')
-
+source('./n_policy/Data/APssurgo_master/R/calc_apsim_variables_onesoil.R')
+source('./n_policy/Data/APssurgo_master/R/make_apsoils_toolbox.R')
+source(paste0(codes_folder, '/n_policy/Codes/make_met_files.R'))
 
 
 if(server){
-  directory <- paste('/home/germanm2/apsim_temp/vr_value_v2/cell', id10_n, sep = '')
+  directory <- paste('/home/germanm2/apsim_temp/n_policy/cell', id10_n, sep = '')
 }else if(cpsc){
-  directory <- paste('C:/apsim_temp/', Sys.info()["nodename"],'/vr_value_v2/cell', id10_n, sep = '')
+  directory <- paste('C:/apsim_temp/', Sys.info()["nodename"],'/n_policy/cell', id10_n, sep = '')
 }else if(cluster){
-  directory <- paste('/projects/aces/germanm2/vr_value_v2/apsim_temp/cell', id10_n, sep = '')
+  directory <- paste('/projects/aces/germanm2/n_policy/apsim_temp/cell', id10_n, sep = '')
 }
 
 unlink(directory ,recursive=TRUE)
@@ -30,7 +29,7 @@ cell_coords <- data.table(grid10_fields_sf2[grid10_fields_sf2$id_10 == id10_n,])
 
 #----------------------------------------------------------------------------
 # WEATHER FILES
-weather_file <- paste('./vr_value_v2/Data/met_files/weather_z_cell', id10_n, '_dt.rds', sep = '')
+weather_file <- paste('./n_policy/Data/met_files/weather_z_cell', id10_n, '_dt.rds', sep = '')
 weather_cell.dt <- readRDS(weather_file)
 
 make_met_files_paralell(weather_cell.dt, directory)
@@ -73,4 +72,5 @@ if(any(one_cell_dt$id_field %in% c(2,4))){
 instructions <- rbind(instructions1, instructions2) %>% setcolorder(c('id_10',  'mukey', 'z', 'type'))
 if(cpsc) {instructions <- instructions[1,]}
 print(instructions )
-source('./vr_value_v2/Codes/apsim_create_files_nov18.R')
+"C:/Users/germanm2/Documents/n_policy/Codes/apsim_create_files_nov18.R"
+source(paste0(codes_folder, '/n_policy/Codes/apsim_create_files_nov18.R'))

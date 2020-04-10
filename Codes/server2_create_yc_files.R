@@ -7,4 +7,6 @@ instructions[,type := 'yc']
 instructions %>% setcolorder(c('id_10',  'mukey', 'z', 'type'))
 
 #CREATE ALL APSIM FILES
-source('./vr_value_v2/Codes/apsim_create_files_nov18.R')
+"C:/Users/germanm2/Documents/n_policy/Codes/apsim_create_files_nov18.R"
+source(paste0(codes_folder, '/n_policy/Codes/apsim_create_files_nov18.R'))
+
