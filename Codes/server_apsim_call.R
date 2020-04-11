@@ -111,4 +111,3 @@ id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
   saveRDS(time_track_tmp, paste0('./n_policy_box/Data/time_track/time_track_',id10_n,'.rds'))
   
   unlink(directory, recursive = TRUE)
-}
