@@ -321,7 +321,6 @@ st_write(regularfields_sf, "./n_policy_box/Data/shapefiles/regularfields_sf.shp"
 # ggplot(data = ValidSet3_eonr, aes(x = n_0_60cm_v5, y = eonr)) + 
 #   geom_point() + geom_smooth()
 
-
 # =========================================================================================================================================================
 # CREATE THE REGIONAL MINIMUM MODEL
 
@@ -366,6 +365,7 @@ reg_model_stuff[['model_minimum_regional']] <-  model_minimum_regional
 reg_model_stuff[['full_fields']] <-  full_fields_dt[,-'rf']
 reg_model_stuff[['stations']] <-  stations_dt[,-'rs']
 reg_model_stuff[['training_z']] <-  training_z
+
 # reg_model_stuff[['trial_rates']] <-  trial_rates
 
 saveRDS(reg_model_stuff, "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
