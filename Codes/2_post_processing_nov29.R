@@ -100,7 +100,6 @@ if(FALSE){
     .[,run := 'ok']
   simulated_soils_dt2[,id_10:= as.integer(id_10)]
   
-  
   grid10_soils_dt5 <- merge(grid10_soils_dt4, simulated_soils_dt2, by =c('id_10', 'id_field','mukey')) %>% 
     .[,-c('run', 'id10_field_mukey', 'field_area')]
   

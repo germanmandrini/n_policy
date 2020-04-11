@@ -9,14 +9,14 @@ source('./Codes_useful/gm_functions.R')
 # library(randomForest)
 # library(ranger)
 # library(mlr)
-source('./vr_value_v2/Codes/parameters.R')
+source('./n_policy_git/Codes/parameters.R')
 # Pn = 0.87 * 2
 
-# eonr_mukey_dt2 <- readRDS("./vr_value_v2/Data/files_rds/eonr_mukey_dt2.rds")
-grid10_tiles_sf6 <- readRDS("./vr_value_v2/Data/Grid/grid10_tiles_sf6.rds") 
-grid10_soils_dt5 <- readRDS("./vr_value_v2/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
-yc_yearly_dt3 <- readRDS("./vr_value_v2/Data/files_rds/yc_yearly_dt3.rds")
-grid10_fields_sf2 <- readRDS('./vr_value_v2/Data/Grid/grid10_fields_sf2.rds')
+# eonr_mukey_dt2 <- readRDS("./n_policy_box/Data/files_rds/eonr_mukey_dt2.rds")
+grid10_tiles_sf6 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf6.rds") 
+grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
+yc_yearly_dt3 <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
+grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
 
 #======================================================================================
 # if(FALSE){
@@ -72,7 +72,7 @@ grid10_fields_sf2 <- readRDS('./vr_value_v2/Data/Grid/grid10_fields_sf2.rds')
 #   
 # 
 # }else{
-#   reg_model_stuff <- readRDS( "./vr_value_v2/Data/files_rds/reg_model_stuff.rds")
+#   reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
 #   stations_dt2 <- reg_model_stuff[['stations']]
 #   full_fields_dt2 <- reg_model_stuff[['full_fields']]
 #   model1b_eonr <- reg_model_stuff[['model1b_eonr']]
@@ -103,7 +103,7 @@ grid10_fields_sf2 <- readRDS('./vr_value_v2/Data/Grid/grid10_fields_sf2.rds')
     full_fields_dt <- grid10_soils_dt5[-remove_this, .(region, id_10, id_field, mukey, lat, long)]
     length(unique(full_fields_dt$id_10))
   }else{
-    reg_model_stuff <- readRDS("./vr_value_v2/Data/files_rds/reg_model_stuff.rds")
+    reg_model_stuff <- readRDS("./n_policy_box/Data/files_rds/reg_model_stuff.rds")
     full_fields_dt <- reg_model_stuff[['full_fields']]
     stations_dt <- reg_model_stuff[['stations']]
     rm(reg_model_stuff)
@@ -138,8 +138,8 @@ ggplot(eonr_explore_dt) +
 # set.seed(234)
 # training_z <- sort(sample(1:30, 10, replace = F))
 
-training_z <- c(1:4, 16:21)
-training_z <- c(4, 6, 8, 11, 13, 15, 16, 17, 28, 25)
+# training_z <- c(1:4, 16:21)
+# training_z <- c(4, 6, 8, 11, 13, 15, 16, 17, 28, 25)
 training_z <- c(11:20)
 
 z_odd = c(1,3,5,7,9,11,13,15,17,19,21,23,25,27,29)
@@ -223,7 +223,7 @@ grid10_region <- grid10_tiles_sf6 %>% group_by(region) %>% summarize()
 # library(smoothr)
 # area_thresh <- units::set_units(10*10+10, km^2)
 # grid10_region2 <- fill_holes(grid10_region, threshold = area_thresh)
-grid10_region_by_hand <- sf::read_sf('./vr_value_v2/Data/shapefiles/grid10_region_by_hand.shp')
+grid10_region_by_hand <- sf::read_sf('./n_policy_box/Data/shapefiles/grid10_region_by_hand.shp')
 grid10_region_by_hand <- st_transform(grid10_region_by_hand, crs = st_crs(stations_sf))
 
 
@@ -238,11 +238,11 @@ grid10_region_by_hand <- st_transform(grid10_region_by_hand, crs = st_crs(statio
 
 # install.packages('tmap')
 library('tmap')
-tmap_save(fields_map_clean, filename = "./vr_value_v2/Data/figures/fields_map_and_stations.jpg", height = 8, width = 6)  
+tmap_save(fields_map_clean, filename = "./n_policy_box/Data/figures/fields_map_and_stations.jpg", height = 8, width = 6)  
 
-st_write(stations_sf, "./vr_value_v2/Data/shapefiles/stations_sf.shp", delete_dsn = TRUE)
-st_write(regularfields_sf, "./vr_value_v2/Data/shapefiles/regularfields_sf.shp", delete_dsn = TRUE)
-# st_write(grid10_region, "./vr_value_v2/Data/shapefiles/grid10_region.shp", delete_dsn = TRUE)
+st_write(stations_sf, "./n_policy_box/Data/shapefiles/stations_sf.shp", delete_dsn = TRUE)
+st_write(regularfields_sf, "./n_policy_box/Data/shapefiles/regularfields_sf.shp", delete_dsn = TRUE)
+# st_write(grid10_region, "./n_policy_box/Data/shapefiles/grid10_region.shp", delete_dsn = TRUE)
 
 #======================================================================================
 # SPLIT THE DATA (TRAINING, VALIDATION)
@@ -329,7 +329,6 @@ st_write(regularfields_sf, "./vr_value_v2/Data/shapefiles/regularfields_sf.shp",
 TrainSet2[, Yld_response := max(Yld) - min(Yld), by = .(id_10, mukey,z)]
 TrainSet_RMM <- TrainSet2[Yld_response > 500]
 
-
 #Select a few rates
 #Alll this comes from https://rcompanion.org/handbook/I_11.html
 # N_rates_trial <- c(10, 90,170,250, 330)
@@ -358,7 +357,7 @@ model_minimum_regional <- quadratic_dt3[, .SD[ P_avg == max( P_avg)], by = .(reg
 setnames(model_minimum_regional, 'N_fert', 'eonr_pred')
 
 
-# reg_model_stuff <- readRDS("./vr_value_v2/Data/files_rds/reg_model_stuff.rds")
+# reg_model_stuff <- readRDS("./n_policy_box/Data/files_rds/reg_model_stuff.rds")
 
 reg_model_stuff[['model_minimum_regional']] <-  model_minimum_regional
 
@@ -369,5 +368,5 @@ reg_model_stuff[['stations']] <-  stations_dt[,-'rs']
 reg_model_stuff[['training_z']] <-  training_z
 # reg_model_stuff[['trial_rates']] <-  trial_rates
 
-saveRDS(reg_model_stuff, "./vr_value_v2/Data/files_rds/reg_model_stuff.rds")
+saveRDS(reg_model_stuff, "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
 
