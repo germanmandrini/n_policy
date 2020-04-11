@@ -30,7 +30,7 @@ apsim_create_files <- function(i){
  	
   #--- load the base apsim file ---# 
   if(instructions_tmp$type == 'stab'){
-    base_doc <- xml2::read_xml("./n_policy/Data/apsim_files/vr_value_v6.apsim")
+    base_doc <- xml2::read_xml("./n_policy_box/Data/apsim_files/vr_value_v6.apsim")
     }else{
     base_doc <- xml2::read_xml(instructions_tmp$path)
     # unlink(dirname(instructions_tmp$path), recursive = TRUE)
@@ -92,8 +92,8 @@ apsim_create_files <- function(i){
   }
   
   if(instructions_tmp$type == 'yc'){
-    "C:/Users/germanm2/Documents/n_policy/Codes/update_ic_nov18.R"
-    source(paste0(codes_folder, '/n_policy/Codes/update_ic_nov18.R'))
+    "C:/Users/germanm2/Documents/n_policy_git/Codes/update_ic_nov18.R"
+    source(paste0(codes_folder, '/n_policy_git/Codes/update_ic_nov18.R'))
     base_doc <- update_ic(base_doc, instructions_tmp)
   }
   

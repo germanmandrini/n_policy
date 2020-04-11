@@ -74,7 +74,7 @@ for(mukey_n in mukey_seq){
   
   #SAVE THE OUTPUT
   stab_or_yc <- ifelse(str_detect(basename(out_files_tmp[1]), 'stab'), 'initial_conditions/', 'yc_output/')
-  file_output_name <- paste('./n_policy/Data/',stab_or_yc, id10_n,"_",mukey_n, '.rds', sep = '')
+  file_output_name <- paste('./n_policy_box/Data/',stab_or_yc, id10_n,"_",mukey_n, '.rds', sep = '')
   # if(cpsc){file_output_name <- paste('S:/Bioinformatics Lab/germanm2/n_policy/',stab_or_yc, id10_n,"_",mukey_n, '.rds', sep = '')}
   
   if(!file.exists(dirname(file_output_name))){ dir.create(dirname(file_output_name), recursive = TRUE) }
@@ -86,13 +86,13 @@ for(mukey_n in mukey_seq){
 if(FALSE){
   #COMPARE THE CONTINUOUS SIMULATION VS THE SEQUENTIAL
   # COMPARE THE YIELD
-  ic_files <- list.files(paste0('./n_policy/Data/initial_conditions'), full.names = TRUE)
+  ic_files <- list.files(paste0('./n_policy_box/Data/initial_conditions'), full.names = TRUE)
   ic_files <- ic_files[str_detect(basename(ic_files), pattern = paste0(id10_n, '_'))]
   ic_dt <- data.table()
   for(file_n in ic_files){
     ic_dt <- rbind(ic_dt, readRDS(file_n))}
   
-  yc_files <- list.files(paste0('./n_policy/Data/yc_output'), full.names = TRUE)
+  yc_files <- list.files(paste0('./n_policy_box/Data/yc_output'), full.names = TRUE)
   yc_files <- yc_files[str_detect(basename(yc_files), pattern = paste0(id10_n, '_'))]
   yc_dt <- data.table()
   for(file_n in yc_files){

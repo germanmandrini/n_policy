@@ -1,18 +1,17 @@
-setwd('C:/Users/germa/Box Sync/My_Documents') #dell
+# setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
 # setwd("/home/germanm2")
 # setwd('~')
 
-
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
-# source('./vr_value_v2/Codes/parameters.R')
+# source('./n_policy/Codes/parameters.R')
 # source('./Codes_useful/gm_functions.R')
 
 #======================================================================================
 #DATA CLEANING & QUALITY CONTROL
 if(FALSE){
-  multiple_files <- list.files("./vr_value_v2/Data/yc_output_summary_1", full.names = T)
+  multiple_files <- list.files("./n_policy_box/Data/yc_output_summary", full.names = T)
   length(multiple_files)
   
   yc_yearly_list <- list()
@@ -22,9 +21,9 @@ if(FALSE){
   length(yc_yearly_list)
   yc_yearly_dt <- rbindlist(yc_yearly_list)
   yc_yearly_dt[,id_10 := as.integer(id_10)]
-  saveRDS(yc_yearly_dt, './vr_value_v2/Data/files_rds/yc_yearly_dt.rds')
+  saveRDS(yc_yearly_dt, './n_policy_box/Data/files_rds/yc_yearly_dt.rds')
   
-  yc_yearly_dt <- readRDS('./vr_value_v2/Data/files_rds/yc_yearly_dt.rds')
+  yc_yearly_dt <- readRDS('./n_policy_box/Data/files_rds/yc_yearly_dt.rds')
   
   length(unique(yc_yearly_dt$id_10))
   
@@ -32,6 +31,7 @@ if(FALSE){
   # QC
   # Remove low lai_v5 (farmers would not fertilize)
   hist(yc_yearly_dt$lai_v5)
+  yc_yearly_dt
   
   ggplot(yc_yearly_dt[sample(1:nrow(yc_yearly_dt), 10000, replace = F)], aes(x = lai_v5, y = Yld)) + 
     geom_point()
@@ -83,7 +83,7 @@ if(FALSE){
   
   #------------------------------------------------------------------------------------
   # CHECK FIELDS AREAS AFTER CLEANING 
-  grid10_soils_dt4 <- readRDS("./vr_value_v2/Data/Grid/grid10_soils_dt4.rds")
+  grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
   
   simulated_soils_dt <- yc_yearly_dt3[,.N, by = .(id_10, z, mukey)][,-'N']
   z_even = c(2,4,6,8,10,12,14,16,18,20,22,24,26,28,30)
@@ -115,15 +115,15 @@ if(FALSE){
   
   table(grid10_soils_dt5[,.N, by = .(id_10, id_field, mukey)]$N)
   table(grid10_soils_dt5[,.N, by = .(id_10, id_field)]$N)
-  saveRDS(grid10_soils_dt5, "./vr_value_v2/Data/Grid/grid10_soils_dt5.rds")
+  saveRDS(grid10_soils_dt5, "./n_policy_box/Data/Grid/grid10_soils_dt5.rds")
 }
 
-# saveRDS(yc_yearly_dt2d, "./vr_value_v2/Data/files_rds/yc_yearly_dt2d.rds")
+# saveRDS(yc_yearly_dt2d, "./n_policy_box/Data/files_rds/yc_yearly_dt2d.rds")
 
 #======================================================================================
 # GET REGIONS - they will have the same amount of corn cells on them
 if(FALSE){
-  grid10_tiles_sf5 <- readRDS("./vr_value_v2/Data/Grid/grid10_tiles.sf5.rds") 
+  grid10_tiles_sf5 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles.sf5.rds") 
   # 
   # tm_shape(grid10_tiles_sf5) + tm_polygons("county_name")
   # 
@@ -145,27 +145,27 @@ if(FALSE){
       # library(smoothr)
       # area_thresh <- units::set_units(10*10+10, km^2)
       # grid10_region2 <- fill_holes(grid10_region, threshold = area_thresh)
-      # st_write(grid10_region, "./vr_value_v2/Data/shapefiles/grid10_region.shp", delete_dsn = TRUE)
+      # st_write(grid10_region, "./n_policy_box/Data/shapefiles/grid10_region.shp", delete_dsn = TRUE)
 
-  grid10_region_by_hand <- sf::read_sf('./vr_value_v2/Data/shapefiles/grid10_region_by_hand.shp')
+  grid10_region_by_hand <- sf::read_sf('./n_policy_box/Data/shapefiles/grid10_region_by_hand.shp')
   grid10_region_by_hand <- st_transform(grid10_region_by_hand, crs = st_crs(grid10_tiles_sf5))
   tm_shape(grid10_region_by_hand) + tm_polygons('region')
   
   # Add the region to both spatial files
   grid10_tiles_sf6 <- st_join(grid10_tiles_sf5, grid10_region_by_hand, join = st_intersects, largest = T)
   tm_shape(grid10_tiles_sf6) + tm_polygons('region')
-  saveRDS(grid10_tiles_sf6, "./vr_value_v2/Data/Grid/grid10_tiles_sf6.rds") 
+  saveRDS(grid10_tiles_sf6, "./n_policy_box/Data/Grid/grid10_tiles_sf6.rds") 
   regions_dt <- data.table(grid10_tiles_sf6) %>% .[,.N,.(id_10, region)] %>% .[,-'N']
   grid10_soils_dt5 <- left_join(grid10_soils_dt5[,-'region'], regions_dt[,.(id_10, region)], by = 'id_10')
   table(grid10_soils_dt5$region)
-  saveRDS(grid10_soils_dt5, "./vr_value_v2/Data/Grid/grid10_soils_dt5.rds")
+  saveRDS(grid10_soils_dt5, "./n_policy_box/Data/Grid/grid10_soils_dt5.rds")
   
   yc_yearly_dt3 <- merge(yc_yearly_dt3, regions_dt, by = 'id_10')
   
 }
 
-grid10_tiles_sf6 <- readRDS("./vr_value_v2/Data/Grid/grid10_tiles_sf6.rds") 
-grid10_soils_dt5 <- readRDS("./vr_value_v2/Data/Grid/grid10_soils_dt5.rds") 
+grid10_tiles_sf6 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf6.rds") 
+grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") 
 
 tm_shape(grid10_tiles_sf6) + tm_polygons("region")
 
@@ -177,7 +177,7 @@ long_term_yld_dt <- yc_yearly_dt3[,.(Yld = max(Yld)), by = .(id_10, mukey,z)] %>
                                        Yld_lt_max = max(Yld)), by = .(id_10, mukey)]
 hist(long_term_yld_dt$Yld_lt_avg)
 # eonr_mukey_dt2 <- merge(eonr_mukey_dt2, long_term_yld_dt, by = c('id_10', 'mukey'))
-# saveRDS(eonr_mukey_dt2, "./vr_value_v2/Data/files_rds/eonr_mukey_dt2.rds")
+# saveRDS(eonr_mukey_dt2, "./n_policy_box/Data/files_rds/eonr_mukey_dt2.rds")
 
 yc_yearly_dt3 <- merge(yc_yearly_dt3, long_term_yld_dt, by = c('id_10', 'mukey'))
 
@@ -185,9 +185,9 @@ yc_yearly_dt3 <- yc_yearly_dt3[,-c('sim_name', 'day_v5', 'year') ]
 
 # Add the region 
 
-saveRDS(yc_yearly_dt3, "./vr_value_v2/Data/files_rds/yc_yearly_dt3.rds")
+saveRDS(yc_yearly_dt3, "./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
 
 # region_link <- data.table(grid10_soils_sf6) %>% .[,.(id_10, region)] %>% unique()
 # full_fields_dt2 <- merge(full_fields_dt2, region_link, by = 'id_10')
-# saveRDS(full_fields_dt2, "./vr_value_v2/Data/files_rds/full_fields_dt2.rds")
+# saveRDS(full_fields_dt2, "./n_policy_box/Data/files_rds/full_fields_dt2.rds")
 

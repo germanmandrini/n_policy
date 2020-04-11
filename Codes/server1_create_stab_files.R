@@ -3,13 +3,13 @@ library(dplyr)
 library(parallel)
 library(XML)
 
-grid10_soils_dt4 <- readRDS("./n_policy/Data/Grid/grid10_soils_dt4.rds")
-grid10_horizons_v1_dt <- readRDS("./n_policy/Data/Grid/grid10_horizons_v1_dt.rds")
-grid10_fields_sf2 <- readRDS("./n_policy/Data/Grid/grid10_fields_sf2.rds")
+grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
+grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/grid10_horizons_v1_dt.rds")
+grid10_fields_sf2 <- readRDS("./n_policy_box/Data/Grid/grid10_fields_sf2.rds")
 
-source('./n_policy/Data/APssurgo_master/R/calc_apsim_variables_onesoil.R')
-source('./n_policy/Data/APssurgo_master/R/make_apsoils_toolbox.R')
-source(paste0(codes_folder, '/n_policy/Codes/make_met_files.R'))
+source('./n_policy_box/Data/APssurgo_master/R/calc_apsim_variables_onesoil.R')
+source('./n_policy_box/Data/APssurgo_master/R/make_apsoils_toolbox.R')
+source(paste0(codes_folder, '/n_policy_git/Codes/make_met_files.R'))
 
 
 if(server){
@@ -29,7 +29,7 @@ cell_coords <- data.table(grid10_fields_sf2[grid10_fields_sf2$id_10 == id10_n,])
 
 #----------------------------------------------------------------------------
 # WEATHER FILES
-weather_file <- paste('./n_policy/Data/met_files/weather_z_cell', id10_n, '_dt.rds', sep = '')
+weather_file <- paste('./n_policy_box/Data/met_files/weather_z_cell', id10_n, '_dt.rds', sep = '')
 weather_cell.dt <- readRDS(weather_file)
 
 make_met_files_paralell(weather_cell.dt, directory)
@@ -72,5 +72,5 @@ if(any(one_cell_dt$id_field %in% c(2,4))){
 instructions <- rbind(instructions1, instructions2) %>% setcolorder(c('id_10',  'mukey', 'z', 'type'))
 if(test_small) {instructions <- instructions[1,]}
 print(instructions )
-"C:/Users/germanm2/Documents/n_policy/Codes/apsim_create_files_nov18.R"
-source(paste0(codes_folder, '/n_policy/Codes/apsim_create_files_nov18.R'))
+"C:/Users/germanm2/Documents/n_policy_git/Codes/apsim_create_files_nov18.R"
+source(paste0(codes_folder, '/n_policy_git/Codes/apsim_create_files_nov18.R'))

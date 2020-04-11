@@ -6,7 +6,8 @@ instructions[,z := lapply(strsplit(as.character(basename_f), split="_"), "[", 3)
 instructions[,type := 'yc']
 instructions %>% setcolorder(c('id_10',  'mukey', 'z', 'type'))
 
+
 #CREATE ALL APSIM FILES
-"C:/Users/germanm2/Documents/n_policy/Codes/apsim_create_files_nov18.R"
-source(paste0(codes_folder, '/n_policy/Codes/apsim_create_files_nov18.R'))
+"C:/Users/germanm2/Documents/n_policy_git/Codes/apsim_create_files_nov18.R"
+source(paste0(codes_folder, '/n_policy_git/Codes/apsim_create_files_nov18.R'))
 

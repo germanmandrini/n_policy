@@ -50,7 +50,7 @@ make_yearly_summary <- function(file_n){
   
     daily_yc_dt <- readRDS(file_n) 
     
-    weather_cell_dt <- readRDS(paste('./n_policy/Data/met_files/weather_z_cell', unique(daily_yc_dt$id_10), '_dt.rds', sep = '')) %>%
+    weather_cell_dt <- readRDS(paste('./n_policy_box/Data/met_files/weather_z_cell', unique(daily_yc_dt$id_10), '_dt.rds', sep = '')) %>%
       .[year == 2010]
     
     initial_conditions_dt <- readRDS(str_replace(file_n, pattern = 'yc_output', replacement = 'initial_conditions')) %>%
@@ -230,8 +230,8 @@ make_yearly_summary <- function(file_n){
   #REAL WORK:if there is no error
   if(!inherits(possibleError, "error")){
     # return(rbindlist(all_summaries, fill = TRUE))
-    if(!dir.exists("./n_policy/Data/yc_output_summary")){dir.create("./n_policy/Data/yc_output_summary")}
-    saveRDS(rbindlist(all_summaries, fill = TRUE), paste0("./n_policy/Data/yc_output_summary/", basename(file_n)))
+    if(!dir.exists("./n_policy_box/Data/yc_output_summary")){dir.create("./n_policy_box/Data/yc_output_summary")}
+    saveRDS(rbindlist(all_summaries, fill = TRUE), paste0("./n_policy_box/Data/yc_output_summary/", basename(file_n)))
   } else {
     return(c(file_n, possibleError))
   }
@@ -239,7 +239,7 @@ make_yearly_summary <- function(file_n){
   
 }
 
-grid10_horizons_v2_dt <- readRDS("./n_policy/Data/Grid/grid10_horizons_v2_dt.rds")
+grid10_horizons_v2_dt <- readRDS("./n_policy_box/Data/Grid/grid10_horizons_v2_dt.rds")
 
 # start <- Sys.time()
 results_list <- list()
@@ -250,7 +250,7 @@ for(file_n in files_daily){
 # time_lasted <- Sys.time() - start
 # print(time_lasted)
 
-# files_all <- list.files('~/n_policy/Data/yc_output/',full.names = T, recursive = T, pattern = '_YC.rds')
+# files_all <- list.files('~/n_policy_box/Data/yc_output/',full.names = T, recursive = T, pattern = '_YC.rds')
 
 # files_all <- list.files('//aces-dfs-03.ad.uillinois.edu/cpsc-share/Bioinformatics Lab/germanm2/n_policy/yc_output',full.names = T, recursive = T, pattern = '_YC.rds')
 
@@ -272,17 +272,17 @@ for(file_n in files_daily){
 # 
 # start <- Sys.time()
 # results_list <- parallel::parLapply(cl,files_daily2[1], function(x) make_yearly_summary(x))
-# saveRDS(results_list, './n_policy/Data/files_rds/results_list.rds')
+# saveRDS(results_list, './n_policy_box/Data/files_rds/results_list.rds')
 # time_lasted <- Sys.time() - start
 # print(time_lasted)
 
 # no_file <- which(!sapply(results_list, is.data.table))
 # no_file2 <- files_all[no_file]
-# saveRDS(no_file2, './n_policy/Data/files_rds/no_file2.rds')
+# saveRDS(no_file2, './n_policy_box/Data/files_rds/no_file2.rds')
 
 # start <- Sys.time()
 # results_list <- parallel::parLapply(cl,no_file2, function(x) make_yearly_summary(x))
-# saveRDS(results_list, './n_policy/Data/files_rds/results_list.rds')
+# saveRDS(results_list, './n_policy_box/Data/files_rds/results_list.rds')
 # time_lasted <- Sys.time() - start
 # print(time_lasted)
 
@@ -291,7 +291,7 @@ for(file_n in files_daily){
 #length(results_list2)
 #yc_yearly_dt <- rbindlist(results_list2, fill = TRUE)
 
-#saveRDS(yc_yearly_dt, './n_policy/Data/files_rds/yc_yearly_dt.rds')
+#saveRDS(yc_yearly_dt, './n_policy_box/Data/files_rds/yc_yearly_dt.rds')
 
 #-----------------------------------------------------------------------
 #Update re-runs
@@ -302,7 +302,7 @@ for(file_n in files_daily){
 # update_dt1 <- update_dt1[,-'prev_crop']
 # 
 # 
-# yc_yearly_dt <- readRDS('./n_policy/Data/files_rds/yc_yearly_dt.rds')
+# yc_yearly_dt <- readRDS('./n_policy_box/Data/files_rds/yc_yearly_dt.rds')
 # update_dt2 <- yc_yearly_dt[id_10 %in% re_runned]
 # yc_yearly_dt <- yc_yearly_dt[!id_10 %in% re_runned]
 # 
@@ -320,4 +320,4 @@ for(file_n in files_daily){
 # update_dt1 <- unique(update_dt1)
 # yc_yearly_dt <- rbind(yc_yearly_dt, update_dt1)
 # 
-# saveRDS(yc_yearly_dt, './n_policy/Data/files_rds/yc_yearly_dt.rds')
+# saveRDS(yc_yearly_dt, './n_policy_box/Data/files_rds/yc_yearly_dt.rds')
