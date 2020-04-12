@@ -181,22 +181,22 @@ ggplot(data = TrainSet_eonr, aes(x = n_0_60cm_v5, y = eonr)) +
   geom_point() + geom_smooth(formula = 'y ~ x', method = lm)
 
 # Make a Validation set
-ValidSet <- yc_yearly_dt3[-indx]
-
-sets_rf <- unique(ValidSet[,.(id_10, mukey)])
-sets_rf <- sets_rf[sample(1:nrow(sets_rf), 100)]
-ValidSet2 <- filter_dt_in_dt(ValidSet, filter_dt = sets_rf, return_table = T)
-
-ValidSet2_eonr <- ValidSet2[, P := Yld * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% 
-  .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
-setnames(ValidSet2_eonr, 'N_fert', 'eonr')
-
-ggplot(data = ValidSet2_eonr, aes(x = n_0_60cm_v5, y = eonr)) + 
-  geom_point() + geom_smooth(formula = 'y ~ x', method = lm)
+# ValidSet <- yc_yearly_dt3[-indx]
+# 
+# sets_rf <- unique(ValidSet[,.(id_10, mukey)])
+# sets_rf <- sets_rf[sample(1:nrow(sets_rf), 100)]
+# ValidSet2 <- filter_dt_in_dt(ValidSet, filter_dt = sets_rf, return_table = T)
+# 
+# ValidSet2_eonr <- ValidSet2[, P := Yld * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% 
+#   .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
+# setnames(ValidSet2_eonr, 'N_fert', 'eonr')
+# 
+# ggplot(data = ValidSet2_eonr, aes(x = n_0_60cm_v5, y = eonr)) + 
+#   geom_point() + geom_smooth(formula = 'y ~ x', method = lm)
 
 # Save the objects that will be needed later
 reg_model_stuff <- list()
-reg_model_stuff[['ValidSet']] <- ValidSet2
+# reg_model_stuff[['ValidSet']] <- ValidSet2
 reg_model_stuff[['TrainSet']] <- TrainSet2
 
 #======================================================================================
@@ -326,57 +326,57 @@ st_write(regularfields_sf, "./n_policy_box/Data/shapefiles/regularfields_sf.shp"
 # CREATE THE REGIONAL MINIMUM MODEL
 
 #Analysis included only responsive sites (sawyer 2006)
-TrainSet2[, Yld_response := max(Yld) - min(Yld), by = .(id_10, mukey,z)]
-TrainSet_RMM <- TrainSet2[Yld_response > 500]
-
-#Select a few rates
-#Alll this comes from https://rcompanion.org/handbook/I_11.html
-# N_rates_trial <- c(10, 90,170,250, 330)
-N_rates_trial <- seq(10,330,10)
-
-quadratic_dt <- TrainSet_RMM[,list(intercept=coef(lm(Yld~N_fert + I(N_fert^2)))[1], 
-                                coef1=coef(lm(Yld ~ N_fert + I(N_fert^2)))[2],
-                                coef2=coef(lm(Yld ~ N_fert + I(N_fert^2)))[3]),by=.(id_10, mukey,z, region)]
-
-# Expand and calculate yield
-N_rates_int <- seq(min(N_rates_trial),max(N_rates_trial), by = 10)
-quadratic_dt2 <- quadratic_dt[rep(x = 1:nrow(quadratic_dt), each = length(N_rates_int))]
-
-
-
-quadratic_dt2[,N_fert := rep(N_rates_int, nrow(quadratic_dt))]
-quadratic_dt2[,Yld := intercept + coef1 * N_fert + coef2 * (N_fert^2)]
-quadratic_dt2[,P:= Yld * Pc - N_fert * Pn]
-
-#Average all curves
-quadratic_dt3 <- quadratic_dt2[,.(P_avg = mean(P)), by = .(region, N_fert)]
-ggplot(quadratic_dt3) + geom_point(aes(x = N_fert, y = P_avg, colour = interaction(region)))
-
-#Select EONR
-model_minimum_regional <- quadratic_dt3[, .SD[ P_avg == max( P_avg)], by = .(region)][,.( region, N_fert)]
-setnames(model_minimum_regional, 'N_fert', 'eonr_pred')
-
-
-# reg_model_stuff <- readRDS("./n_policy_box/Data/files_rds/reg_model_stuff.rds")
-
-reg_model_stuff[['model_minimum_regional']] <-  model_minimum_regional
+# TrainSet2[, Yld_response := max(Yld) - min(Yld), by = .(id_10, mukey,z)]
+# TrainSet_RMM <- TrainSet2[Yld_response > 500]
+# 
+# #Select a few rates
+# #Alll this comes from https://rcompanion.org/handbook/I_11.html
+# # N_rates_trial <- c(10, 90,170,250, 330)
+# N_rates_trial <- seq(10,330,10)
+# 
+# quadratic_dt <- TrainSet_RMM[,list(intercept=coef(lm(Yld~N_fert + I(N_fert^2)))[1], 
+#                                 coef1=coef(lm(Yld ~ N_fert + I(N_fert^2)))[2],
+#                                 coef2=coef(lm(Yld ~ N_fert + I(N_fert^2)))[3]),by=.(id_10, mukey,z, region)]
+# 
+# # Expand and calculate yield
+# N_rates_int <- seq(min(N_rates_trial),max(N_rates_trial), by = 10)
+# quadratic_dt2 <- quadratic_dt[rep(x = 1:nrow(quadratic_dt), each = length(N_rates_int))]
+# 
+# 
+# 
+# quadratic_dt2[,N_fert := rep(N_rates_int, nrow(quadratic_dt))]
+# quadratic_dt2[,Yld := intercept + coef1 * N_fert + coef2 * (N_fert^2)]
+# quadratic_dt2[,P:= Yld * Pc - N_fert * Pn]
+# 
+# #Average all curves
+# quadratic_dt3 <- quadratic_dt2[,.(P_avg = mean(P)), by = .(region, N_fert)]
+# ggplot(quadratic_dt3) + geom_point(aes(x = N_fert, y = P_avg, colour = interaction(region)))
+# 
+# #Select EONR
+# model_minimum_regional <- quadratic_dt3[, .SD[ P_avg == max( P_avg)], by = .(region)][,.( region, N_fert)]
+# setnames(model_minimum_regional, 'N_fert', 'eonr_pred')
+# 
+# 
+# # reg_model_stuff <- readRDS("./n_policy_box/Data/files_rds/reg_model_stuff.rds")
+# 
+# reg_model_stuff[['model_minimum_regional']] <-  model_minimum_regional
 
 # =========================================================================================================================================================
 # CREATE THE REGIONAL MINIMUM MODEL OK
 
 #Analysis included only responsive sites (sawyer 2006)
-TrainSet2[, P := Yld * Pc - N_fert * Pn] #update P
-TrainSet2[, Yld_response := max(Yld) - min(Yld), by = .(id_10, mukey,z)]
-TrainSet_RMM <- TrainSet2[Yld_response > 500]
-
-#Select a few rates
-#Alll this comes from https://rcompanion.org/handbook/I_11.html
-
-model_minimum_ok  <- aggregate_by_area(data_dt = TrainSet_RMM, variables = c('P'), 
-                                    weight = 'area_ha', by_c = c('region', 'N_fert')) %>% 
-  .[, .SD[ P == max( P)], by = .(region)] %>% .[,.(region, eonr_pred = N_fert)]
-
-reg_model_stuff[['minimum_ok']] <-  model_minimum_regional
+# TrainSet2[, P := Yld * Pc - N_fert * Pn] #update P
+# TrainSet2[, Yld_response := max(Yld) - min(Yld), by = .(id_10, mukey,z)]
+# TrainSet_RMM <- TrainSet2[Yld_response > 500]
+# 
+# #Select a few rates
+# #Alll this comes from https://rcompanion.org/handbook/I_11.html
+# 
+# model_minimum_ok  <- aggregate_by_area(data_dt = TrainSet_RMM, variables = c('P'), 
+#                                     weight = 'area_ha', by_c = c('region', 'N_fert')) %>% 
+#   .[, .SD[ P == max( P)], by = .(region)] %>% .[,.(region, eonr_pred = N_fert)]
+# 
+# reg_model_stuff[['minimum_ok']] <-  model_minimum_regional
 
 # =========================================================================================================================================================
 

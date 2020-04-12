@@ -6,7 +6,7 @@ setwd('~')
 # corchete alt 91 []
 # llave { } alt 123 125 
 source('./Codes_useful/R.libraries.R')
-# source('./Codes_useful/gm_functions.R')
+source('./Codes_useful/gm_functions.R')
 
 library(randomForest)
 # library(ranger)
@@ -181,36 +181,35 @@ for(fee_n in fee_seq){
   TrainSet2[, Yld_response := max(Yld) - min(Yld), by = .(id_10, mukey,z)]
   TrainSet_RMM <- TrainSet2[Yld_response > 500]
   
-  test <- TrainSet2[id_10 == 1428 & mukey == 211614 & z == 19][order(N_fert)]
+  #Removes N_fert closer to the max yield
   TrainSet_RMM[ , Yld_plateau_max := max(Yld), by = .(id_10, mukey,z)]
   TrainSet_RMM[ , Yld_plateau_dist := Yld_plateau_max - Yld]
-  TrainSet_RMM[ Yld_plateau_dist > 30]
-  
-  
+  TrainSet_RMM[ Yld_plateau_dist > 30, yld_area := 'quadratic']
+  TrainSet_RMM[is.na(yld_area), yld_area := 'plateau']
   
   #Select a few rates
   #Alll this comes from https://rcompanion.org/handbook/I_11.html
-  # N_rates_trial <- c(10, 90,170,250, 330)
-  N_rates_trial <- seq(10,330,10)
-  ggplot(quadratic_dt3) + geom_point(aes(x = N_fert, y = P_avg, colour = interaction(region)))
+
+  unique(TrainSet_RMM$id_10)
+  ggplot(TrainSet_RMM[id_10 == 761]) + geom_point(aes(x = N_fert, y = Yld, colour = interaction(id_10, mukey, z)))
   
   #Fit a line for P points in each trial (soil,z)
-  quadratic_dt <- TrainSet_RMM[,list(intercept=coef(lm(P ~ N_fert + I(N_fert^2)))[1], 
-                                     coef1=coef(lm(P ~ N_fert + I(N_fert^2)))[2],
-                                     coef2=coef(lm(P ~ N_fert + I(N_fert^2)))[3]), by=.(id_10, mukey,z, region)]
+  quadratic_dt <- TrainSet_RMM[yld_area == 'quadratic', list(intercept=coef(lm(Yld ~ N_fert + I(N_fert^2)))[1], 
+                                     coef1=coef(lm(Yld ~ N_fert + I(N_fert^2)))[2],
+                                     coef2=coef(lm(Yld ~ N_fert + I(N_fert^2)))[3]), by=.(id_10, mukey,z)]
   
-  # Expand and calculate P with the new regression line
-  N_rates_int <- seq(min(N_rates_trial),max(N_rates_trial), by = 10)
-  quadratic_dt2 <- quadratic_dt[rep(x = 1:nrow(quadratic_dt), each = length(N_rates_int))]
-  quadratic_dt2[,N_fert := rep(N_rates_int, nrow(quadratic_dt))]
-  quadratic_dt2[,P := intercept + coef1 * N_fert + coef2 * (N_fert^2)]
+  # Calculate Yld with new regression line
+  TrainSet_RMM <- merge(TrainSet_RMM, quadratic_dt, by = c('id_10', 'mukey', 'z'))
+  TrainSet_RMM[yld_area == 'plateau', Yld := mean(Yld), by = c('id_10', 'mukey', 'z')]
+  TrainSet_RMM[yld_area == 'quadratic', Yld := intercept + coef1 * N_fert + coef2 * (N_fert^2)]
   
   #Average all curves profits by region
-  quadratic_dt3 <- quadratic_dt2[,.(P_avg = mean(P)), by = .(region, N_fert)]
-  ggplot(quadratic_dt3) + geom_point(aes(x = N_fert, y = P_avg, colour = interaction(region)))
+  TrainSet_RMM[, P := Yld * Pc + Yld_soy * Ps - N_fert * Pn - leach_n2 * fee_n]
+  TrainSet_RMM2 <- TrainSet_RMM[,.(P_avg = mean(P)), by = .(region, N_fert)]
+  ggplot(TrainSet_RMM2) + geom_point(aes(x = N_fert, y = P_avg, colour = interaction(region)))
   
   #Select EONR
-  model_minimum_regional <- quadratic_dt3[, .SD[ P_avg == max( P_avg)], by = .(region)][,.( region, eonr_pred = N_fert)]
+  model_minimum_regional <- TrainSet_RMM2[, .SD[ P_avg == max( P_avg)], by = .(region)][,.( region, eonr_pred = N_fert)]
   
   name_model = paste0('minimum')
   small_model_list[[name_model]] <- model_minimum_regional
