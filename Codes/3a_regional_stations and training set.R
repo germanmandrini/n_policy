@@ -1,7 +1,7 @@
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
-setwd('C:/Users/germanm2/Box Sync/My_Documents') #CPSC
+# setwd('C:/Users/germanm2/Box Sync/My_Documents') #CPSC
 # setwd("/home/germanm2")
-# setwd('~')
+setwd('~')
 
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
