@@ -56,7 +56,7 @@ for(ratio_n in ratio_seq){
   small_model_list <- list()
   Pn_tmp = ratio_n * Pc
   print(Pn_tmp/Pc)
-  TrainSet2[, P := Yld * Pc - N_fert * Pn_tmp]  #update profits
+  TrainSet2[, P := Yld * Pc + Yld_soy * Ps- N_fert * Pn_tmp]  #update profits
 
   # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL
@@ -215,7 +215,9 @@ for(fee_n in fee_seq){
   small_model_list[[name_model]] <- model_minimum_regional
   # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL - OK
-  model_minimum_ok <- TrainSet2[, .(P = mean(P)), by = .(region, N_fert)] %>% 
+  
+  model_minimum_ok  <- aggregate_by_area(data_dt = TrainSet2, variables = c('P'), 
+                                         weight = 'area_ha', by_c = c('region', 'N_fert')) %>% 
     .[, .SD[ P == max( P)], by = .(region)] %>% .[,.(region, eonr_pred = N_fert)]
   
   name_model = paste0('minimum_ok')
@@ -233,10 +235,12 @@ for(fee_n in fee_seq){
   
   # Create a Random Forest model with default parameters
   
-  mtry <- tuneRF(TrainSet_eonr2[,c(no_cost_varb), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
-                 stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
-  
-  best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+  # mtry <- tuneRF(TrainSet_eonr2[,c(no_cost_varb), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
+  #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
+  # 
+  # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+  # 
+  best.m <- 6
   
   rf1_eonr <- randomForest(eonr ~ ., 
                            data = TrainSet_eonr2[,c('eonr',no_cost_varb), with = FALSE],
@@ -247,9 +251,10 @@ for(fee_n in fee_seq){
   
   # --------------------------------------
   # RF Model 2------------------------
-  mtry <- tuneRF(TrainSet_eonr2[,c(no_cost_varb, ss_varb), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
-                 stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
-  best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+  # mtry <- tuneRF(TrainSet_eonr2[,c(no_cost_varb, ss_varb), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
+  #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
+  # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+  best.m <- 8
   
   rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2[,c('eonr', no_cost_varb, ss_varb), with = FALSE],
                            importance = TRUE , mtry = best.m, ntree=1000, nodesize = 20)
@@ -271,19 +276,26 @@ set.seed(123)
 
 ## PREPARE THE TRAINING DATA WITH EONR N75========
 # Part 1
-TrainSet2[, P := Yld * Pc - N_fert * Pn] #update profits
-baseline_leaching <- merge(TrainSet2, reg_model_stuff[['fee_0']]$minimum, by = 'region') %>% .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, leach_base = leach_n2)]
+TrainSet2[, P := Yld * Pc + Yld_soy * Ps - N_fert * Pn] #update profits
+baseline_leaching <- merge(TrainSet2, reg_model_stuff[['fee_0']]$minimum, by = 'region') %>% 
+  .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, leach_base = leach_n2)]
+baseline_leaching[leach_base == 0, leach_base := 1] #avoid dividing by zero
+
 TrainSet_nr <- merge(TrainSet2, baseline_leaching, by = c('id_10', 'mukey', 'z'))
 TrainSet_nr[,leach_rel := leach_n2/leach_base]
 
-red_seq <- seq(0.55, 1, by = 0.05)
+TrainSet_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)]
+
+red_seq <- seq(0.75, 1, by = 0.05)
+
 for(n_red in red_seq){
-  # n_red = 0.50
+  # n_red = 0.9
   print(n_red)
   small_model_list <- list()
 
   # CREATE THE REGIONAL MINIMUM MODEL
-  model_minimum_ok <- TrainSet_nr[, .(leach_rel = mean(leach_rel)), by = .(N_fert , region)]
+  model_minimum_ok  <- aggregate_by_area(data_dt = TrainSet_nr, variables = c('leach_rel'), 
+                                         weight = 'area_ha', by_c = c('region', 'N_fert')) 
   
   ggplot(model_minimum_ok) + geom_line(aes(x = N_fert, y = leach_rel, colour = factor(region)))
   
@@ -291,7 +303,6 @@ for(n_red in red_seq){
     .[, .SD[ leach_rel == min( leach_rel)], by = .(region)] %>% #select minimum leach_rel
     .[, .SD[ N_fert == min( N_fert)], by = .(region)] %>% #select minimum rate in case one is repeated
     .[,.(region, eonr_pred = N_fert)]
-    
     
   name_model = paste0('minimum_ok')
   small_model_list[[name_model]] <- model_minimum_ok
@@ -310,10 +321,11 @@ for(n_red in red_seq){
   
   # Create a Random Forest model with default parameters
   
-  mtry <- tuneRF(TrainSet_nr_tmp[,c(no_cost_varb), with = FALSE],TrainSet_nr_tmp$eonr, ntreeTry=1000,
-                 stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
-  
-  best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+  # mtry <- tuneRF(TrainSet_nr_tmp[,c(no_cost_varb), with = FALSE],TrainSet_nr_tmp$eonr, ntreeTry=1000,
+  #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
+  # 
+  # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+  best.m <- 6
   
   rf1_eonr <- randomForest(eonr ~ ., data = TrainSet_nr_tmp[,c('eonr',no_cost_varb), with = FALSE],
                            importance = TRUE , mtry = best.m, ntree=1000) # , ntree=500, nodesize = 20
@@ -322,9 +334,11 @@ for(n_red in red_seq){
   small_model_list[[name_model]] <- rf1_eonr
   # --------------------------------------
   # RF Model 2------------------------
-  mtry <- tuneRF(TrainSet_nr_tmp[,c(no_cost_varb, ss_varb), with = FALSE],TrainSet_nr_tmp$eonr, ntreeTry=1000,
-                 stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
-  best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+  # mtry <- tuneRF(TrainSet_nr_tmp[,c(no_cost_varb, ss_varb), with = FALSE],TrainSet_nr_tmp$eonr, ntreeTry=1000,
+  #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
+  # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+  
+  best.m <- 8
   
   rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_nr_tmp[,c('eonr', no_cost_varb, ss_varb), with = FALSE],
                            importance = TRUE , mtry = best.m, ntree=1000, nodesize = 20)
