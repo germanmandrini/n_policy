@@ -22,7 +22,7 @@ print(table(id_10_walltime_dt$dur))
 
 id_10_walltime_dt <- id_10_walltime_dt[order(dur)][1:900]
 
-write.table(id_10_walltime_dt[,.(id_10, dur)], './n_policy/id_10_walltime.txt', row.names = F, col.names = F)
+write.table(id_10_walltime_dt[,.(id_10, dur)], './n_policy_box/id_10_walltime.txt', row.names = F, col.names = F)
 
 if(FALSE){ #send again files while still running
   

@@ -1,6 +1,11 @@
 ######################################
 # Parallelized Simulations
-####################################### setwd('C:/Users/germa/Box Sync/My_Documents') #dell
+####################################### 
+# setwd('C:/Users/germa/Box Sync/My_Documents') #dell
+# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+# setwd("/home/germanm2")
+# setwd('~')
+
 library(stringr)
 library(data.table)
 # install.packages('XML','~/Rlibs')"
@@ -37,7 +42,10 @@ library(data.table)
 
 make_yearly_summary <- function(file_n){
   # file_n =  "S:/Bioinformatics Lab/germanm2/n_policy_cluster/yc_output/324_680866.rds"
-  # file_n <- files_daily[1]
+  # file_n <- files_daily[1522]
+  "S:/Bioinformatics Lab/germanm2/n_policy/yc_output/1367_159876.rds"
+  file_n <- "S:/Bioinformatics Lab/germanm2/vr_value_v2_cluster/yc_output_1/1367_159876.rds"
+  
   # file_n <- "S:/Bioinformatics Lab/germanm2/n_policy_cluster/yc_output/1060_173466.rds"
   #--------------------------
   # preparation
@@ -49,18 +57,15 @@ make_yearly_summary <- function(file_n){
   possibleError <- tryCatch({
   
     daily_yc_dt <- readRDS(file_n) 
-    
-    weather_cell_dt <- readRDS(paste('./n_policy_box/Data/met_files/weather_z_cell', unique(daily_yc_dt$id_10), '_dt.rds', sep = '')) %>%
-      .[year == 2010]
-    
-    initial_conditions_dt <- readRDS(str_replace(file_n, pattern = 'yc_output', replacement = 'initial_conditions')) %>%
-      .[year == 2009]
+    daily_yc_dt <- daily_yc_dt[!str_detect(daily_yc_dt$sim_name, pattern = 'n_rich|n_minus' )] #remove sensor's treatments
     
     all_summaries <- list()
     
     for(z_n in unique(daily_yc_dt$z)){
       # z_n = unique(daily_yc_dt$z)[1]
       daily_yc_dt2 <- daily_yc_dt[z == z_n]
+      
+      daily_yc_dt2[,.N, by = .(sim_name, year)]
       
       weather_cell_dt2 <- weather_cell_dt[z == z_n]
       
@@ -72,12 +77,9 @@ make_yearly_summary <- function(file_n){
       make_it_dt[,id_10:= as.integer(id_10)]
       make_it_dt[,z:= as.integer(z)]
       
-      sapply(make_it_dt[,.(id_10, year, day, z )], class)
-      sapply(weather_cell_dt2[,.(id_10, year, day, z )], class)
-      
-      make_it_dt <- merge(make_it_dt, 
-                          weather_cell_dt2[,.(id_10, year, day, maxt,  mint, z )], 
-                          by = c('id_10', 'z', 'year', 'day'))
+      # make_it_dt <- merge(make_it_dt, 
+      #                     weather_cell_dt2[,.(id_10, year, day, maxt,  mint, z )], 
+      #                     by = c('id_10', 'z', 'year', 'day'))
       
       # make_it_dt <- make_it_dt[sim_name == '259_942156_SMM_A2_YC_110']
       # make_it_dt[stage_name != 'nocrop']
@@ -101,15 +103,16 @@ make_yearly_summary <- function(file_n){
       
       #=====================================================================================================#
       # Yearly data
-      yearly_data <- daily_yc_dt2[year < 2011,.(Yld = max(Y, na.rm = T)/0.85,
+      yearly_data <- daily_yc_dt2[year == 2010,.(Yld = max(Y, na.rm = T)/0.85,
                      #leach_no3 = sum(leach_no3),
                      N_fert = sum(fertiliser),
                      dul_dep = max(dul_dep),
                      ll15_dep = max(ll15_dep),
                      whc = max(dul_dep) - max(ll15_dep)), by = .(id_10, mukey, z, sim_name, year)]
+      
       #Add previous yield
-      prev_yield <- initial_conditions_dt[z == z_n] %>% .[,.(Yld_prev = max(Y, na.rm = T)/0.85), by = .(id_10, z)]
-      yearly_data <- merge(yearly_data[year == 2010], prev_yield, by = c('id_10', 'z'))
+      prev_yield <- initial_conditions_dt[z == z_n] %>% .[,.(Yld_prev = max(Y, na.rm = T)/0.85), by = .(id_10, mukey, z)]
+      yearly_data <- merge(yearly_data[year == 2010], prev_yield, by = c('id_10', 'mukey','z'))
       
       #Add soy yield
       soy_yield <- daily_yc_dt2[year == 2011,.(Yld_soy = max(Y, na.rm = T)/0.85), by = .(id_10, mukey, z, sim_name)]
@@ -130,19 +133,38 @@ make_yearly_summary <- function(file_n){
       leach_data[,year := ifelse(year==2010,'leach_1','leach_2')]
       leach_data <- dcast(leach_data, id_10 + mukey + z + sim_name ~ year , value.var = "leach_n")
       
-      yearly_data <- merge(yearly_data, leach_data, by = c('id_10', 'mukey',  'z', 'sim_name'))
+      # yearly_data <- merge(yearly_data, leach_data, by = c('id_10', 'mukey',  'z', 'sim_name'))
       
       #=====================================================================================================#
-      # #Delta N (define leaching as all N going below 150)
-      # n_below150cm <- daily_yc_dt2[year == 2011 & day == 100, .(id_10, mukey, z, sim_name, n_deep, nh4_10, nh4_11, no3_10, no3_11)]
-      # 
-      # n_below150cm[,n_low_150cm := nh4_10 + nh4_11 + no3_10 + no3_11]
-      # 
-      # yearly_data <- merge(yearly_data, n_below150cm[, .(id_10, mukey, z, sim_name,n_low_150cm) ], by = c('id_10', 'mukey', 'z', 'sim_name'))
-      # 
-      # 
-      # yearly_data[, leach_n2 := leach_n + n_low_150cm]  #assuming that any increase in N in the soil solution will be eventually leached
-      # yearly_data <- yearly_data[,-'n_low_150cm']
+      #Delta N (define leaching as all N going below 150)
+      n_below150cm_0 <- daily_yc_dt2[year == 2010 & day == 1 & Y == 0] %>% .[,n_low_150cm := nh4_10 + nh4_11 + no3_10 + no3_11] %>% 
+        .[,period := 0] %>% .[, .(id_10, mukey, z, sim_name, period, n_low_150cm)]#N below 150 cm. Photo in time 0
+      
+      n_below150cm_1 <- daily_yc_dt2[year == 2011 & day == 1] %>% .[,n_low_150cm := nh4_10 + nh4_11 + no3_10 + no3_11] %>% 
+        .[,period := 1] %>% .[, .(id_10, mukey, z, sim_name, period, n_low_150cm)] #N below 150 cm. Photo in time 1
+      
+      n_below150cm_delta1 <- merge(n_below150cm_0, n_below150cm_1, by = c('id_10', 'mukey',  'z', 'sim_name')) %>% 
+        .[,n_150_dlt_1 := n_low_150cm.y - n_low_150cm.x]#Change in N below 150 cm during corn (from 1 back to 0)
+
+
+      n_below150cm_2 <- daily_yc_dt2[year == 2011 & month == 12 & day == 365] %>% .[,n_low_150cm := nh4_10 + nh4_11 + no3_10 + no3_11] %>% 
+        .[,period := 2] %>% .[, .(id_10, mukey, z, sim_name, period, n_low_150cm)]#N below 150 cm. Photo in time 2
+      n_below150cm_delta2 <- merge(n_below150cm_1, n_below150cm_2, by = c('id_10', 'mukey',  'z', 'sim_name')) %>% 
+        .[,n_150_dlt_2 := n_low_150cm.y - n_low_150cm.x]#Change in N below 150 cm during soy (from 2 back to 1)
+      
+      n_below150cm_delta <- merge(n_below150cm_delta1[, .(id_10, mukey, z, sim_name,n_150_dlt_1) ],
+            n_below150cm_delta2[, .(id_10, mukey, z, sim_name,n_150_dlt_2) ], by = c('id_10', 'mukey', 'z', 'sim_name'))
+      
+      leach_data2 <- merge(leach_data, n_below150cm_delta)
+      
+      leach_data2[,leach_1_150cm := leach_1 + n_150_dlt_1  ]
+      leach_data2[,leach_2_150cm := leach_2 + n_150_dlt_2  ]
+      
+      test <- nrow(leach_data2[leach_1_150cm < 0 | leach_2_150cm < 0]) >0  #test leaching should never be negative
+      if(test){stop()}
+      
+      yearly_data <- merge(yearly_data, leach_data2[, .(id_10, mukey, z, sim_name,leach_1, leach_2, leach_1_150cm, leach_2_150cm) ], 
+                           by = c('id_10', 'mukey', 'z', 'sim_name'))
       
       #=====================================================================================================#
       # Increase in N on top 150 cm
@@ -240,6 +262,8 @@ make_yearly_summary <- function(file_n){
 }
 
 grid10_horizons_v2_dt <- readRDS("./n_policy_box/Data/Grid/grid10_horizons_v2_dt.rds")
+
+files_daily <- list.files('S:/Bioinformatics Lab/germanm2/n_policy/yc_output',full.names = T, recursive = T)
 
 # start <- Sys.time()
 results_list <- list()
