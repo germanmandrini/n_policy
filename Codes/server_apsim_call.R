@@ -52,8 +52,9 @@ if(FALSE){
 #id10_n = 5
 id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
 
- print(id10_n)
 
+ print(id10_n)
+ if(FALSE){
   #CREATE ALL STAB FILES
   start1 <- Sys.time()
   "C:/Users/germanm2/Documents/n_policy_git/Codes/server1_create_stab_files.R"
@@ -85,12 +86,12 @@ id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
   start6 <- Sys.time()
   "C:/Users/germanm2/Documents/n_policy_git/Codes/server_merge_results.R"
   source(paste0(codes_folder, '/n_policy_git/Codes/server_merge_results.R'))
-  
+ } 
   #MAKE YEARLY SUMMARY
   files_daily <- list.files('./n_policy_box/Data/yc_output', pattern = paste0(id10_n, '_'), full.names = T)
   "C:/Users/germanm2/Documents/n_policy_git/Codes/1_daily_to_yearly_nov26.R"
   source(paste0(codes_folder, '/n_policy_git/Codes/1_daily_to_yearly_nov26.R'))
-  
+  if(false){
   start7 <- Sys.time()
   
   time_track_tmp <- data.table(id_10 = id10_n,
@@ -111,3 +112,4 @@ id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
   saveRDS(time_track_tmp, paste0('./n_policy_box/Data/time_track/time_track_',id10_n,'.rds'))
   
   unlink(directory, recursive = TRUE)
+  }

@@ -12,20 +12,23 @@ library(data.table)
 
 #Get the computer where this is running
 
-# server <- ifelse(Sys.info()["nodename"] == "campodonico", TRUE, FALSE)
-# cpsc <-ifelse(Sys.info()["nodename"] == "CPSC-P10E53323", TRUE, FALSE)
-# cluster <- str_detect(string = Sys.info()["nodename"], pattern = 'campuscluster')
-# print(Sys.info()["nodename"])
-# 
-# #Set the wd
-# if(server){
-#   setwd('~')
-# }else if(cpsc){
-#   setwd('C:/Users/germanm2/Box Sync/My_Documents')
-# }else{
-#   setwd('/projects/aces/germanm2/')
-#   cluster <- TRUE	
-# }
+server <- ifelse(Sys.info()["nodename"] == "campodonico", TRUE, FALSE)
+cpsc <-ifelse(Sys.info()["nodename"] == "CPSC-P10E53323", TRUE, FALSE)
+cluster <- str_detect(string = Sys.info()["nodename"], pattern = 'campuscluster')
+print(Sys.info()["nodename"])
+
+#Set the wd
+if(server){
+  setwd('~')
+}else if(cpsc){
+  setwd('C:/Users/germanm2/Box Sync/My_Documents')
+  codes_folder <-'C:/Users/germanm2/Documents'
+}else{
+  setwd('/projects/aces/germanm2/')
+  cluster <- TRUE	
+  codes_folder <- '/projects/aces/germanm2'
+}
+
 
 #===================================
 # prepare clusters
@@ -43,8 +46,7 @@ library(data.table)
 make_yearly_summary <- function(file_n){
   # file_n =  "S:/Bioinformatics Lab/germanm2/n_policy_cluster/yc_output/324_680866.rds"
   # file_n <- files_daily[1522]
-  "S:/Bioinformatics Lab/germanm2/n_policy/yc_output/1367_159876.rds"
-  file_n <- "S:/Bioinformatics Lab/germanm2/vr_value_v2_cluster/yc_output_1/1367_159876.rds"
+  # file_n <- "S:/Bioinformatics Lab/germanm2/vr_value_v2_cluster/yc_output_1/1367_159876.rds"
   
   # file_n <- "S:/Bioinformatics Lab/germanm2/n_policy_cluster/yc_output/1060_173466.rds"
   #--------------------------
@@ -59,13 +61,17 @@ make_yearly_summary <- function(file_n){
     daily_yc_dt <- readRDS(file_n) 
     daily_yc_dt <- daily_yc_dt[!str_detect(daily_yc_dt$sim_name, pattern = 'n_rich|n_minus' )] #remove sensor's treatments
     
+    weather_cell_dt <- readRDS(paste('./n_policy_box/Data/met_files/weather_z_cell', unique(daily_yc_dt$id_10), '_dt.rds', sep = '')) %>%
+      .[year == 2010]
+    
+    initial_conditions_dt <- readRDS(str_replace(file_n, pattern = 'yc_output', replacement = 'initial_conditions')) %>%
+      .[year == 2009]
+    
     all_summaries <- list()
     
     for(z_n in unique(daily_yc_dt$z)){
       # z_n = unique(daily_yc_dt$z)[1]
       daily_yc_dt2 <- daily_yc_dt[z == z_n]
-      
-      daily_yc_dt2[,.N, by = .(sim_name, year)]
       
       weather_cell_dt2 <- weather_cell_dt[z == z_n]
       
@@ -263,11 +269,14 @@ make_yearly_summary <- function(file_n){
 
 grid10_horizons_v2_dt <- readRDS("./n_policy_box/Data/Grid/grid10_horizons_v2_dt.rds")
 
-files_daily <- list.files('S:/Bioinformatics Lab/germanm2/n_policy/yc_output',full.names = T, recursive = T)
-
+# files_daily <- list.files('S:/Bioinformatics Lab/germanm2/n_policy/yc_output',full.names = T, recursive = T)
+id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
+files_daily <- list.files('./n_policy_box/Data/yc_output', pattern = paste0(id10_n, '_'), full.names = T)
+print(files_daily)
 # start <- Sys.time()
 results_list <- list()
 for(file_n in files_daily){
+  # file_n <- files_daily[512]
   # print(file_n)
   results_list[[basename(file_n)]] <- make_yearly_summary(file_n)
 }
