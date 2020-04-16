@@ -5,6 +5,7 @@ library(XML)
 
 grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
 grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/grid10_horizons_v1_dt.rds")
+grid10_horizons_v1_dt <- grid10_horizons_v1_dt[bottom <=150] #make soils to only 150 cm
 grid10_fields_sf2 <- readRDS("./n_policy_box/Data/Grid/grid10_fields_sf2.rds")
 
 source('./n_policy_box/Data/APssurgo_master/R/calc_apsim_variables_onesoil.R')

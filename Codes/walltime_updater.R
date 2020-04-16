@@ -1,29 +1,30 @@
 library(data.table)
 library(dplyr)
 
-setwd('/projects/aces/germanm2/')
-# setwd('C:/Users/germanm2/Box Sync/My_Documents') #CPSC
+#setwd('/projects/aces/germanm2/')
+setwd('C:/Users/germanm2/Box Sync/My_Documents') #CPSC
+codes_folder <-'C:/Users/germanm2/Documents'
 
 
-
-files_all <- list.files('./n_policy_box/Data/yc_output_summary/', recursive = T, pattern = '.rds', full.names = F)
+# files_all <- list.files('./n_policy_box/Data/yc_output_summary/', recursive = T, pattern = '.rds', full.names = F)
 # files_all <- list.files('S:/Bioinformatics Lab/germanm2/n_policy_cluster/yc_output/', recursive = T, pattern = '.rds')
+files_all <- list.files('S:/Bioinformatics Lab/germanm2/n_policy/yc_output_summary/', recursive = T, pattern = '.rds')
 
 id_10_runned <- unique(sapply(strsplit(as.character(files_all), split="_"), "[", 1) )
 
 id_10_walltime_dt <- readRDS("./n_policy_box/Data/files_rds/id_10_walltime_dt.rds")
 id_10_walltime_dt <- id_10_walltime_dt[!id_10 %in% id_10_runned]
-id_10_walltime_dt[,dur := N *  1]
-id_10_walltime_dt[id_10 == 257]
+id_10_walltime_dt[,dur := N *  6]
 id_10_walltime_dt[N >2, dur := N *  5]
 id_10_walltime_dt[N >4, dur := N *  4]
+
+failed <- c(442)
 
 print(nrow(id_10_walltime_dt))
 print(table(id_10_walltime_dt$dur))
 
 id_10_walltime_dt <- id_10_walltime_dt[order(dur)][1:900]
-
-write.table(id_10_walltime_dt[,.(id_10, dur)], './n_policy_box/id_10_walltime.txt', row.names = F, col.names = F)
+write.table(id_10_walltime_dt[,.(id_10, dur)], paste0(codes_folder,'/n_policy_git/id_10_walltime.txt'), row.names = F, col.names = F)
 
 if(FALSE){ #send again files while still running
   

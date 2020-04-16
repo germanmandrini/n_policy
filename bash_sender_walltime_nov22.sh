@@ -4,7 +4,7 @@ module load singularity
 
 # singularity exec /projects/aces/germanm2/apsim_nov16.simg Rscript /projects/aces/germanm2/vr_value_v2/Codes/walltime_updater.R
 
-cat /projects/aces/germanm2/n_policy/id_10_walltime.txt | while read i #each line has the cell and the estimated time to be runed
+cat /projects/aces/germanm2/n_policy_git/id_10_walltime.txt | while read i #each line has the cell and the estimated time to be runed
 
 do
 	cell_n="$(cut -d' ' -f1 <<<"$i")" #split the cell string

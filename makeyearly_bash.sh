@@ -5,8 +5,8 @@
 
 cd /projects/aces
 module load singularity ## Load the singularity runtime to your environment
-# cell_n=$1 #split the cell string for bash work
-cell_n=${cell_n} #for qsub
+cell_n=$1 #split the cell string for bash work
+# cell_n=${cell_n} #for qsub
 
 echo "$cell_n"
 

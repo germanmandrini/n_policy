@@ -10,7 +10,7 @@ cell_n=${cell_n} #for qsub
 
 # echo "$cell_n"
 
-singularity exec /projects/aces/germanm2/apsim_nov16.simg Rscript /projects/aces/germanm2/n_policy/Codes/server_apsim_call.R $cell_n
+singularity exec /projects/aces/germanm2/apsim_nov16.simg Rscript /projects/aces/germanm2/n_policy_git/Codes/server_apsim_call.R $cell_n
 
 
 
