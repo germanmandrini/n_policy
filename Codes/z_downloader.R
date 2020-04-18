@@ -2,8 +2,8 @@
 # prepare clusters
 #===================================
 setwd("~") #server
-setwd('C:/Users/germa/Box Sync/My_Documents') #dell
-setwd('C:/Users/germanm2/Box Sync/My_Documents') #CPSC
+# setwd('C:/Users/germa/Box Sync/My_Documents') #dell
+# setwd('C:/Users/germanm2/Box Sync/My_Documents') #CPSC
 source('./Codes_useful/R.libraries.R')
 
 no_cores <- detectCores() * 6/8
@@ -13,20 +13,7 @@ cl <- makeCluster(no_cores,type='SOCK')
 # parallelized simulations 
 #===================================
 
-
-
-# install.packages('APSIM')
-
-#install.packages("daymetr")
-
-#setwd('C:/Users/germa/Box Sync/My_Documents') #Dell
-# setwd("C:/Users/germanm2/Box Sync/My_Documents") #CPSC
-# setwd("~") #server
-source('./Codes_useful/R.libraries.R')
-
-
-
-grid10_tiles_sf <- readRDS('./vr_value/Data/Grid/grid10_tiles.sf5.rds')
+grid10_tiles_sf <- readRDS('./n_policy_box/Data/Grid/grid10_tiles.sf5.rds')
 
 download_weather <- function(id_10_n, grid10_tiles_sf){
   # id_10_n = sort(unique(grid10_tiles_sf$id_10))[120]
@@ -42,10 +29,10 @@ download_weather <- function(id_10_n, grid10_tiles_sf){
   
   daymet.daymetr <- download_daymet(site = id_10_n, 
                         lat = centroid$Y, lon = centroid$X, 
-                        start = 1980, end = 2018, 
+                        start = 2019, end = 2019, 
                         internal = TRUE)
 
-  # data.table::fwrite(daymet.daymetr$data, './vr_value/Data/met_files/testdata.csv')
+  # data.table::fwrite(daymet.daymetr$data, './n_policy_box/Data/met_files/testdata.csv')
   daymet.dt <- daymet.daymetr$data %>% data.table() %>% 
     .[,.(year, day=yday, radn=srad..W.m.2., maxt=tmax..deg.c., mint=tmin..deg.c., 
          rain=prcp..mm.day., dayl = dayl..s.)]
@@ -93,8 +80,9 @@ keep <- c('keep', 'download_weather', 'grid10_tiles_sf')
 #ids_10_seq <- sort(unique(grid10_tiles_sf$id_10))
 
 
-grid10_soils_sf4 <- readRDS("./vr_value/Data/Grid/grid10_soils_sf4.rds")  #to avoid downloading cells w/o fields
-id_10_seq <- sort(unique(grid10_soils_sf4$id_10))
+# grid10_soils_sf2 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_sf2.rds")  #to avoid downloading cells w/o fields
+# 
+# id_10_seq <- sort(unique(grid10_soils_sf2$id_10))
 
 id_10_seq <- sort(unique(grid10_tiles_sf$id_10))
 
@@ -107,9 +95,13 @@ results_list <- parLapply(cl, id_10_seq, function(x) download_weather(x, grid10_
 #   results_list[[length(results_list)+1]] <- download_weather(id_10_n, grid10_tiles_sf)
 # }
 
-weather_historic_dt <-  rbindlist(results_list)
+weather_historic_dt2019 <-  rbindlist(results_list)
 
-saveRDS(weather_historic_dt, './vr_value/Data/met_files/weather_historic_dt.rds')
+weather_historic_dt <- readRDS('./n_policy_box/Data/met_files/weather_historic_dt.rds')
+weather_historic_dt[,.N, year]
+weather_historic_dt2019 <- rbind(weather_historic_dt, weather_historic_dt2019)
+weather_historic_dt2019[,.N, year]
+saveRDS(weather_historic_dt2019, './n_policy_box/Data/met_files/weather_historic_dt2019.rds')
 
 stopCluster(cl)
 

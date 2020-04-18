@@ -26,7 +26,7 @@ cl <- makeCluster(no_cores,type='SOCK')
 #setwd("~") #server
 #source('./Codes_useful/R.libraries.R')
 
-weather_historic_dt <- readRDS('./vr_value_v2/Data/met_files/weather_historic_dt.rds')
+weather_historic_dt <- readRDS('./n_policy_box/Data/met_files/weather_historic_dt2019.rds')
 
 
 
@@ -49,14 +49,14 @@ create_z <- function(id_10_n, weather_historic_dt){
   
  
   for(z_n in 1:30){
-    # z_n = 15
+    # z_n = 30
     
-    years_seq_11 <- years_seq_long[z_n:(z_n+10)]
+    years_seq_12 <- years_seq_long[z_n:(z_n+11)]
   
     idx_and_year <- data.table()
     year_counter = 2001 #2010 is the year of the yield curve
-    for(year_n in years_seq_11){
-      # year_n = years_seq_11[1]
+    for(year_n in years_seq_12){
+      # year_n = years_seq_12[1]
       idx_tmp <- which(daymet_dt$year == year_n)
       idx_and_year <- rbind(idx_and_year,
                             data.table(idx  = idx_tmp, year = rep(year_counter, length(idx_tmp))))
@@ -96,11 +96,10 @@ create_z <- function(id_10_n, weather_historic_dt){
   
   daymet_z_cell2[,.N, by = .(year, z)][,.(mean(N)), by = year]
   
-  
   #------------------------------------------------------------------
   # hist(daymet_z_cell[,.(rain = sum(rain)), by = .(z, year)][,rain]) #check. They have to be different
   
-  saveRDS(daymet_z_cell2, paste('./vr_value_v2/Data/met_files/weather_z_cell', id_10_n, '_dt.rds', sep = '')) #save each id, it gets to heavy if all together
+  saveRDS(daymet_z_cell2, paste('./n_policy_box/Data/met_files/weather_z_cell', id_10_n, '_dt.rds', sep = '')) #save each id, it gets to heavy if all together
   
   return()
 }
@@ -111,17 +110,15 @@ set.seed(123)
 
 
 
-years_seq_long <- c(sample(unique(weather_historic_dt$year), 39, replace = F), sample(unique(weather_historic_dt$year), 1, replace = F))
-saveRDS(years_seq_long, "./vr_value_v2/Data/files_rds/years_seq_long.rds")
-
 #EXPLORE ----
-years_seq_long <- readRDS("./vr_value_v2/Data/files_rds/years_seq_long.rds")
+# years_seq_long <- readRDS("./n_policy_box/Data/files_rds/years_seq_long.rds")
+
+years_seq_long <- c(sort(unique(weather_historic_dt$year)), 2010)
+saveRDS(years_seq_long, "./n_policy_box/Data/files_rds/years_seq_long.rds")
 years_seq_long_dt <- data.table(year = years_seq_long, 
                                 order = 1:length(years_seq_long))
 
 weather_explore_dt <- weather_historic_dt[,.(rain=sum(rain)), by = .(year, id_10)] %>% .[,.(rain=mean(rain)), by = .(year)]
-6*30
-8*30
 weather_explore_dt <- merge(weather_explore_dt, years_seq_long_dt, by = 'year')
 weather_explore_dt[order(order)]
 ggplot(weather_explore_dt, aes(x = order, y = rain))+
@@ -132,7 +129,7 @@ ggplot(weather_explore_dt, aes(x = order, y = rain))+
 
 clusterExport(cl, varlist = keep, envir=environment())
 
-grid10_fields_sf2 <- readRDS("./vr_value_v2/Data/Grid/grid10_fields_sf2.rds")
+grid10_fields_sf2 <- readRDS("./n_policy_box/Data/Grid/grid10_fields_sf2.rds")
 id_10_seq <- sort(unique(grid10_fields_sf2$id_10))
 
 results_list <- parLapply(cl, id_10_seq, function(x) create_z(x, weather_historic_dt))
@@ -144,7 +141,7 @@ results_list <- parLapply(cl, id_10_seq, function(x) create_z(x, weather_histori
 
 # weather_z_all_cells_dt <-  rbindlist(results_list)
 
-# saveRDS(weather_z_all_cells_dt, './vr_value_v2/Data/met_files/weather_z_all_cells_dt.rds')
+# saveRDS(weather_z_all_cells_dt, './n_policy_box/Data/met_files/weather_z_all_cells_dt.rds')
 
 stopCluster(cl)
  
