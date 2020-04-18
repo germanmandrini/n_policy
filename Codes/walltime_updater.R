@@ -13,12 +13,17 @@ files_all <- list.files('S:/Bioinformatics Lab/germanm2/n_policy/yc_output_summa
 id_10_runned <- unique(sapply(strsplit(as.character(files_all), split="_"), "[", 1) )
 
 id_10_walltime_dt <- readRDS("./n_policy_box/Data/files_rds/id_10_walltime_dt.rds")
+
+#Removed runned
 id_10_walltime_dt <- id_10_walltime_dt[!id_10 %in% id_10_runned]
 id_10_walltime_dt[,dur := N *  6]
 id_10_walltime_dt[N >2, dur := N *  5]
 id_10_walltime_dt[N >4, dur := N *  4]
 
-failed <- c(442)
+#Pick only the failed ones
+id_failed <- c(442)
+id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed]
+id_10_walltime_dt[,dur := N *  6]
 
 print(nrow(id_10_walltime_dt))
 print(table(id_10_walltime_dt$dur))

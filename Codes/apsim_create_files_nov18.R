@@ -52,7 +52,7 @@ apsim_create_files <- function(i){
   # CLOCK
   #--------------------------
   date_start <- ifelse(instructions_tmp$type == 'stab', '01/01/2001', '01/01/2010')
-  date_end <- ifelse(instructions_tmp$type == 'stab', '31/12/2010', '31/12/2011') #should be 2009. This is to compare cont vs seq
+  date_end <- ifelse(instructions_tmp$type == 'stab', '31/12/2010', '04/15/2012') #should be 2009. This is to compare cont vs seq
                    
   node <- xml_find_all(base_doc,'//clock/start_date')
   xml_text(node) <- date_start
