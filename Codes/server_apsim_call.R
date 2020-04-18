@@ -15,13 +15,15 @@ if(server){
 }else if(cpsc){
   setwd('C:/Users/germanm2/Box Sync/My_Documents')
   codes_folder <-'C:/Users/germanm2/Documents'
+  test_small <- TRUE 
 }else{
   setwd('/projects/aces/germanm2/')
   cluster <- TRUE	
   codes_folder <- '/projects/aces/germanm2'
+  test_small <- TRUE #makes a small run 
 }
 
-test_small <- FALSE #makes a small run 
+
 
 # id_10_seq <- unique(grid10_soils_dt4$id_10)
 
@@ -53,7 +55,7 @@ if(FALSE){
 id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
 
 
- print(id10_n)
+print(id10_n)
 #CREATE ALL STAB FILES
 start1 <- Sys.time()
 "C:/Users/germanm2/Documents/n_policy_git/Codes/server1_create_stab_files.R"
