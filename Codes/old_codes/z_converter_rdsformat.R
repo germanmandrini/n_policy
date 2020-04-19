@@ -1,4 +1,4 @@
-files_list <- list.files('C:/Users/germanm2/Box Sync/My_Documents/vr_value_v2/Data/met_files', full.names = T)
+files_list <- list.files('C:/Users/germanm2/Box Sync/My_Documents/n_policy_box/Data/met_files', full.names = T)
 
 for(file_n in files_list){
   # file_n <- files_list[121]
@@ -7,3 +7,4 @@ for(file_n in files_list){
   saveRDS(weather_tmp, file_n)
   
 }
+# saveRDS(weather_tmp, file_n, version=2)

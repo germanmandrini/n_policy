@@ -20,7 +20,7 @@ if(server){
   setwd('/projects/aces/germanm2/')
   cluster <- TRUE	
   codes_folder <- '/projects/aces/germanm2'
-  test_small <- TRUE #makes a small run 
+  test_small <- FALSE #makes a small run 
 }
 
 
@@ -51,7 +51,7 @@ if(FALSE){
 #time_track <- readRDS('./n_policy_box/Data/yc_output/time_track.rds')
 
 # for(id10_n in id_10_seq){
-#id10_n = 662
+#id10_n = 172
 id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
 
 
@@ -91,8 +91,8 @@ source(paste0(codes_folder, '/n_policy_git/Codes/server_merge_results.R'))
 #MAKE YEARLY SUMMARY
 files_daily <- list.files('./n_policy_box/Data/yc_output', pattern = paste0('^',id10_n, '_'), full.names = T)
 print(files_daily)
-"C:/Users/germanm2/Documents/n_policy_git/Codes/1_daily_to_yearly_nov26.R"
-source(paste0(codes_folder, '/n_policy_git/Codes/1_daily_to_yearly_nov26.R'))
+"C:/Users/germanm2/Documents/n_policy_git/Codes/1_daily_to_yearly_apr18.R"
+source(paste0(codes_folder, '/n_policy_git/Codes/1_daily_to_yearly_apr18.R'))
 
 start7 <- Sys.time()
 
