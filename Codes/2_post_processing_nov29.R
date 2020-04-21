@@ -18,7 +18,7 @@ if(FALSE){
   for(file_n in multiple_files){
     yc_yearly_list[[length(yc_yearly_list)+1]] <- readRDS(file_n)
   }
-  yc_yearly_list[[4207]] <- yc_yearly_list[[4207]][,-'NA'] #for some reason this came with one column called NA
+  # yc_yearly_list[[4207]] <- yc_yearly_list[[4207]][,-'NA'] #for some reason this came with one column called NA
   yc_yearly_dt <- rbindlist(yc_yearly_list)
   yc_yearly_dt[,id_10 := as.integer(id_10)]
   saveRDS(yc_yearly_dt, './n_policy_box/Data/files_rds/yc_yearly_dt.rds')

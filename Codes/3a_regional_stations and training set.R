@@ -114,7 +114,6 @@ yld_explore_dt <- yc_yearly_dt3[,.(Yld = mean(Yld)), by = z]
 yld_explore_dt[,z:= as.numeric(z)]
 yld_explore_dt <- yld_explore_dt[order(z)]
 
-
 eonr_explore_dt <- yc_yearly_dt3[, P := Yld * Pc - N_fert * Pn] %>% 
   .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
 setnames(eonr_explore_dt, 'N_fert', 'eonr')
@@ -125,6 +124,8 @@ ggplot(eonr_explore_dt) +
 
 ggplot(eonr_explore_dt) +
   geom_boxplot(aes(x = factor(z), y = n_deep_v5))
+
+training_z <- c(1:10)
 
 eonr_explore_dt[,set := ifelse(z %in% training_z, '1training', '2testing')]
 eonr_explore_dt[z %in% c(5,10), set := 'discard']
@@ -140,7 +141,7 @@ ggplot(eonr_explore_dt) +
 
 # training_z <- c(1:4, 16:21)
 # training_z <- c(4, 6, 8, 11, 13, 15, 16, 17, 28, 25)
-training_z <- c(11:20)
+# training_z <- c(11:20)
 
 z_odd = c(1,3,5,7,9,11,13,15,17,19,21,23,25,27,29)
 z_even = z_odd+1
@@ -162,8 +163,8 @@ TrainSet[,z_type := ifelse(z %in% z_odd, 'odd', 'even')]
 right_mukey_z_combination <- stations_dt[,.(area_ha = mean(area_ha)),.(id_10, mukey, z_type)][, right_comb := 1]
 
 right_mukey_z_combination[,.N, by = id_10]
-right_mukey_z_combination[id_10 == 440]
-stations_dt[id_10 == 440]
+right_mukey_z_combination[id_10 == 438]
+stations_dt[id_10 == 438]
 
 TrainSet2 <- merge(TrainSet, right_mukey_z_combination, all.x = T)
 TrainSet2 <- TrainSet2[!is.na(right_comb)]
@@ -174,7 +175,7 @@ TrainSet_eonr <- TrainSet2[, P := Yld * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 :=
   .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
 setnames(TrainSet_eonr, 'N_fert', 'eonr')
 
-TrainSet_eonr[id_10 == 440]
+TrainSet_eonr[id_10 == 438]
 unique(stations_dt[,.(id_10, id_field, mukey)]) %>% .[,.N, by = .(id_10, id_field)] %>% .[,.(N = mean(N))]
 
 ggplot(data = TrainSet_eonr, aes(x = n_0_60cm_v5, y = eonr)) + 
