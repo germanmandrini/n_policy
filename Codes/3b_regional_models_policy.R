@@ -277,7 +277,8 @@ set.seed(123)
 ## PREPARE THE TRAINING DATA WITH EONR N75========
 # Part 1
 TrainSet2[, P := Yld * Pc + Yld_soy * Ps - N_fert * Pn] #update profits
-baseline_leaching <- merge(TrainSet2, reg_model_stuff[['fee_0']]$minimum, by = 'region') %>% 
+
+baseline_leaching <- merge(TrainSet2, reg_model_stuff$ratio_6$minimum_ok, by = 'region') %>% 
   .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, leach_base = leach_n2)]
 baseline_leaching[leach_base == 0, leach_base := 1] #avoid dividing by zero
 
@@ -289,7 +290,7 @@ TrainSet_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)]
 red_seq <- seq(0.75, 1, by = 0.05)
 
 for(n_red in red_seq){
-  # n_red = 0.9
+  # n_red = 0.85
   print(n_red)
   small_model_list <- list()
 
