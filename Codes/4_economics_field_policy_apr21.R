@@ -27,7 +27,11 @@ areas_dt <- data.table(grid10_soils_sf2) %>% .[,.(area_ha = sum(area_ha)), by = 
 
 state_agg_dt <- merge(yc_yearly_dt3, areas_dt, by = c('id_10', 'mukey'))
 
+<<<<<<< HEAD
 state_agg_dt2  <- aggregate_by_area(data_dt = state_agg_dt, variables = c('Yld', 'Yld_soy', 'leach_1','leach_2'), 
+=======
+state_agg_dt2  <- aggregate_by_area(data_dt = state_agg_dt, variables = c('Yld', 'Yld_soy','leach_n2'), 
+>>>>>>> 8f2bd5e377de79a8314a5e2f5fdf8658c0c50c97
                                                 weight = 'area_ha', by_c = c('N_fert'))# %>% .[,-'area_ha']
 baselevel_leach <- 45.6537
 baselevel_leach <- 47
