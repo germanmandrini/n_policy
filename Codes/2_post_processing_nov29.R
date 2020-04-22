@@ -21,6 +21,10 @@ if(FALSE){
   # yc_yearly_list[[4207]] <- yc_yearly_list[[4207]][,-'NA'] #for some reason this came with one column called NA
   yc_yearly_dt <- rbindlist(yc_yearly_list)
   yc_yearly_dt[,id_10 := as.integer(id_10)]
+  
+  yc_yearly_dt[,.N, by = .(id_10, mukey, z)]$N %>% table() #of rates by mukey z, has to be 33
+  yc_yearly_dt[,.N, by = .(id_10, mukey, z)][,.N, by = .(id_10, mukey)]$N %>% table()#of z by mukey, has to be 30 or 15
+  
   saveRDS(yc_yearly_dt, './n_policy_box/Data/files_rds/yc_yearly_dt.rds')
   
   yc_yearly_dt <- readRDS('./n_policy_box/Data/files_rds/yc_yearly_dt.rds')
@@ -181,6 +185,11 @@ hist(long_term_yld_dt$Yld_lt_avg)
 yc_yearly_dt3 <- merge(yc_yearly_dt3, long_term_yld_dt, by = c('id_10', 'mukey'))
 
 yc_yearly_dt3 <- yc_yearly_dt3[,-c('sim_name', 'day_v5', 'year') ]
+
+yc_yearly_dt3[,.N, by = .(id_10, mukey)]
+
+yc_yearly_dt3[,.N, by = .(id_10, mukey, z)]$N %>% table() #of rates by mukey z, has to be 33
+yc_yearly_dt3[,.N, by = .(id_10, mukey, z)][,.N, by = .(id_10, mukey)]$N %>% table()#of z by mukey, has to be 30 or 15
 
 # Add the region 
 

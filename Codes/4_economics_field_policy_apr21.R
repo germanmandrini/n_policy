@@ -9,9 +9,9 @@ source('./Codes_useful/gm_functions.R')
 source('./n_policy_git/Codes/parameters.R')
 
 # library(randomForest)
-# library(mlr)
+library(mlr)
 # eonr_mukey_dt3 <- readRDS("./n_policy_box/Data/files_rds/eonr_mukey_dt3.rds")
-  
+yc_yearly_dt <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt.rds")  
 yc_yearly_dt3 <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
 grid10_tiles_sf6 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf6.rds") 
 grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
@@ -21,47 +21,6 @@ grid10_soils_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_soils_sf2.rds')
 
 yc_yearly_dt3[,leach_n := leach_1 + leach_2] #update leaching adding corn and soy
 yc_yearly_dt3[, P := Yld * Pc + Yld_soy * Ps - N_fert * Pn] #update profits adding corn and soy
-#======================================================================================
-# Do a plot with Yld and Leaching for a static N_fert across the state
-areas_dt <- data.table(grid10_soils_sf2) %>% .[,.(area_ha = sum(area_ha)), by = .(id_10, mukey)]
-
-state_agg_dt <- merge(yc_yearly_dt3, areas_dt, by = c('id_10', 'mukey'))
-
-<<<<<<< HEAD
-state_agg_dt2  <- aggregate_by_area(data_dt = state_agg_dt, variables = c('Yld', 'Yld_soy', 'leach_1','leach_2'), 
-=======
-state_agg_dt2  <- aggregate_by_area(data_dt = state_agg_dt, variables = c('Yld', 'Yld_soy','leach_n2'), 
->>>>>>> 8f2bd5e377de79a8314a5e2f5fdf8658c0c50c97
-                                                weight = 'area_ha', by_c = c('N_fert'))# %>% .[,-'area_ha']
-baselevel_leach <- 45.6537
-baselevel_leach <- 47
-baselevel_yld <- 11136.46
-baselevel_nfert <- 186.5601
-
-state_agg_dt2[,leach_prop := round((leach_n / baselevel_leach) - 1,2)*100 ]
-
-plot_1 <- ggplot(data = state_agg_dt2[N_fert < 250]) + 
-  geom_line(aes(x = N_fert, y = Yld, linetype = "Yield_corn")) +
-  geom_line(aes(x = N_fert, y = leach_1*200, linetype = "N Leaching")) +
-  #geom_hline(yintercept = baselevel_yld, linetype = 'dashed', color = 'grey', size = 1)+
-  geom_vline(xintercept = baselevel_nfert, linetype = 'dashed', color = 'grey', size = 1)+
-  labs(y = 'Yield (kg/ha)',
-                x = 'N rate (kg/ha)',
-                colour = "Parameter")+
-           scale_y_continuous(sec.axis = sec_axis(~./200, name = "N leaching (kg/ha)", breaks = seq(30,80,5), labels = seq(30,80,5))) +
-           scale_linetype_manual(values = c("dashed", "solid"))+
-      theme_bw()+
-      # guides(linetype = guide_legend(order=2),
-      #        size = guide_legend(order=1)) +
-      theme(legend.title =  element_blank(),
-            legend.position = c(0.87, 0.15),
-            legend.text=element_text(size=8),
-            panel.grid = element_blank())
-
-plot_1
-
-ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/state_response_curve.jpg", width = 5, height = 3,
-       units = 'in')
 
 #======================================================================================
 # GET THE FIELDS THAT CAN BE RUN
@@ -100,15 +59,10 @@ ss_var <- reg_model_stuff$ss_var
 # crop_varb <- reg_model_stuff$crop_varb
 
 process_field_economics <- function(j){
-  # j = 11
+  # j = 4
   print(j)
   field_info <- fields_list_dt[j]
-  # field_info <- data.table(id_10 = 18, id_field = 1)
-  
-  # ic_field_dt_both <- data.table()
-  # for(field_n_loop in id_10_info$id_field){ #For doing the both approach
-  # for(field_n_loop in field_info$id_field){ #For doing the local approach
-  # field_n <- id_10_info$id_field[1]
+  # field_info <- data.table(id_10 = 911, id_field = 3)
   
     field_soils_dt <- grid10_soils_dt5[id_10 == field_info$id_10 &
                       id_field == field_info$id_field,]
@@ -474,166 +428,7 @@ process_field_economics <- function(j){
       
       }
     #===================================================================================================================
-    # YR APPROACH
-    ic_field_dt[, P := Yld * Pc - N_fert * Pn]#update profits
-    ic_field_dt[, gov := 0] #gov collection
-    
-    policies_yr <- names(reg_model_stuff)[str_detect(names(reg_model_stuff), pattern = 'yr_')]
-    
-    for(policy_n in policies_yr){
-      # policy_n = policies_yr[[8]]
-      yr_n <- as.numeric(str_extract(policy_n,pattern = '[0-9.]+'))
-      # print(policy_n)
-      #===================================================================================================================
-      # 1) PREDICT WITH REGIONAL MINIMUM NMS UR ----
-      
-      #---------------------------------------------------------------------------
-      # PERFORMANCE EVALUATION
-      # the NMS is trained with z1-10 and testing is evaluated with z11-25
-      testing_set <- merge(ic_field_dt[!z %in% training_z],
-                           reg_model_stuff[[policy_n]]$minimum, by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-        .[N_fert == eonr_pred] %>%
-        .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5","N_fert",'P', 'P_1', 'P_2', "gov")]
-      
-      areas <- testing_set[,.(mukey, area_ha)] %>% unique()
-      
-      sum(areas$area_ha)
-      
-      small_list[[length(small_list)+1]] <- testing_set[,NMS := '1'][,tech := 'UR'][,policy := policy_n]
-      #===================================================================================================================
-      # 1b) MINIMUM OK-
-      
-      #---------------------------------------------------------------------------
-      # PERFORMANCE EVALUATION
-      # the NMS is trained with z1-10 and testing is evaluated with z11-25
-      testing_set <- merge(ic_field_dt[!z %in% training_z],
-                           reg_model_stuff[[policy_n]]$minimum_ok, by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-        .[N_fert == eonr_pred] %>%
-        .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5","N_fert",'P', 'P_1', 'P_2', "gov")]
-      
-      areas <- testing_set[,.(mukey, area_ha)] %>% unique()
-      
-      sum(areas$area_ha)
-      
-      small_list[[length(small_list)+1]] <- testing_set[,NMS := '1_ok'][,tech := 'UR'][,policy := policy_n]
-      
-      #===================================================================================================================
-      # 2) PREDICT WITH REGIONAL RF 1 - UR 
-      # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
-      prediction_set <- data.table(unique(ic_field_dt[!z %in% training_z,
-                                                      c('mukey', 'z','area_ha', no_cost_varb, ss_var), with = FALSE])) #this is unique v5 conditions, doesn't have the different N rates
-      
-      table(prediction_set$z)
-      
-      test <- copy(prediction_set) #need to be here, before the columns are updated
-      
-      # We need to aggregate at the field level because is UR
-      do_not_aggregate = c("mukey", "z", "area_ha")
-      do_aggregate = setdiff(c(no_cost_varb, ss_var), do_not_aggregate)
-      
-      prediction_set_aggregated  <- aggregate_by_area(data_dt = prediction_set, variables = do_aggregate, 
-                                                      weight = 'area_ha', by_c = c('z'))# %>% .[,-'area_ha']
-      
-      prediction_set_aggregated[,eonr_pred := ceiling(predict(reg_model_stuff[[policy_n]]$rf1, 
-                                                              prediction_set_aggregated)/10)*10]
-      
-      test[,n_0_60cm_v5 := n_0_60cm_v5 * area_ha]
-      
-      test2 <- merge(test[,.(n_0_60cm_v5 = sum(n_0_60cm_v5) / sum(area_ha)),by= c("z")], 
-                     prediction_set_aggregated[,.(z, n_0_60cm_v5)], by = c('z'))
-      
-      test2[, ok := round(n_0_60cm_v5.x,1) == round(n_0_60cm_v5.y,1)]
-      
-      all( test2$ok )
-      
-      #---------------------------------------------------------------------------
-      # PERFORMANCE EVALUATION
-      testing_set <- merge(ic_field_dt[!z %in% training_z],
-                           prediction_set_aggregated[,.(z, eonr_pred)], by = c('z')) %>% #here we join back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-        .[,eonr_pred := ifelse(eonr_pred < 10, 10, ifelse(eonr_pred > 330, 330, eonr_pred))] %>%
-        .[N_fert == eonr_pred] %>%
-        .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov")]
-      
-      small_list[[length(small_list)+1]] <- testing_set[,NMS := '2'][,tech := 'UR'][,policy := policy_n]
-      
-      #===================================================================================================================
-      # 3) PREDICT WITH REGIONAL RF 1 -VR
-      
-      # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY AND PERFORMANCE EVALUATION
-      testing_set <- ic_field_dt[!z %in% training_z] %>% 
-        .[,eonr_pred := ceiling(predict(reg_model_stuff[[policy_n]]$rf1, .)/10)*10] %>%
-        .[,eonr_pred := ifelse(eonr_pred <10, 10, ifelse(eonr_pred > 330, 330, eonr_pred))] %>%
-        .[N_fert == eonr_pred] %>% 
-        .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov" )] %>% .[order(mukey, z)]
-      
-      small_list[[length(small_list)+1]] <- testing_set[,NMS := '3'][,tech := 'VR'][,policy := policy_n]
-      
-      #===================================================================================================================
-      # 4) PREDICT WITH REGIONAL RF 2 - UR 
-      # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
-      
-      prediction_set_aggregated[,eonr_pred := ceiling(predict(reg_model_stuff[[policy_n]]$rf2, prediction_set_aggregated)/10)*10]
-      
-      #---------------------------------------------------------------------------
-      # PERFORMANCE EVALUATION
-      testing_set <- merge(ic_field_dt[!z %in% training_z],
-                           prediction_set_aggregated[,.(z, eonr_pred)], by = c('z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-        .[,eonr_pred := ifelse(eonr_pred <10, 10, ifelse(eonr_pred > 330, 330, eonr_pred))] %>%
-        .[N_fert == eonr_pred] %>%
-        .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov")]
-      
-      small_list[[length(small_list)+1]] <- testing_set[,NMS := '4'][,tech := 'UR'][,policy := policy_n]
-      
-      #===================================================================================================================
-      # 5) PREDICT WITH REGIONAL NMS 2 -VR
-      
-      # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY AND PERFORMANCE EVALUATION
-      testing_set <- ic_field_dt[!z %in% training_z] %>% 
-        .[,eonr_pred := ceiling(predict(reg_model_stuff[[policy_n]]$rf2, . )/10)*10] %>%
-        .[,eonr_pred := ifelse(eonr_pred <10, 10, ifelse(eonr_pred > 330, 330, eonr_pred))] %>%
-        .[N_fert == eonr_pred] %>% 
-        .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov")] %>% .[order(mukey, z)]
-      
-      
-      small_list[[length(small_list)+1]] <- testing_set[,NMS := '5'][,tech := 'VR'][,policy := policy_n]
-      
-      #===================================================================================================================
-      # 11) EX POST UR - Best rate at the field level
-      
-      # Need to get EONR with aggregated data
-      prediction_set_aggregated_profits <- aggregate_by_area(data_dt = ic_field_dt[!z %in% training_z], 
-                                                             variables = c('Yld'), 
-                                                             weight = 'area_ha', by_c = c('N_fert','z'))  %>%
-        .[,Yld_max := max(Yld), by = .(z)] %>% .[,Yld_rel := Yld/Yld_max] %>%
-        .[,Yld_rel := ifelse(Yld >0,Yld/Yld_max, 1)] %>%
-        .[, .SD[ N_fert == min( N_fert)], by = .(z)] %>% #select minimum rate that allows that yr
-        .[,-c('area_ha', 'Yld')] %>% setnames('N_fert', 'eonr_pred')
-      
-      #---------------------------------------------------------------------------
-      # PERFORMANCE EVALUATION
-      testing_set <- merge(ic_field_dt[!z %in% training_z],
-                           prediction_set_aggregated_profits[,.(z, eonr_pred)], by = c('z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-        .[N_fert == eonr_pred] %>%
-        .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov" )]
-      
-      small_list[[length(small_list)+1]] <- testing_set[,NMS := '11'][,tech := 'UR'][,policy := policy_n]
-      
-      #===================================================================================================================
-      # 12) EX POST VR
-      
-      # PERFORMANCE EVALUATION
-      
-      testing_set <- ic_field_dt[!z %in% training_z] %>% 
-        .[,Yld_max := max(Yld), by = .(mukey, z)] %>% .[,Yld_rel := ifelse(Yld >0,Yld/Yld_max, 1)] %>%
-        .[Yld_rel >= yr_n] %>% 
-        .[, .SD[ N_fert == min( N_fert)], by = .(mukey, z)] %>% #select minimum rate that allows that yr
-        .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov" )]
-      
-      small_list[[length(small_list)+1]] <- testing_set[, NMS := '12'][,tech := 'VR'][,policy := policy_n]
-      
-    }
-  #===================================================================================================================
-  # N LEACHING REDUCTION MODEL: farmers due to maral understanding decide to adopt a model that reduces N leaching
+     # N LEACHING REDUCTION MODEL: farmers due to maral understanding decide to adopt a model that reduces N leaching
     ic_field_dt[, P_1 := Yld * Pc - N_fert * Pn]  #update profits
     ic_field_dt[, P_2 := Yld_soy * Ps]  #update profits
     ic_field_dt[, P := P_1 + P_2]  #update profits
@@ -642,14 +437,16 @@ process_field_economics <- function(j){
     
     #Get the ex-post data for n leaching reduction (used then in NMS 11 and 12)
     baseline_leaching <- merge(ic_field_dt[!z %in% training_z], reg_model_stuff[['fee_0']]$minimum_ok, by = 'region') %>% .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, leach_base = leach_n)]
+    
     ic_field_dt_nr <- merge(ic_field_dt[!z %in% training_z], baseline_leaching, by = c('id_10', 'mukey', 'z'))
     ic_field_dt_nr[,leach_rel := leach_n/leach_base]
-    
+    ic_field_dt_nr[leach_n == 0 & leach_base == 0, leach_rel := 1] #avoid dividing by 0
+    ic_field_dt_nr[leach_n > 0 & leach_base == 0, leach_rel := leach_n/0.001] #avoid dividing by 0
     
     policies_nred <- names(reg_model_stuff)[str_detect(names(reg_model_stuff), pattern = 'nred_')]
     
     for(policy_n in policies_nred){
-      # policy_n = policies_nred[[5]]
+      # policy_n = policies_nred[[1]]
       nred_n <- as.numeric(str_extract(policy_n,pattern = '[0-9.]+'))
       # print(policy_n)
       #===================================================================================================================
@@ -808,6 +605,7 @@ process_field_economics <- function(j){
     
     testing_set_dt <- rbindlist(small_list)
     
+    testing_set_dt[,.N, .(mukey, policy, NMS)][N==9] #number of z by mukey. SHould be all equal
     testing_set_dt[,.N, .(mukey, policy, NMS)] %>% .[,N] %>% table() #number of z by mukey
     testing_set_dt[,.N, .(mukey)] #number of methods, z and policies by mukey
     
@@ -976,8 +774,9 @@ perfomances_dt <- rbindlist(big_list)
 perfomances_dt[,.N, .(id_10, mukey,id_field)] %>% 
   .[,.N, .(id_10, id_field)] %>% .[,.N, .(id_10)] %>% .[,N] %>% table()
 
-perfomances_dt[,.N, .(id_10, mukey,id_field, method)]$N
-
+perfomances_dt[,.N, .(id_10, mukey,id_field, policy, NMS)]$N %>% table()
+test <- perfomances_dt[,.N, .(id_10, mukey,id_field, policy, NMS)]
+test[N==9]
 # filter_this <- perfomances_dt[,.N, .(id_10, mukey, z, id_field, method, tech)][1]
 # 
 # filter_dt_in_dt(x_dt = perfomances_dt, filter_dt = filter_this, return_table = T)
@@ -989,9 +788,9 @@ perfomances_dt2 <- merge(perfomances_dt,
                          by = c("id_10", "mukey", "z", "id_field", "policy"))
 
 
-perfomances_dt2[,overpred := ifelse(N_fert > N_fert_12, 1, 0 )]
-perfomances_dt2[,subpred := ifelse(N_fert < N_fert_12, 1, 0 )]
-perfomances_dt2[,angulo := ifelse(N_fert == N_fert_12, 1, 0 )]
+# perfomances_dt2[,overpred := ifelse(N_fert > N_fert_12, 1, 0 )]
+# perfomances_dt2[,subpred := ifelse(N_fert < N_fert_12, 1, 0 )]
+# perfomances_dt2[,angulo := ifelse(N_fert == N_fert_12, 1, 0 )]
 
 perfomances_dt2[, .(Yld =  mean(Yld),
                     leach_n = mean(leach_n),
@@ -1000,10 +799,11 @@ perfomances_dt2[, .(Yld =  mean(Yld),
                     N_fert_max = max(N_fert),
                     P = mean(P),
                     # cor = cor(N_fert_12, N_fert),
-                    RMSE = mlr::measureRMSE(truth = N_fert_12, response = N_fert),
-                    overpred = sum(overpred)/.N,
-                    subpred = sum(subpred)/.N,
-                    angulo = sum(angulo)/.N), by = .( method, tech)][order(-P)]
+                    RMSE = mlr::measureRMSE(truth = N_fert_12, response = N_fert)),
+                    # overpred = sum(overpred)/.N,
+                    # subpred = sum(subpred)/.N,
+                    # angulo = sum(angulo)/.N), 
+                    by = .( NMS, tech)][order(-P)]
 
 
-saveRDS(perfomances_dt2, "./n_policy_box/Data/files_rds/perfomances_dt.rds")
+saveRDS(perfomances_dt, "./n_policy_box/Data/files_rds/perfomances_dt.rds")

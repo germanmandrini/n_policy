@@ -128,7 +128,7 @@ ggplot(eonr_explore_dt) +
 training_z <- c(1:10)
 
 eonr_explore_dt[,set := ifelse(z %in% training_z, '1training', '2testing')]
-eonr_explore_dt[z %in% c(5,10), set := 'discard']
+# eonr_explore_dt[z %in% c(5,10), set := 'discard']
 eonr_explore_dt[,.(eonr = mean(eonr)), by = set]
 
 ggplot(eonr_explore_dt) +
@@ -169,6 +169,11 @@ stations_dt[id_10 == 438]
 TrainSet2 <- merge(TrainSet, right_mukey_z_combination, all.x = T)
 TrainSet2 <- TrainSet2[!is.na(right_comb)]
 TrainSet2[ ,right_comb := NULL]
+
+TrainSet2[,.N, by = .(id_10, mukey, z)]$N %>% table() #of rates by mukey z, has to be 33
+TrainSet2[,.N, by = .(id_10, mukey, z)][,.N, by = .(id_10, mukey)]$N %>% table()#of z by mukey, has to be 5 or 10
+TrainSet2[,.N, by = id_10] %>% nrow() # of stations, has to be 120
+TrainSet2[,.N, by = .(id_10, mukey)][,.N,by = .(id_10)] # of mukey by station, just exploratory
 
 # Plot a relationship
 TrainSet_eonr <- TrainSet2[, P := Yld * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% 
@@ -238,8 +243,6 @@ grid10_region_by_hand <- st_transform(grid10_region_by_hand, crs = st_crs(statio
               main.title.position = "center",
               main.title.size = 1))
 
-# install.packages('tmap')
-library('tmap')
 tmap_save(fields_map_clean, filename = "./n_policy_box/Data/figures/fields_map_and_stations.jpg", height = 8, width = 6)  
 
 st_write(stations_sf, "./n_policy_box/Data/shapefiles/stations_sf.shp", delete_dsn = TRUE)
