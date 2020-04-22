@@ -263,6 +263,7 @@ make_yearly_summary <- function(file_n){
     # return(rbindlist(all_summaries, fill = TRUE))
     if(!dir.exists("./n_policy_box/Data/yc_output_summary")){dir.create("./n_policy_box/Data/yc_output_summary")}
     saveRDS(rbindlist(all_summaries, fill = TRUE), paste0("./n_policy_box/Data/yc_output_summary/", basename(file_n)))
+    return(rbindlist(all_summaries, fill = TRUE))
   } else {
     return(c(file_n, possibleError))
   }
@@ -273,11 +274,14 @@ make_yearly_summary <- function(file_n){
 grid10_horizons_v2_dt <- readRDS("./n_policy_box/Data/Grid/grid10_horizons_v2_dt.rds")
 
 # files_daily <- list.files('S:/Bioinformatics Lab/germanm2/n_policy/yc_output',full.names = T, recursive = T)
+files_daily <- list.files('./n_policy_box/Data/yc_output',full.names = T, recursive = T)
+
+test <- make_yearly_summary(file_n)
 
 # start <- Sys.time()
 results_list <- list()
 for(file_n in files_daily){
-  # file_n <- files_daily[512]
+  # file_n <- files_daily[2]
   # print(file_n)
   results_list[[basename(file_n)]] <- make_yearly_summary(file_n)
 }

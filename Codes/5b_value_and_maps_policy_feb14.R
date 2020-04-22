@@ -1,29 +1,41 @@
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
 # setwd("/home/germanm2")
-# setwd('~')
+setwd('~')
 rm(list=ls())
 
 source('./Codes_useful/R.libraries.R')
 # library(scales)
 source('./Codes_useful/gm_functions.R')
-source('./n_policy/Codes/parameters.R')
+source('./n_policy_git/Codes/parameters.R')
 
 # source('./Codes_useful/gm_functions.R')
 
-grid10_tiles_sf7 <- readRDS("./n_policy/Data/Grid/grid10_tiles_sf7.rds") 
-grid10_soils_dt5 <- readRDS("./n_policy/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
-grid10_fields_sf2 <- readRDS('./n_policy/Data/Grid/grid10_fields_sf2.rds')
-# reg_model_stuff <- readRDS("./n_policy/Data/files_rds/reg_model_stuff.rds")
+grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds") 
+grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
+grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
+# reg_model_stuff <- readRDS("./n_policy_box/Data/files_rds/reg_model_stuff.rds")
 
-perfomances_dt <- readRDS("./n_policy/Data/files_rds/perfomances_dt.rds")
-setnames(perfomances_dt, 'method', 'NMS')
+perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt.rds")
 
 # perfomances_dt[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
 # perfomances_dt[,policy_name := lapply(perfomances_dt$policy, function(x) str_split(x, pattern = '_')[[1]][1])]
 
 perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
 perfomances_dt[,.N, .(id_10, id_field, mukey, policy, NMS)] %>% .[,N] %>% table() #number of z by mukey. SHould be all equal
+test <- perfomances_dt[,.N, .(region, id_10, id_field, mukey, policy, NMS)] #number of z by mukey. SHould be all equal
+test <- test[N ==9]
+fields_list_dt <- test[,.N, .(region,id_10, id_field)][,-'N']
+
+idx_out <- filter_dt_in_dt(x_dt = perfomances_dt, filter_dt = fields_list_dt, return_table = F)
+
+perfomances_dt1 <- perfomances_dt[-idx_out]
+perfomances_dt <- rbind(perfomances_dt1, perfomances_dt2)
+
+test[id_10 == 911]
+test[,.N, .(id_10, id_field, mukey, policy)]$N
+
+
 perfomances_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of rows by policy NMS. SHould be all equal
 
 summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NMS, tech, z)]$area_ha)
@@ -109,9 +121,9 @@ perfomances_dt5[order(-P)]
 perfomances_dt5[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
 perfomances_dt5[,policy_name := lapply(perfomances_dt5$policy, function(x) str_split(x, pattern = '_')[[1]][1])]
 
-saveRDS(perfomances_dt5, "./n_policy/Data/files_rds/perfomances_dt5.rds")
+saveRDS(perfomances_dt5, "./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 
-perfomances_dt5 <- readRDS("./n_policy/Data/files_rds/perfomances_dt5.rds")
+perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 
 #---------------------------------------------------------------------------
 # COMPARE A SAMPLE OF THE DIFFERENT MODELS THAT WOULD GET US TO THE 15% 
@@ -235,7 +247,7 @@ plot_1 <- ggplot() +
 
 plot_1
 
-ggsave(plot = plot_1, filename = "./n_policy/Data/figures/ratio_all_vars_part1.jpg", width = 10, height = 10,
+ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/ratio_all_vars_part1.jpg", width = 10, height = 10,
        units = 'in')
 
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'leach_n2', 'Yld')] 
@@ -252,7 +264,7 @@ plot_1 <- ggplot(plot_dt_long2)+
 
 plot_1
 
-ggsave(plot = plot_1, filename = "./n_policy/Data/figures/ratio_all_vars_part2.jpg", width = 10, height = 10,
+ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/ratio_all_vars_part2.jpg", width = 10, height = 10,
        units = 'in')
 
 #RF can 
@@ -289,7 +301,7 @@ plot_1 <- ggplot(rmse_dt)+
   theme(panel.grid = element_blank())
 plot_1
 
-ggsave(plot = plot_1, filename = "./n_policy/Data/figures/rmse.jpg", width = 5, height = 5,
+ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/rmse.jpg", width = 5, height = 5,
        units = 'in')
 
 plot_1 <- ggplot(rmse_dt)+
@@ -329,7 +341,7 @@ plot_1 <- ggplot(boxplot_dt)+
   theme(panel.grid = element_blank())
 plot_1
 
-ggsave(plot = plot_1, filename = "./n_policy/Data/figures/boxplot_NMS12.jpg", width = 5, height = 5,
+ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/boxplot_NMS12.jpg", width = 5, height = 5,
        units = 'in')
 
 plot_1 <- ggplot(boxplot_dt[policy_val %in% c(2,8,15)])+
@@ -342,7 +354,7 @@ plot_1 <- ggplot(boxplot_dt[policy_val %in% c(2,8,15)])+
 
 plot_1
 
-ggsave(plot = plot_1, filename = "./n_policy/Data/figures/boxplot_NMS12.jpg", width = 5, height = 5,
+ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/boxplot_NMS12.jpg", width = 5, height = 5,
        units = 'in')
 
 
@@ -390,7 +402,7 @@ plot_1 <- ggplot(value_long_dt)+
   theme(panel.grid = element_blank())
 plot_1
 
-ggsave(plot = plot_1, filename = "./n_policy/Data/figures/valueISST_by_ratio.jpg", width = 10, height = 10,
+ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/valueISST_by_ratio.jpg", width = 10, height = 10,
        units = 'in')
 
 #==========================================================================
@@ -437,7 +449,7 @@ plot_1 <- ggplot()+
 
 plot_1
 
-ggsave(plot = plot_1, filename = "./n_policy/Data/figures/nred_all_vars_part1.jpg", width = 10, height = 10,
+ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/nred_all_vars_part1.jpg", width = 10, height = 10,
        units = 'in')
 
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'leach_n2', 'Yld')] 
@@ -454,7 +466,7 @@ plot_1 <- ggplot(plot_dt_long2)+
 
 plot_1
 
-ggsave(plot = plot_1, filename = "./n_policy/Data/figures/nred_all_vars_part2.jpg", 
+ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/nred_all_vars_part2.jpg", 
        width = 10, height = 10,
        units = 'in')
 
@@ -503,7 +515,7 @@ library('xtable')
 print(xtable(latex_table_dt, type = "latex", auto = TRUE, label = 'tab:state_output', 
              caption = 'Results for the State of Illinois. 
              Aggregated considering the area planted to corn for each cell, using eq. \ref{eq_I_state}'), 
-      file = "./n_policy/Data/figures/state_output.tex", include.rownames=FALSE)
+      file = "./n_policy_box/Data/figures/state_output.tex", include.rownames=FALSE)
 
 
 
@@ -526,7 +538,7 @@ latex_table_dt[NMS==5, ]$'N leaching' - latex_table_dt[NMS==4, ]$'N leaching' #E
 
 #=====================================================================================================================
 # MRTN vs Minimum NMS
-reg_NMS_stuff <- readRDS( "./n_policy/Data/files_rds/reg_NMS_stuff.rds")
+reg_NMS_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_NMS_stuff.rds")
 NMS_minimum_regional <- reg_NMS_stuff$NMS_minimum_regional
 rm(reg_NMS_stuff)
 
@@ -545,7 +557,7 @@ NMS_minimum_regional2[order(-region)]
 print.xtable(xtable(NMS_minimum_regional2, type = "latex", auto = TRUE, 
              label = 'tab:NMS1', 
              caption = 'NMS 1 predictions paired with MRTN recommendations for the same region'),
-             file = "./n_policy/Data/figures/NMS1.tex", include.rownames=FALSE)
+             file = "./n_policy_box/Data/figures/NMS1.tex", include.rownames=FALSE)
 
 #=====================================================================================================================
 #-----------------------------------------VALUE OF INFORMATION--------------------------------------------------------
@@ -691,7 +703,7 @@ rates_map_sf4[  rates_map_sf4$variable == 'N_fert' & rates_map_sf4$NMS ==  1 & !
     ))
 
 
-tmap_save(tmap_arrange(p1,p2,p3,p4, ncol = 1), "./n_policy/Data/figures/appendix1_map.jpg", 
+tmap_save(tmap_arrange(p1,p2,p3,p4, ncol = 1), "./n_policy_box/Data/figures/appendix1_map.jpg", 
           width = 10, height = 15,
           units = 'in')
 #---------------------------------------------------------------------------------------------------
@@ -770,7 +782,7 @@ breaks_n <- c(-20,0,10,20, 30,40)
               legend.width = 1,
               legend.position = c('left', 'bottom'))) #Economic V of NMS 4
 
-tmap_save(tmap_arrange(p1, p2, p3, p4, ncol = 2) , "./n_policy/Data/figures/information_characterization_map.jpg", 
+tmap_save(tmap_arrange(p1, p2, p3, p4, ncol = 2) , "./n_policy_box/Data/figures/information_characterization_map.jpg", 
           width = 10, height = 10,
           units = 'in')
 
@@ -934,10 +946,10 @@ breaks_n <- c(0, 5000,10000,15000,20000, 30000,40000,50000)
               legend.position = c('left', 'bottom')))  
 
 tmap_arrange(p1, p2, p3, nrow = 1)
-tmap_save(tmap_arrange(p1, p2, p3, nrow = 1), "./n_policy/Data/figures/techonology_characterization_map.jpg", 
+tmap_save(tmap_arrange(p1, p2, p3, nrow = 1), "./n_policy_box/Data/figures/techonology_characterization_map.jpg", 
           width = 10, height = 5, units = 'in')
 
-st_write(value_sf, "./n_policy/Data/shapefiles/vr_cell_value_sf.shp", delete_dsn = TRUE)
+st_write(value_sf, "./n_policy_box/Data/shapefiles/vr_cell_value_sf.shp", delete_dsn = TRUE)
 
 #---------------------------------------------------------------------------
 # 4) MAKE A MAP OF TECHNOLOGY MARKET CAP BY FIELD (for QGIS)
@@ -980,7 +992,7 @@ value_sf <- value_sf[!is.na(value_sf$n_policy),]
               main.title.size = 1.2))
 
 
-st_write(value_sf, "./n_policy/Data/shapefiles/vr_field_value_sf.shp", delete_dsn = TRUE)
+st_write(value_sf, "./n_policy_box/Data/shapefiles/vr_field_value_sf.shp", delete_dsn = TRUE)
 
 
 #---------------------------------------------------------------------------
@@ -1005,7 +1017,7 @@ value_sf <- dplyr::mutate(value_sf, NMS = ifelse(NMS <6, NA, NMS))
               main.title.position = "center",
               main.title.size = 1.2))
 
-tmap_save(p, "./n_policy/Data/figures/best_NMS_map.jpg")
+tmap_save(p, "./n_policy_box/Data/figures/best_NMS_map.jpg")
 
 #==============================================================================================================
 #==============================================================================================================
@@ -1014,8 +1026,8 @@ tmap_save(p, "./n_policy/Data/figures/best_NMS_map.jpg")
 #==============================================================================================================
 
 
-yc_yearly_dt3 <- readRDS("./n_policy/Data/files_rds/yc_yearly_dt3.rds")
-reg_NMS_stuff <- readRDS( "./n_policy/Data/files_rds/reg_NMS_stuff.rds")
+yc_yearly_dt3 <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
+reg_NMS_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_NMS_stuff.rds")
 training_z <- reg_NMS_stuff$training_z
 rm(reg_NMS_stuff)
 
@@ -1174,7 +1186,7 @@ grid.arrange(plot_n1, plot_n2, nrow = 1)
 grid.arrange(plot_n1, plot_n2, plot_n3, plot_n4, nrow = 2)
 
 ggsave(grid.arrange(plot_n1, plot_n2, nrow = 1), 
-       filename = "./n_policy/Data/figures/yield_curve_example.jpg", width = 10, height =  4, units = 'in')
+       filename = "./n_policy_box/Data/figures/yield_curve_example.jpg", width = 10, height =  4, units = 'in')
 
 
 grid.arrange(grid.arrange(plot_n1, plot_n2, nrow=1), plot_n3, nrow = 2)
@@ -1220,21 +1232,21 @@ best_NMS_sf <- merge(grid10_tiles_sf7, best_NMS_dt, by = 'id_10', all.x = T)
               main.title.position = "center",
               main.title.size = 1.2))
 
-tmap_save(p, "./n_policy/Data/figures/value_t_i.jpg")
+tmap_save(p, "./n_policy_box/Data/figures/value_t_i.jpg")
 
 #---------------------------------------------------------------------------
 # PLOT WEIRD CASE
-yc_yearly_dt <- readRDS('./n_policy/Data/files_rds/yc_yearly_dt.rds')
+yc_yearly_dt <- readRDS('./n_policy_box/Data/files_rds/yc_yearly_dt.rds')
 length(unique(yc_yearly_dt$id_10))
 
-yc_yearly_dt3 <- readRDS('./n_policy/Data/files_rds/yc_yearly_dt3.rds')
+yc_yearly_dt3 <- readRDS('./n_policy_box/Data/files_rds/yc_yearly_dt3.rds')
 length(unique(yc_yearly_dt3$id_10))
 
 length(unique(full_fields_dt2$id_10))
 
 
 id_10_n <- n_policy_expost_dt[order(-leach_n22)][1,]$id_10
-yc_yearly_dt <- readRDS('./n_policy/Data/files_rds/yc_yearly_dt.rds')
+yc_yearly_dt <- readRDS('./n_policy_box/Data/files_rds/yc_yearly_dt.rds')
 one_field_dt <- data.table(grid10_soils_sf6[grid10_soils_sf6$id_10 == id_10_n,])
 mukey_n <- one_field_dt[area_ha == max(area_ha)][1,] %>% .[,.(id_10, mukey)]
 
@@ -1255,7 +1267,7 @@ performance_set_dt[prev_crop == 0 & NMS != 11, .N, by = .(NMS, z)]
     geom_line(data = ic_field_dt[prev_crop == 0], aes(x = N_fert, y = P, group=interaction(z)), show.legend = FALSE) +
     ggtitle(paste('P plot with P at eonr', mukey_n$mukey)))
 
-ggsave(plot_n, filename = "./n_policy/Data/figures/yield_curve_example.jpg")
+ggsave(plot_n, filename = "./n_policy_box/Data/figures/yield_curve_example.jpg")
 
 # leach_n2o3 plot with leaching at eonr
 (plot_n <- ggplot() +
@@ -1264,7 +1276,7 @@ ggsave(plot_n, filename = "./n_policy/Data/figures/yield_curve_example.jpg")
     geom_line(data = ic_field_dt[prev_crop == 0], aes(x = N_fert, y = leach_n22, group=interaction(z)), show.legend = FALSE) +
     ggtitle(paste('leach_n2o3 plot with leaching at eonr', mukey_n$mukey)))
 
-ggsave(plot_n, filename = "./n_policy/Data/figures/leaching_curve_example.jpg")
+ggsave(plot_n, filename = "./n_policy_box/Data/figures/leaching_curve_example.jpg")
 
 #---------------------------------------------------------------------------
 # CALCULATE STATE TOTAL VARIABLES
@@ -1319,7 +1331,7 @@ all_perfomances_dt[id_10 == 5, .(Yld_1 = sum(Yld_1), area_ha = sum(area_ha))]
   }
 
 economics_dt <- rbindlist(economics_ls)
-saveRDS(economics_dt, './n_policy/Data/files_rds/economics_dt.rds')
+saveRDS(economics_dt, './n_policy_box/Data/files_rds/economics_dt.rds')
 
 #---------------------------------------------------------------------------
 # MAKE A MAP OF VALUE OF I AND T
@@ -1335,7 +1347,7 @@ grid10_value_sf <- left_join(grid10_tiles_sf, val_map_dt, by = 'id_10')
               main.title.position = "center",
               main.title.size = 1.2))
 
-tmap_save(p, "./n_policy/Data/figures/value_t_i.jpg")
+tmap_save(p, "./n_policy_box/Data/figures/value_t_i.jpg")
 #---------------------------------------------------------------------------
 # MAKE A MAP OF VALUE OF I AND T FOR LEACHING
 val_map_dt <- economics_dt[,.(nval_ss_ha = mean(nval_ss_ha), 
@@ -1350,7 +1362,7 @@ grid10_value_sf <- left_join(grid10_tiles_sf, val_map_dt, by = 'id_10')
               main.title.position = "center",
               main.title.size = 1.2))
 
-tmap_save(p, "./n_policy/Data/figures/nvalue_t_i.jpg")
+tmap_save(p, "./n_policy_box/Data/figures/nvalue_t_i.jpg")
 #---------------------------------------------------------------------------
 # MAKE A MAP OF PROFITS
 economics_dt
@@ -1365,7 +1377,7 @@ grid10_value_sf <- left_join(grid10_value_sf, prof_map_dt, by = 'id_10')
               main.title.position = "center",
               main.title.size = 1.2))
 
-tmap_save(p, "./n_policy/Data/figures/profits.jpg")
+tmap_save(p, "./n_policy_box/Data/figures/profits.jpg")
 
 
 #---------------------------------------------------------------------------
@@ -1386,4 +1398,4 @@ dat.m <- melt(economics_dt,id.vars= c('id_10', 'id_field',  'z'), measure.vars=c
           legend.title = element_blank(),
           strip.text = element_blank()))
 
-ggsave(p, filename = "./n_policy/Data/figures/value_boxplot.jpg")
+ggsave(p, filename = "./n_policy_box/Data/figures/value_boxplot.jpg")

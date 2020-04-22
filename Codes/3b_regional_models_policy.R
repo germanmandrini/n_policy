@@ -48,7 +48,7 @@ TrainSet2[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5]
 # =========================================================================================================================================================
 # CREATE THE N RATIO TAX MODEL
 
-ratio_seq <- seq(1, 20, by = 1)
+ratio_seq <- seq(2, 20, by = 2)
 set.seed(123)
 
 for(ratio_n in ratio_seq){
@@ -153,26 +153,26 @@ for(ratio_n in ratio_seq){
 
 # =========================================================================================================================================================
 # CREATE THE LEACHING FEE MODEL
-fee_seq <- seq(0, Pe_max, by = 2)
+fee_seq <- seq(0, Pe_max, by = 4)
 source('./n_policy_git/Codes/parameters.R')
 set.seed(123)
 
 # CHECK IF THE DATA FOR CURRENT RATIO IS THE SAME THAN FEE_0
-# test_comp_dt <- merge(test_comp[[1]][,.(id_10, mukey, z, N_fert, Yld, leach_n2)], 
-#       test_comp[[2]][,.(id_10, mukey, z, N_fert, Yld, leach_n2)], by = c('id_10', 'mukey', 'z', 'N_fert'))
+# test_comp_dt <- merge(test_comp[[1]][,.(id_10, mukey, z, N_fert, Yld, leach_n)], 
+#       test_comp[[2]][,.(id_10, mukey, z, N_fert, Yld, leach_n)], by = c('id_10', 'mukey', 'z', 'N_fert'))
 # 
 # test_comp_dt[,Yld_same := (Yld.x == Yld.y)]
-# test_comp_dt[,leach_same := (leach_n2.x == leach_n2.y)]
+# test_comp_dt[,leach_same := (leach_n.x == leach_n.y)]
 # table(test_comp_dt$Yld_same)
 # table(test_comp_dt$leach_same)
 
-TrainSet2[,leach_n2 := leach_1 + leach_2]
+TrainSet2[,leach_n := leach_1 + leach_2]
 
 for(fee_n in fee_seq){
   # fee_n = 0
   print(fee_n)
   small_model_list <- list()
-  TrainSet2[, P := Yld * Pc + Yld_soy * Ps - N_fert * Pn - leach_n2 * fee_n] #update profits
+  TrainSet2[, P := Yld * Pc + Yld_soy * Ps - N_fert * Pn - leach_n * fee_n] #update profits
   
   # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL
@@ -204,7 +204,7 @@ for(fee_n in fee_seq){
   TrainSet_RMM[yld_area == 'quadratic', Yld := intercept + coef1 * N_fert + coef2 * (N_fert^2)]
   
   #Average all curves profits by region
-  TrainSet_RMM[, P := Yld * Pc + Yld_soy * Ps - N_fert * Pn - leach_n2 * fee_n]
+  TrainSet_RMM[, P := Yld * Pc + Yld_soy * Ps - N_fert * Pn - leach_n * fee_n]
   TrainSet_RMM2 <- TrainSet_RMM[,.(P_avg = mean(P)), by = .(region, N_fert)]
   ggplot(TrainSet_RMM2) + geom_point(aes(x = N_fert, y = P_avg, colour = interaction(region)))
   
@@ -279,11 +279,14 @@ set.seed(123)
 TrainSet2[, P := Yld * Pc + Yld_soy * Ps - N_fert * Pn] #update profits
 
 baseline_leaching <- merge(TrainSet2, reg_model_stuff$ratio_6$minimum_ok, by = 'region') %>% 
-  .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, leach_base = leach_n2)]
-baseline_leaching[leach_base == 0, leach_base := 1] #avoid dividing by zero
+  .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, leach_base = leach_n)]
 
 TrainSet_nr <- merge(TrainSet2, baseline_leaching, by = c('id_10', 'mukey', 'z'))
-TrainSet_nr[,leach_rel := leach_n2/leach_base]
+TrainSet_nr[,leach_rel := leach_n/leach_base]
+summary(TrainSet_nr$leach_rel)
+baseline_leaching[leach_base == 0]
+TrainSet_nr[leach_n == 0 & leach_base == 0, leach_rel := 1] #avoid dividing by 0
+TrainSet_nr[leach_n > 0 & leach_base == 0, leach_rel := leach_n/0.0001] #avoid dividing by 0
 
 TrainSet_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)]
 
@@ -310,11 +313,11 @@ for(n_red in red_seq){
 
   ## PREPARE THE TRAINING DATA WITH EONR ========
   # Part 2
-  TrainSet_nr[,.N, by = .(id_10, mukey, z)]
   TrainSet_nr_tmp <- TrainSet_nr[leach_rel >= n_red & leach_rel <= 1] %>% 
     .[, .SD[ leach_rel == min( leach_rel)], by = .(id_10, mukey, z)] %>% #select minimum leach_rel
     .[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)] %>% #select minimum rate in case one is repeated
     setnames('N_fert', 'eonr')
+  TrainSet_nr_tmp[,.N, by = .(id_10, mukey, z)]
   TrainSet_nr_tmp <- TrainSet_nr_tmp[,c('eonr', no_cost_varb, ss_varb), with = FALSE]
 
   # =========================================================================================================================================================
