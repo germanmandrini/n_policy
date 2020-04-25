@@ -47,7 +47,11 @@ plot_1 <- ggplot(data = state_agg_dt2[N_fert < 250]) +
   # guides(linetype = guide_legend(order=2),
   #        size = guide_legend(order=1)) +
   theme(legend.title =  element_blank(),
+<<<<<<< HEAD
         legend.position = c(0.87, 0.25),
+=======
+        legend.position = c(0.87, 0.15),
+>>>>>>> 7e5c2c9cc5c96bd71011aed9b537c8ffa2b1d302
         legend.text=element_text(size=8),
         panel.grid = element_blank())
 
@@ -58,24 +62,37 @@ ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/state_response_cur
 
 plot_2 <- ggplot(data = state_agg_dt2[N_fert < 250]) + 
   geom_line(aes(x = N_fert, y = Yld_soy, linetype = "Yield")) +
+<<<<<<< HEAD
   geom_line(aes(x = N_fert, y = leach_2*120, linetype = "N Leaching")) +
+=======
+  geom_line(aes(x = N_fert, y = leach_2*200, linetype = "N Leaching")) +
+>>>>>>> 7e5c2c9cc5c96bd71011aed9b537c8ffa2b1d302
   #geom_hline(yintercept = baselevel_yld, linetype = 'dashed', color = 'grey', size = 1)+
   geom_vline(xintercept = baselevel_nfert, linetype = 'dashed', color = 'grey', size = 1)+
   labs(y = 'Soy Yield (kg/ha)',
        x = 'Corn N rate (kg/ha)',
        colour = "Parameter")+
+<<<<<<< HEAD
   scale_y_continuous(sec.axis = sec_axis(~./200, name = "Soy N leaching (kg/ha)", breaks = seq(0,30,2), labels = seq(0,30,2))) +
+=======
+  scale_y_continuous(sec.axis = sec_axis(~./200, name = "Soy N leaching (kg/ha)", breaks = seq(30,80,5), labels = seq(30,80,5))) +
+>>>>>>> 7e5c2c9cc5c96bd71011aed9b537c8ffa2b1d302
   scale_linetype_manual(values = c("dashed", "solid"))+
   theme_bw()+
   # guides(linetype = guide_legend(order=2),
   #        size = guide_legend(order=1)) +
   theme(legend.title =  element_blank(),
+<<<<<<< HEAD
         legend.position = c(0.87, 0.25),
+=======
+        legend.position = c(0.87, 0.15),
+>>>>>>> 7e5c2c9cc5c96bd71011aed9b537c8ffa2b1d302
         legend.text=element_text(size=8),
         panel.grid = element_blank())
 
 plot_2
 
+<<<<<<< HEAD
 
 
 ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/state_response_curve_soy.jpg", width = 5, height = 3,
@@ -83,3 +100,7 @@ ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/state_response_cur
 
 ggsave(plot = grid.arrange(plot_1,plot_2), filename = "./n_policy_box/Data/figures/state_response_curve_both.jpg", width = 5, height = 5,
        units = 'in')
+=======
+ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/state_response_curve_soy.jpg", width = 5, height = 3,
+       units = 'in')
+>>>>>>> 7e5c2c9cc5c96bd71011aed9b537c8ffa2b1d302

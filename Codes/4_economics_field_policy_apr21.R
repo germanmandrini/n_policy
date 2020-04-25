@@ -774,8 +774,14 @@ perfomances_dt <- rbindlist(big_list)
 perfomances_dt[,.N, .(id_10, mukey,id_field)] %>% 
   .[,.N, .(id_10, id_field)] %>% .[,.N, .(id_10)] %>% .[,N] %>% table() #number of fields by cell
 
+<<<<<<< HEAD
 perfomances_dt[,.N, .(id_10, mukey,id_field, policy, NMS)]$N %>% table() #number of z by all the other things
 
+=======
+perfomances_dt[,.N, .(id_10, mukey,id_field, policy, NMS)]$N %>% table()
+test <- perfomances_dt[,.N, .(id_10, mukey,id_field, policy, NMS)]
+test[N==9]
+>>>>>>> 7e5c2c9cc5c96bd71011aed9b537c8ffa2b1d302
 # filter_this <- perfomances_dt[,.N, .(id_10, mukey, z, id_field, method, tech)][1]
 # 
 # filter_dt_in_dt(x_dt = perfomances_dt, filter_dt = filter_this, return_table = T)
@@ -805,4 +811,4 @@ perfomances_dt2[, .(Yld =  mean(Yld),
                     by = .( NMS, tech)][order(-P)]
 
 
-saveRDS(perfomances_dt2, "./n_policy_box/Data/files_rds/perfomances_dt.rds")
+saveRDS(perfomances_dt, "./n_policy_box/Data/files_rds/perfomances_dt.rds")
