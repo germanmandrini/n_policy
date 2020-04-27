@@ -50,9 +50,10 @@ plot_1 <- ggplot(data = state_agg_dt2[N_fert < 250]) +
   # guides(linetype = guide_legend(order=2),
   #        size = guide_legend(order=1)) +
   theme(legend.title =  element_blank(),
-        legend.position = c(0.87, 0.25),
+        legend.position = c(0.87, 0.15),
         legend.text=element_text(size=8),
-        panel.grid = element_blank())
+        panel.grid = element_blank())+
+annotate("text", x=220, y=12500, label= "a)", size = 10) 
 
 plot_1
 
@@ -73,12 +74,15 @@ plot_2 <- ggplot(data = state_agg_dt2[N_fert < 250]) +
   # guides(linetype = guide_legend(order=2),
   #        size = guide_legend(order=1)) +
   theme(legend.title =  element_blank(),
-        legend.position = c(0.87, 0.25),
+        legend.position = c(0.87, 0.15),
         legend.text=element_text(size=8),
-        panel.grid = element_blank())
+        panel.grid = element_blank())+
+  annotate("text", x=220, y=4000, label= "b)", size = 10) 
 
 plot_2
 
+ggsave(grid.arrange(plot_1, plot_2, nrow = 1), 
+       filename = "./n_policy_box/Data/figures/state_response_curve_both.jpg", width = 10, height =  4, units = 'in')
 
 ggsave(plot = plot_2, filename = "./n_policy_box/Data/figures/state_response_curve_soy.jpg", width = 5, height = 3,
        units = 'in')

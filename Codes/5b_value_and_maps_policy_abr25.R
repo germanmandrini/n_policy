@@ -1,13 +1,16 @@
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
 # setwd("/home/germanm2")
-setwd('~')
+# setwd('~')
 rm(list=ls())
+
+codes_folder <-'C:/Users/germanm2/Documents'
 
 source('./Codes_useful/R.libraries.R')
 # library(scales)
 source('./Codes_useful/gm_functions.R')
-source('./n_policy_git/Codes/parameters.R')
+source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
+
 
 # source('./Codes_useful/gm_functions.R')
 
@@ -23,19 +26,6 @@ perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt.rds")
 
 perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
 perfomances_dt[,.N, .(id_10, id_field, mukey, policy, NMS)] %>% .[,N] %>% table() #number of z by mukey. SHould be all equal
-test <- perfomances_dt[,.N, .(region, id_10, id_field, mukey, policy, NMS)] #number of z by mukey. SHould be all equal
-test <- test[N ==9]
-fields_list_dt <- test[,.N, .(region,id_10, id_field)][,-'N']
-
-idx_out <- filter_dt_in_dt(x_dt = perfomances_dt, filter_dt = fields_list_dt, return_table = F)
-
-perfomances_dt1 <- perfomances_dt[-idx_out]
-perfomances_dt <- rbind(perfomances_dt1, perfomances_dt2)
-
-test[id_10 == 911]
-test[,.N, .(id_10, id_field, mukey, policy)]$N
-
-
 perfomances_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of rows by policy NMS. SHould be all equal
 
 summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NMS, tech, z)]$area_ha)
