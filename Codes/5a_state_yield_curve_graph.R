@@ -1,13 +1,14 @@
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
 # setwd("/home/germanm2")
-setwd('~')
+# setwd('~')
 rm(list=ls())
+codes_folder <-'C:/Users/germanm2/Documents'
+
 
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
-source('./n_policy_git/Codes/parameters.R')
-
+source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 
 yc_yearly_dt3 <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
 # grid10_tiles_sf6 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf6.rds") 
@@ -20,6 +21,7 @@ setnames(yc_yearly_dt3, c('Yld', 'Yld_soy', 'leach_1', 'leach_2'),
                         c('Y_corn', 'Y_soy', 'L1', 'L2'))
 yc_yearly_dt3[,L := L1 + L2] #update leaching adding corn and soy
 yc_yearly_dt3[,P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits adding corn and soy
+
 #======================================================================================
 # Do two plots with Y_corn and Leaching for a static N_fert across the state for soy and corn
 areas_dt <- grid10_soils_dt5[,.(area_ha = sum(area_ha)), by = .(id_10, mukey)]
