@@ -19,8 +19,8 @@ grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>%
 
 setnames(yc_yearly_dt3, c('Yld', 'Yld_soy', 'leach_1', 'leach_2'),
                         c('Y_corn', 'Y_soy', 'L1', 'L2'))
-yc_yearly_dt3[,L := L1 + L2] #update leaching adding corn and soy
-yc_yearly_dt3[,P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits adding corn and soy
+# yc_yearly_dt3[,L := L1 + L2] #update leaching adding corn and soy
+# yc_yearly_dt3[,P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits adding corn and soy
 
 #======================================================================================
 # Do two plots with Y_corn and Leaching for a static N_fert across the state for soy and corn

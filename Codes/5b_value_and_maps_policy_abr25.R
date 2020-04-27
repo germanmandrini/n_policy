@@ -1,10 +1,15 @@
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+
 # setwd("/home/germanm2")
-# setwd('~')
+
 rm(list=ls())
 
-codes_folder <-'C:/Users/germanm2/Documents'
+# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+
+setwd('~')#Server
+codes_folder <-'~' #Server
+
 
 source('./Codes_useful/R.libraries.R')
 # library(scales)
@@ -30,6 +35,12 @@ perfomances_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of rows by poli
 
 summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NMS, tech, z)]$area_ha)
 
+setnames(perfomances_dt, c('Yld', 'Yld_soy', 'leach_1', 'leach_2'),
+         c('Y_corn', 'Y_soy', 'L1', 'L2'))
+perfomances_dt[,L := L1 + L2] #update leaching adding corn and soy
+perfomances_dt[,P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits adding corn and soy
+
+
 #-------------------------------------------------------------------------
 #-------------------------------------------------------------------------
 # AGGREGATE THE DATA TO FIELD X Z LEVEL CONSIDERING THE AREA
@@ -39,7 +50,7 @@ summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, polic
 
 names(perfomances_dt)
 do_not_aggregate = c("policy",'region','id_10', 'NMS', 'tech', 'z', 'id_field')
-do_aggregate =  c("Yld", "leach_n2", "N_fert","P", "gov")
+do_aggregate =  c("Y_corn", "L", "N_fert","P", "gov")
 
 if(FALSE){
   perfomances_dt2 <- aggregate_by_area(data_dt = perfomances_dt, variables = do_aggregate, 
@@ -66,7 +77,7 @@ perfomances_dt2 <- perfomances_dt2[order(id_10, z,id_field, NMS)]
 # AGGREGATE THE DATA TO CELL X Z LEVEL CONSIDERING THE AREA
 names(perfomances_dt)
 do_not_aggregate = c('policy','id_10', 'region','NMS', 'tech', 'z')
-do_aggregate =  c("Yld", "leach_n2", "N_fert","P", 'gov')
+do_aggregate =  c("Y_corn", "L", "N_fert","P", 'gov')
 
 if(FALSE){
   #First aggregate without z so then we can get the leach_extreme
@@ -86,9 +97,9 @@ if(FALSE){
 
 
 
-perfomances_dt4 <- perfomances_dt3[, .(Yld =  mean(Yld),
-                                       leach_n2 = mean(leach_n2),
-                                       leach_ext = max(leach_n2), #leaching in the year with max leaching. Most of the time will be after corn. Pushed UP
+perfomances_dt4 <- perfomances_dt3[, .(Y_corn =  mean(Y_corn),
+                                       L = mean(L),
+                                       leach_ext = max(L), #leaching in the year with max leaching. Most of the time will be after corn. Pushed UP
                                        N_fert = mean(N_fert),
                                        P = mean(P), 
                                        gov = mean(gov),
@@ -104,7 +115,7 @@ perfomances_dt4 <- merge(perfomances_dt4, grid10_tiles_dt, by = 'id_10')
 
 
 
-perfomances_dt5 <- aggregate_by_area(data_dt = perfomances_dt4, variables = c("Yld", "leach_n2", "leach_ext", "N_fert","P", "gov"), 
+perfomances_dt5 <- aggregate_by_area(data_dt = perfomances_dt4, variables = c("Y_corn", "L", "leach_ext", "N_fert","P", "gov"), 
                                          weight = 'corn_avg_ha', by_c = c('policy','NMS', 'tech')) #state level, weighted by corn_ha
 perfomances_dt5[order(-P)]
 
@@ -141,15 +152,15 @@ table_dt <- table_dt[order(order)]
 # and not caring about the externality cost (we are already sending less N, that's it my friends)
 
 table_dt <- perfomances_dt5[ NMS %in% NMSs_f]
-baselevel_nleach <- table_dt[policy == 'fee_0' & NMS == 1, leach_n2] 
-baselevel_yld <- table_dt[policy == 'fee_0' & NMS == 1, Yld ]
+baselevel_nleach <- table_dt[policy == 'fee_0' & NMS == 1, L] 
+baselevel_Y_corn <- table_dt[policy == 'fee_0' & NMS == 1, Y_corn ]
 baselevel_nfert <- table_dt[policy == 'fee_0' & NMS == 1, N_fert ]
 
-table_dt[,yld_red := round((Yld / baselevel_yld),2)]
+table_dt[,Y_corn_red := round((Y_corn / baselevel_Y_corn),2)]
 
-table_dt <- table_dt[yld_red > 0.9] #remove those that decrease yield too much
+table_dt <- table_dt[Y_corn_red > 0.9] #remove those that decrease yield too much
 
-table_dt[,abatement := baselevel_n - leach_n2]
+table_dt[,abatement := baselevel_n - L]
 table_dt[,abat_prop := round((abatement)/ baselevel_n,2)]
 target_abat_prop <- table_dt[order(-abat_prop)] %>% .[1:10, abat_prop] %>% mean()
 
@@ -162,15 +173,15 @@ table_dt
 # BEST OPTION 2: considering a cost of the externality, what NMS would maximize the welfare of the society
 NMSs_f <- c('1','2','4')
 table_dt <- perfomances_dt5[ NMS %in% NMSs_f]
-baselevel_n <- table_dt[policy == 'fee_0' & NMS == 1, leach_n2] 
-table_dt[,abatement := baselevel_n - leach_n2]
+baselevel_n <- table_dt[policy == 'fee_0' & NMS == 1, L] 
+table_dt[,abatement := baselevel_n - L]
 table_dt[,abat_prop := round((abatement)/ baselevel_n,2)]
-baselevel_yld <- table_dt[policy == 'fee_0' & NMS == 1, Yld ]
-table_dt[,yld_red := round((Yld / baselevel_yld),2)]
+baselevel_Y_corn <- table_dt[policy == 'fee_0' & NMS == 1, Y_corn ]
+table_dt[,Y_corn_red := round((Y_corn / baselevel_Y_corn),2)]
 
 table_dt[,soc_benefits := P + gov]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
-table_dt[,externatility := ifelse((leach_n2 - target_n) > 0, (leach_n2 -target_n)*Pe_med,0)] #externalities are pay for each kg above the 45% target
+table_dt[,externatility := ifelse((L - target_n) > 0, (L -target_n)*Pe_med,0)] #externalities are pay for each kg above the 45% target
 table_dt[,soc_welfare := soc_benefits - externatility ]
 table_dt <- table_dt[order(-soc_welfare)][1:40]
 table_dt
@@ -196,29 +207,29 @@ plot_dt <- rbind(plot_dt, current_ratio_dt)
 
 plot_dt[,soc_benefits := P + gov]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
-plot_dt[,externatility := ifelse((leach_n2 - target_n) > 0, (leach_n2 -target_n)*Pe_med,0)]
+plot_dt[,externatility := ifelse((L - target_n) > 0, (L -target_n)*Pe_med,0)]
 plot_dt[,soc_welfare := soc_benefits - externatility ]
 plot_dt[order(-soc_welfare)][1:40]
 
-plot_dt[,leach_n2 := round((leach_n2 / baselevel_n) - 1,2)*100 ]
+plot_dt[,L := round((L / baselevel_n) - 1,2)*100 ]
 
-ggplot(plot_dt) + geom_line(aes(x = policy_val, y = leach_n2, color = NMS))
+ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
 
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Yld', 'leach_n2', 'N_fert', 
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
                                                                                 'P', 'gov', 'externatility','soc_welfare'))
 plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
-plot_dt_long[variable == 'leach_n2', plot_name := 'b) N Leaching (% change)']
-plot_dt_long[variable == 'Yld', plot_name := 'c) Yield kg/ha']
+plot_dt_long[variable == 'L', plot_name := 'b) N Leaching (% change)']
+plot_dt_long[variable == 'Y_corn', plot_name := 'c) Yield kg/ha']
 plot_dt_long[variable == 'P', plot_name := 'd) Profits $/ha']
 plot_dt_long[variable == 'gov', plot_name := 'e) Tax revenue $/ha']
 plot_dt_long[variable == 'externatility', plot_name := 'f) Externatility $/ha']
 plot_dt_long[variable == 'soc_welfare', plot_name := 'g) soc_welfare $/ha']
 plot_dt_long[order(variable)]
 
-plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'leach_n2', 'Yld')] 
+plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L', 'Y_corn')] 
 
 hline_dt <- data.table(plot_name = unique(plot_dt_long1$plot_name))
-hline_dt[plot_name == 'c) Yield kg/ha', y_line := baselevel_yld*0.95]
+hline_dt[plot_name == 'c) Yield kg/ha', y_line := baselevel_Y_corn*0.95]
 hline_dt[plot_name == 'c) Yield kg/ha', y_label := '95% baselevel']
 hline_dt[plot_name == 'b) N Leaching (% change)', y_line  := 0]
 
@@ -239,7 +250,7 @@ plot_1
 ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/ratio_all_vars_part1.jpg", width = 10, height = 10,
        units = 'in')
 
-plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'leach_n2', 'Yld')] 
+plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn')] 
 
 plot_1 <- ggplot(plot_dt_long2)+
   geom_line(aes(x = policy_val, y =  value, colour = NMS)) +
@@ -264,8 +275,8 @@ ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/ratio_all_vars_par
 library(mlr) 
 
 rmse_dt <- perfomances_dt[stringr::str_detect(string = perfomances_dt$policy, pattern = 'ratio'),
-               .(Yld =  mean(Yld),
-                    leach_n2 = mean(leach_n2),
+               .(Y_corn =  mean(Y_corn),
+                    L = mean(L),
                     N_fert = mean(N_fert),
                     N_fert_min = min(N_fert),
                     N_fert_max = max(N_fert),
@@ -402,26 +413,26 @@ plot_dt <- perfomances_dt5[policy_name == 'nred' & NMS %in% c('1_ok','2','3','4'
 
 plot_dt[,soc_benefits := P + gov]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
-plot_dt[,externatility := ifelse((leach_n2 - target_n) > 0, (leach_n2 -target_n)*Pe_med,0)]
+plot_dt[,externatility := ifelse((L - target_n) > 0, (L -target_n)*Pe_med,0)]
 plot_dt[,soc_welfare := soc_benefits - externatility ]
 plot_dt[order(-soc_welfare)][1:40]
 
 
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Yld', 'leach_n2', 'N_fert', 
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
                                                                                  'P', 'externatility','soc_welfare'))
 plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate']
-plot_dt_long[variable == 'leach_n2', plot_name := 'b) N Leaching']
-plot_dt_long[variable == 'Yld', plot_name := 'c) Yield']
+plot_dt_long[variable == 'L', plot_name := 'b) N Leaching']
+plot_dt_long[variable == 'Y_corn', plot_name := 'c) Yield']
 plot_dt_long[variable == 'P', plot_name := 'd) Profits']
 # plot_dt_long[variable == 'gov', plot_name := 'e) Tax revenue']
 plot_dt_long[variable == 'externatility', plot_name := 'f) externatility']
 plot_dt_long[variable == 'soc_welfare', plot_name := 'g) soc_welfare']
 plot_dt_long[order(variable)]
 
-plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'leach_n2', 'Yld')] 
+plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L', 'Y_corn')] 
 
 hline_dt <- data.table(plot_name = unique(plot_dt_long1$plot_name))
-hline_dt[plot_name == 'c) Yield', y_line := baselevel_yld*0.95]
+hline_dt[plot_name == 'c) Yield', y_line := baselevel_Y_corn*0.95]
 hline_dt[plot_name == 'c) Yield', y_label := '95% baselevel']
 
 plot_1 <- ggplot()+
@@ -441,7 +452,7 @@ plot_1
 ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/nred_all_vars_part1.jpg", width = 10, height = 10,
        units = 'in')
 
-plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'leach_n2', 'Yld')] 
+plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn')] 
 
 plot_1 <- ggplot(plot_dt_long2)+
   geom_line(aes(x = policy_val, y =  value, colour = NMS)) +
@@ -464,8 +475,8 @@ ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/nred_all_vars_part
 
 plot_dt <- perfomances_dt5[policy_name == 'fee' & NMS == '1'] 
 
-plot_dt1 <- melt(plot_dt, id.vars = 'policy_val', measure.vars = c('Yld', 'leach_n2', 'N_fert', 'P', 'gov'))
-plot_dt2 <- melt(plot_dt[policy_val == 6], id.vars = 'policy_val', measure.vars = c('Yld', 'leach_n2', 'N_fert', 'P', 'gov'))
+plot_dt1 <- melt(plot_dt, id.vars = 'policy_val', measure.vars = c('Y_corn', 'L', 'N_fert', 'P', 'gov'))
+plot_dt2 <- melt(plot_dt[policy_val == 6], id.vars = 'policy_val', measure.vars = c('Y_corn', 'L', 'N_fert', 'P', 'gov'))
 
 plot_dt3 <- merge(plot_dt1, plot_dt2[,.(variable, value_max = value)], by = c('variable'))
 plot_dt3[, value_rel := value/value_max]
@@ -492,12 +503,12 @@ ggplot(plot_dt3) +
 # perfomances_dt4[,NMS := as.integer(NMS)]
 latex_table_dt <- perfomances_dt5[,-'corn_avg_ha']
 
-cols_1 <- c('Yld', 'leach_n2', 'leach_ext', 'N_fert', 'P')
+cols_1 <- c('Y_corn', 'L', 'leach_ext', 'N_fert', 'P')
 latex_table_dt[,(cols_1) := round(.SD,1), .SDcols=cols_1]
-latex_table_dt[,Yld := round(Yld, 0)]
+latex_table_dt[,Y_corn := round(Y_corn, 0)]
 
 
-setnames(latex_table_dt, c('Yld', 'leach_n2', 'leach_ext', 'N_fert', 'P'),
+setnames(latex_table_dt, c('Y_corn', 'L', 'leach_ext', 'N_fert', 'P'),
          c('Yield', 'N leaching', 'N leach ext', 'N rate', 'Profits'))
 
 library('xtable')
@@ -552,20 +563,20 @@ print.xtable(xtable(NMS_minimum_regional2, type = "latex", auto = TRUE,
 #-----------------------------------------VALUE OF INFORMATION--------------------------------------------------------
 #=====================================================================================================================
 # MAKE A MAP OF TOTAL LEACHING WITH NMS 1 AND REDUCTION WITH NMS 4
-value_dt <- perfomances_dt4[NMS %in% c(1, 4), .(id_10, NMS, leach_n2, corn_avg_ha, leach_ext)]
+value_dt <- perfomances_dt4[NMS %in% c(1, 4), .(id_10, NMS, L, corn_avg_ha, leach_ext)]
 
-value_dt[, leach_n2_cell := leach_n2 * corn_avg_ha]
+value_dt[, L_cell := L * corn_avg_ha]
 value_dt[, leach_ext_cell := leach_ext * corn_avg_ha]
 
-value_dt <- dcast(value_dt, id_10 ~ NMS, value.var = c('leach_n2_cell', 'leach_ext_cell', 'leach_n2'))
-value_dt[,leach_n2_4 := NULL]
+value_dt <- dcast(value_dt, id_10 ~ NMS, value.var = c('L_cell', 'leach_ext_cell', 'L'))
+value_dt[,L_4 := NULL]
 
-# setnames(value_dt, c('1', '4'), c('leach_n2_m1', 'leach_n2_m2'))
+# setnames(value_dt, c('1', '4'), c('L_m1', 'L_m2'))
 #make one negative
-value_dt[, eb_cell := leach_n2_cell_4-leach_n2_cell_1] #Enviromental Benefit
+value_dt[, eb_cell := L_cell_4-L_cell_1] #Enviromental Benefit
 
 
-value_sf <- merge(grid10_tiles_sf7, value_dt[,.(id_10, leach_n2_cell_1,eb_cell, leach_ext_cell_1, leach_n2_1)], by = 'id_10', all.x = T)
+value_sf <- merge(grid10_tiles_sf7, value_dt[,.(id_10, L_cell_1,eb_cell, leach_ext_cell_1, L_1)], by = 'id_10', all.x = T)
 
 
 (p1 <- tm_shape(value_sf) + tm_polygons(c('corn_avg_ha'), 
@@ -584,12 +595,12 @@ value_sf <- merge(grid10_tiles_sf7, value_dt[,.(id_10, leach_n2_cell_1,eb_cell, 
 
 
 
-tm_shape(value_sf) + tm_polygons(c('leach_n2_1')) #Show me: leaching by ha
+tm_shape(value_sf) + tm_polygons(c('L_1')) #Show me: leaching by ha
 
 
 breaks_n <- c(50000,100000,200000,300000,400000)
 
-(p2 <- tm_shape(value_sf) + tm_polygons(c('leach_n2_cell_1'), 
+(p2 <- tm_shape(value_sf) + tm_polygons(c('L_cell_1'), 
                                         breaks = breaks_n, 
                                         title = c("N Leaching (kg/cell)"),
                                         style ="cont", 
@@ -617,11 +628,11 @@ tm_shape(rmse_map_sf) + tm_polygons(c('RMSE_1', 'RMSE_4', 'overpred_4', 'subpred
 # MAKE A MAP OF EONR for NMS 1, 4, 12 -----
 rates_map_dt <-  perfomances_dt3[NMS %in% c(1,4, 12)] 
 
-rates_map_dt2 <- dcast(rates_map_dt, id_10 ~ NMS, value.var = c('leach_n2','N_fert', 'P', 'Yld'))
+rates_map_dt2 <- dcast(rates_map_dt, id_10 ~ NMS, value.var = c('L','N_fert', 'P', 'Y_corn'))
 
 rates_map_sf <- merge(grid10_tiles_sf7, rates_map_dt2, by = 'id_10', all.x = T)
 
-rates_map_sf <- merge(grid10_tiles_sf7, rates_map_dt[,.(id_10, NMS, Yld, leach_n2, N_fert, P)], by = 'id_10', all = T)
+rates_map_sf <- merge(grid10_tiles_sf7, rates_map_dt[,.(id_10, NMS, Y_corn, L, N_fert, P)], by = 'id_10', all = T)
 
 empty_cells_sf <- rates_map_sf[is.na(rates_map_sf$NMS),]
 rates_map_sf2  <- rates_map_sf[!is.na(rates_map_sf$NMS),]
@@ -632,7 +643,7 @@ for(NMS_n in c(1,4,12)){
   
 }
 
-rates_map_sf3 <- melt(rates_map_sf2, id.vars = c("id_10", "geometry", 'NMS'), measure.vars = c("Yld", "leach_n2", "N_fert", "P"))
+rates_map_sf3 <- melt(rates_map_sf2, id.vars = c("id_10", "geometry", 'NMS'), measure.vars = c("Y_corn", "L", "N_fert", "P"))
 rates_map_sf3 <- st_sf(rates_map_sf3)
 
 nrow(grid10_tiles_sf7)*3
@@ -642,15 +653,15 @@ rates_map_sf3$NMS <- factor(rates_map_sf3$NMS, levels = c(1,4,12))
 tm_shape(rates_map_sf3) + tm_polygons('value')+
   tm_facets(c("NMS", "variable"), ncol = 3, free.scales= T, as.layers = T)
 
-(p1 <- tm_shape(rates_map_sf3[rates_map_sf3$variable == 'Yld',]) + 
+(p1 <- tm_shape(rates_map_sf3[rates_map_sf3$variable == 'Y_corn',]) + 
   tm_polygons('value',  
-              title = c("Yld (kg/ha)"),
+              title = c("Y_corn (kg/ha)"),
               palette = "Greys", 
               colorNA = 'white')+
   tm_facets(c("NMS"), free.scales = F, as.layers = T) +
   tm_layout(legend.outside = F))
 
-(p2 <- tm_shape(rates_map_sf3[rates_map_sf3$variable == 'leach_n2',]) + 
+(p2 <- tm_shape(rates_map_sf3[rates_map_sf3$variable == 'L',]) + 
     tm_polygons('value',  
                 n= 6,
                 title = c("N Leaching (kg/ha)"),
@@ -700,26 +711,26 @@ tmap_save(tmap_arrange(p1,p2,p3,p4, ncol = 1), "./n_policy_box/Data/figures/appe
 value_dt <- perfomances_dt4[NMS %in% c(1,4)]
 
 #make one negative
-value_dt[NMS == 1, Yld := -Yld]
-value_dt[NMS == 1, leach_n2 := -leach_n2]
+value_dt[NMS == 1, Y_corn := -Y_corn]
+value_dt[NMS == 1, L := -L]
 value_dt[NMS == 1, leach_ext := -leach_ext]
 value_dt[NMS == 1, N_fert := -N_fert]
 value_dt[NMS == 1, P := -P]
 
 # Add values by group
-value_dt <- value_dt[, .(Yld =  sum(Yld),
-                         leach_n2 = sum(leach_n2),
+value_dt <- value_dt[, .(Y_corn =  sum(Y_corn),
+                         L = sum(L),
                          leach_ext = sum(leach_ext), 
                          N_fert = sum(N_fert),
                          P = sum(P)), by = .(id_10)]
 
-# baseline_leaching_dt <- perfomances_dt3[NMS == 1, .(id_10, baseline_leach = leach_n2)]
+# baseline_leaching_dt <- perfomances_dt3[NMS == 1, .(id_10, baseline_leach = L)]
 # value_dt <- merge(value_dt, baseline_leaching_dt, by = 'id_10')
 # 
 # ggplot(data = value_dt, aes(x = baseline_leach, y = P)) +
 #   geom_point() + geom_smooth()
 
-value_sf <- merge(value_sf, value_dt[,.(id_10, leach_n2,P)], by = 'id_10', all.x = T)
+value_sf <- merge(value_sf, value_dt[,.(id_10, L,P)], by = 'id_10', all.x = T)
 hist(value_sf$eb_cell)
 
 breaks_n <- c(-60000,-40000,-10000,0)
@@ -782,15 +793,15 @@ tmap_save(tmap_arrange(p1, p2, p3, p4, ncol = 2) , "./n_policy_box/Data/figures/
 #Select the two NMSs of interest
 value_dt <- perfomances_dt3[NMS %in% c(11,12)]
 #make one negative
-value_dt[NMS == 11, Yld := -Yld]
-value_dt[NMS == 11, leach_n2 := -leach_n2]
+value_dt[NMS == 11, Y_corn := -Y_corn]
+value_dt[NMS == 11, L := -L]
 value_dt[NMS == 11, leach_ext := -leach_ext]
 value_dt[NMS == 11, N_fert := -N_fert]
 value_dt[NMS == 11, P := -P]
 
 # Add values by group
-value_post_dt <- value_dt[, .(Yld =  sum(Yld),
-                          leach_n2 = sum(leach_n2),
+value_post_dt <- value_dt[, .(Y_corn =  sum(Y_corn),
+                          L = sum(L),
                           leach_ext = sum(leach_ext), 
                           N_fert = sum(N_fert),
                           P = sum(P)), by = .(id_10)]
@@ -821,15 +832,15 @@ breaks_n <- c(min(value_post_dt$P), 5,10,15, 20, max(value_post_dt$P))
 #2) MAKE A MAP OF VALUE TECHNOLOGY (EX ANTE VALUE)
 value_dt <- perfomances_dt3[NMS %in% c(4,5)]
 #make one negative
-value_dt[NMS == 4, Yld := -Yld]
-value_dt[NMS == 4, leach_n2 := -leach_n2]
+value_dt[NMS == 4, Y_corn := -Y_corn]
+value_dt[NMS == 4, L := -L]
 value_dt[NMS == 4, leach_ext := -leach_ext]
 value_dt[NMS == 4, N_fert := -N_fert]
 value_dt[NMS == 4, P := -P]
 
 # Add values by group
-value_ante_dt <- value_dt[, .(Yld =  sum(Yld),
-                         leach_n2 = sum(leach_n2),
+value_ante_dt <- value_dt[, .(Y_corn =  sum(Y_corn),
+                         L = sum(L),
                          leach_ext = sum(leach_ext), 
                          N_fert = sum(N_fert),
                          P = sum(P)), by = .(id_10)]
@@ -885,15 +896,15 @@ ggplot(data = value_comp_dt, aes(x= P_post, y = P_ante)) +
 # MAKE A MAP OF VALUE TECHNOLOGY (EX ANTE VALUE)
 value_dt <- perfomances_dt3[NMS %in% c(4,5)]
 #make one negative
-value_dt[NMS == 4, Yld := -Yld]
-value_dt[NMS == 4, leach_n2 := -leach_n2]
+value_dt[NMS == 4, Y_corn := -Y_corn]
+value_dt[NMS == 4, L := -L]
 value_dt[NMS == 4, leach_ext := -leach_ext]
 value_dt[NMS == 4, N_fert := -N_fert]
 value_dt[NMS == 4, P := -P]
 
 # Add values by group
-value_dt <- value_dt[, .(Yld =  sum(Yld),
-                         leach_n2 = sum(leach_n2),
+value_dt <- value_dt[, .(Y_corn =  sum(Y_corn),
+                         L = sum(L),
                          leach_ext = sum(leach_ext), 
                          N_fert = sum(N_fert),
                          P = sum(P),
@@ -945,7 +956,7 @@ st_write(value_sf, "./n_policy_box/Data/shapefiles/vr_cell_value_sf.shp", delete
 # AGGREGATE THE DATA TO CELL X Z LEVEL CONSIDERING THE AREA
 names(perfomances_dt)
 do_not_aggregate = c('id_10', 'id_field','region','NMS', 'tech')
-do_aggregate =  c("Yld", "leach_n2", "N_fert","P")
+do_aggregate =  c("Y_corn", "L", "N_fert","P")
 
 perfomances_field_dt <- aggregate_by_area(data_dt = perfomances_dt, variables = do_aggregate, 
                                      weight = 'area_ha', by_c = do_not_aggregate) #cell x z level (mukey and field are out)
@@ -953,14 +964,14 @@ perfomances_field_dt <- aggregate_by_area(data_dt = perfomances_dt, variables = 
 # MAKE A MAP OF VALUE TECHNOLOGY (EX ANTE VALUE)
 value_dt <- perfomances_field_dt[NMS %in% c(4,5)]
 #make one negative
-value_dt[NMS == 4, Yld := -Yld]
-value_dt[NMS == 4, leach_n2 := -leach_n2]
+value_dt[NMS == 4, Y_corn := -Y_corn]
+value_dt[NMS == 4, L := -L]
 value_dt[NMS == 4, N_fert := -N_fert]
 value_dt[NMS == 4, P := -P]
 
 # Add values by group
-value_dt <- value_dt[, .(Yld =  sum(Yld),
-                         leach_n2 = sum(leach_n2),
+value_dt <- value_dt[, .(Y_corn =  sum(Y_corn),
+                         L = sum(L),
                          N_fert = sum(N_fert),
                          n_policy = sum(P)), by = .(id_10, id_field)]
 
@@ -1027,7 +1038,7 @@ mukey_n = 242997
 
 testing_set_dt <- perfomances_dt[id_10 == cell_n]
 
-testing_set_dt[,mean(Yld), by = mukey]
+testing_set_dt[,mean(Y_corn), by = mukey]
 
 testing_set_plot <- testing_set_dt[mukey == mukey_n]
 testing_set_plot[,NMS := factor(NMS, levels= c('1', '2', '3','4', '5', '6', '7', '8', '9', '10', '11', '12'))]
@@ -1045,29 +1056,29 @@ ic_field_plot <- yc_yearly_dt3[mukey == mukey_n & id_10 == cell_n ] %>% .[!z %in
 
 colors_sample=c( "#7570B3", "#FFED6F", "#666666", "#7FC97F", "#386CB0", "#B3B3B3", "#FFFFCC", "#A65628", "#F4CAE4", "#E41A1C", "#E6AB02", "black")
 
-# Y plot with Yld at eonr
-z_labels <- ic_field_plot[N_fert == max(ic_field_plot$N_fert), .(N_fert, Yld, z)][order(-Yld)]
+# Y plot with Y_corn at eonr
+z_labels <- ic_field_plot[N_fert == max(ic_field_plot$N_fert), .(N_fert, Y_corn, z)][order(-Y_corn)]
 z_labels[seq(1, nrow(z_labels), by = 2), N_fert := N_fert - 50]
 
 ggplot() +
-    geom_point(data = testing_set_plot, aes(x = N_fert, y = Yld, colour = NMS, size = NMS)) +
-    geom_line(data = ic_field_plot, aes(x = N_fert, y = Yld, group=z), show.legend = FALSE) +
+    geom_point(data = testing_set_plot, aes(x = N_fert, y = Y_corn, colour = NMS, size = NMS)) +
+    geom_line(data = ic_field_plot, aes(x = N_fert, y = Y_corn, group=z), show.legend = FALSE) +
     scale_size_manual(values=c(rep(2, 11), 4)) +
     scale_color_manual(values=colors_sample)+
     ylab('Yield (kg/ha)')+
     xlab('N rate (kg/ha)')+
-    geom_text(data = z_labels, aes(x = N_fert, y = Yld, label = z))+
+    geom_text(data = z_labels, aes(x = N_fert, y = Y_corn, label = z))+
     theme_bw()+
     theme(panel.grid = element_blank())
 
 
 # (plot_n1 <- ggplot() +
 #     geom_point(data = testing_set_plot[z == z_n & NMS == '12' & prev_crop == 1], 
-#                aes(x = N_fert, y = Yld ,  size = NMS)) +
-#     geom_line(data = ic_field_plot[z == z_n & prev_crop == 1], aes(x = N_fert, y = Yld, linetype = "Yield")) +
+#                aes(x = N_fert, y = Y_corn ,  size = NMS)) +
+#     geom_line(data = ic_field_plot[z == z_n & prev_crop == 1], aes(x = N_fert, y = Y_corn, linetype = "Yield")) +
 #     geom_point(data = testing_set_plot[z == z_n & NMS == '12' & prev_crop == 1], 
-#                aes(x = N_fert, y = leach_n2*150,  size = NMS)) +
-#     geom_line(data = ic_field_plot[z == z_n & prev_crop == 1], aes(x = N_fert, y = leach_n2*150, linetype = "N Leaching")) +
+#                aes(x = N_fert, y = L*150,  size = NMS)) +
+#     geom_line(data = ic_field_plot[z == z_n & prev_crop == 1], aes(x = N_fert, y = L*150, linetype = "N Leaching")) +
 #     # scale_size_manual(values=c(rep(2, 11), 4)) +
 #     ## scale_color_manual(values=colors_sample)+
 #     labs(y = 'Yield (kg/ha)',
@@ -1077,7 +1088,7 @@ ggplot() +
 #     scale_linetype_manual(values = c("dashed", "solid"))+
 #     scale_size_manual(values = 4,
 #                       labels = expression(paste('EONR'^'ex post')))+
-#     #geom_text(data = z_labels, aes(x = N_fert, y = Yld, label = z))+
+#     #geom_text(data = z_labels, aes(x = N_fert, y = Y_corn, label = z))+
 #     theme_bw()+
 #     guides(linetype = guide_legend(order=2),
 #            size = guide_legend(order=1)) +
@@ -1086,18 +1097,18 @@ ggplot() +
 #           panel.grid = element_blank())+
 #     annotate("text", x=300, y=11500, label= "a)", size = 10) )
 ic_field_plot$z
-ggplot(ic_field_plot, aes(x= N_fert, y = leach_n2, color = z)) +
+ggplot(ic_field_plot, aes(x= N_fert, y = L, color = z)) +
   geom_line()
 
 z_n = 23
 
 
 
-ic_field_plot2 <- melt(ic_field_plot[z == z_n ], id.vars = 'N_fert', measure.vars = c('Yld', 'leach_n2'))
-ic_field_plot2[variable == 'leach_n2', value := value * 150]
+ic_field_plot2 <- melt(ic_field_plot[z == z_n ], id.vars = 'N_fert', measure.vars = c('Y_corn', 'L'))
+ic_field_plot2[variable == 'L', value := value * 150]
 
-testing_set_plot2 <- melt(testing_set_plot[z == z_n & NMS == '12'], id.vars = 'N_fert', measure.vars = c('Yld', 'leach_n2'))
-testing_set_plot2[variable == 'leach_n2', value := value * 150]
+testing_set_plot2 <- melt(testing_set_plot[z == z_n & NMS == '12'], id.vars = 'N_fert', measure.vars = c('Y_corn', 'L'))
+testing_set_plot2[variable == 'L', value := value * 150]
 
 
 (plot_n1 <- ggplot() +
@@ -1118,14 +1129,14 @@ testing_set_plot2[variable == 'leach_n2', value := value * 150]
         panel.grid = element_blank())+
   annotate("text", x=300, y=15000, label= "a)", size = 10) )
 
-summary(testing_set_plot$Yld)
+summary(testing_set_plot$Y_corn)
 
-exclude_z = testing_set_plot[Yld == min(Yld)]$z[1]
+exclude_z = testing_set_plot[Y_corn == min(Y_corn)]$z[1]
 
 (plot_n2 <- ggplot() +
     
-    geom_line(data = ic_field_plot[ !(z == exclude_z) ], aes(x = N_fert, y = Yld, group = z), show.legend = F) +
-    geom_point(data = testing_set_plot[NMS == '12' & !(z == exclude_z) ], aes(x = N_fert, y = Yld , shape = 'EONR'), size = 2) +
+    geom_line(data = ic_field_plot[ !(z == exclude_z) ], aes(x = N_fert, y = Y_corn, group = z), show.legend = F) +
+    geom_point(data = testing_set_plot[NMS == '12' & !(z == exclude_z) ], aes(x = N_fert, y = Y_corn , shape = 'EONR'), size = 2) +
     scale_shape_manual( values = 16,
                         labels = c(bquote (paste('EONR'^'ex post')))) +
     # scale_color_manual(values=colors_sample)+
@@ -1135,7 +1146,7 @@ exclude_z = testing_set_plot[Yld == min(Yld)]$z[1]
          x = 'N rate (kg/ha)')+
     #scale_y_continuous(sec.axis = sec_axis(~./150, name = "N Leaching (kg/ha)"))+
     #scale_linetype_manual(values = c("solid", "dashed"))+
-    #geom_text(data = z_labels, aes(x = N_fert, y = Yld, label = z))+
+    #geom_text(data = z_labels, aes(x = N_fert, y = Y_corn, label = z))+
     theme_bw()+
     theme(legend.title =  element_blank(),
           legend.position = c(0.85, 0.15),
@@ -1159,7 +1170,7 @@ perfomances_champaign_dt <- perfomances_dt[id_10 %in% unique(dplyr::filter(grid1
     annotate("text", x=300, y=0.009, label= "c)", size = 10) )
 
 (plot_n4 <- ggplot() + 
-    geom_density(data = perfomances_champaign_dt, aes( x= leach_n2,  y = ..density..), alpha = 0.4)+
+    geom_density(data = perfomances_champaign_dt, aes( x= L,  y = ..density..), alpha = 0.4)+
     labs(x = 'N leaching (kg/ha)')+
     theme_bw()+ 
     xlim(c(0, 150))+
@@ -1234,14 +1245,14 @@ length(unique(yc_yearly_dt3$id_10))
 length(unique(full_fields_dt2$id_10))
 
 
-id_10_n <- n_policy_expost_dt[order(-leach_n22)][1,]$id_10
+id_10_n <- n_policy_expost_dt[order(-L2)][1,]$id_10
 yc_yearly_dt <- readRDS('./n_policy_box/Data/files_rds/yc_yearly_dt.rds')
 one_field_dt <- data.table(grid10_soils_sf6[grid10_soils_sf6$id_10 == id_10_n,])
 mukey_n <- one_field_dt[area_ha == max(area_ha)][1,] %>% .[,.(id_10, mukey)]
 
 ic_field_dt <- filter_dt_in_dt(yc_yearly_dt , filter_dt = mukey_n, return_table = TRUE)
 ic_field_dt[,prev_crop := ifelse(prev_crop == 'MSM', 0, 1)]
-ic_field_dt[, P := Yld * Pc - N_fert * Pn]
+ic_field_dt[, P := Y_corn * Pc - N_fert * Pn]
 
 performance_set_dt <- filter_dt_in_dt(perfomances_dt , filter_dt = mukey_n, return_table = TRUE)
  
@@ -1258,19 +1269,19 @@ performance_set_dt[prev_crop == 0 & NMS != 11, .N, by = .(NMS, z)]
 
 ggsave(plot_n, filename = "./n_policy_box/Data/figures/yield_curve_example.jpg")
 
-# leach_n2o3 plot with leaching at eonr
+# Lo3 plot with leaching at eonr
 (plot_n <- ggplot() +
-    geom_point(data = performance_set_dt[prev_crop == 0 & NMS != 11], aes(x = N_fert, y = leach_n22, colour = NMS)) +
-    geom_point(data = performance_set_dt[prev_crop == 0 & NMS == 11], aes(x = N_fert, y = leach_n22), size = 3, show.legend = FALSE) +
-    geom_line(data = ic_field_dt[prev_crop == 0], aes(x = N_fert, y = leach_n22, group=interaction(z)), show.legend = FALSE) +
-    ggtitle(paste('leach_n2o3 plot with leaching at eonr', mukey_n$mukey)))
+    geom_point(data = performance_set_dt[prev_crop == 0 & NMS != 11], aes(x = N_fert, y = L2, colour = NMS)) +
+    geom_point(data = performance_set_dt[prev_crop == 0 & NMS == 11], aes(x = N_fert, y = L2), size = 3, show.legend = FALSE) +
+    geom_line(data = ic_field_dt[prev_crop == 0], aes(x = N_fert, y = L2, group=interaction(z)), show.legend = FALSE) +
+    ggtitle(paste('Lo3 plot with leaching at eonr', mukey_n$mukey)))
 
 ggsave(plot_n, filename = "./n_policy_box/Data/figures/leaching_curve_example.jpg")
 
 #---------------------------------------------------------------------------
 # CALCULATE STATE TOTAL VARIABLES
 perfomances_dt5 <- copy(perfomances_dt4)
-do_aggregate =  c("Yld", "leach_n22", "leach_ext", "N_fert","P")
+do_aggregate =  c("Y_corn", "L2", "leach_ext", "N_fert","P")
 perfomances_dt5[,(do_aggregate) := (.SD * corn_avg_ha/1000), .SDcols=do_aggregate]
 
 state_total_production_dt <- perfomances_dt4[, lapply(.SD, function(x) sum(x)), .SDcols= do_aggregate] 
@@ -1285,7 +1296,7 @@ state_total_production_dt <- perfomances_dt4[, lapply(.SD, function(x) sum(x)), 
 all_perfomances_dt2 <- aggregate_by_area(data_dt = all_perfomances_dt, variables = do_aggregate, 
                                          weight = 'area_ha', by_c = c('id_10', 'z'))
 
-extreme_year_dt <- all_perfomances_dt2[, .SD[ nleach_1 == max( nleach_1)], by = .(id_10)]
+extreme_year_dt <- all_perfomances_dt2[, .SD[ nL1 == max( nL1)], by = .(id_10)]
 extreme_year_dt[, lapply(.SD, function(x) mean(x)), .SDcols= do_aggregate] 
 
 
@@ -1295,7 +1306,7 @@ eonr_mukey_dt <- yc_yearly_dt[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
 1804.744/1814.46
 
 all_perfomances_dt[id_10 == 5]
-all_perfomances_dt[id_10 == 5, .(Yld_1 = sum(Yld_1), area_ha = sum(area_ha))]
+all_perfomances_dt[id_10 == 5, .(Y_corn_1 = sum(Y_corn_1), area_ha = sum(area_ha))]
 
    
     # MAKE A DT
