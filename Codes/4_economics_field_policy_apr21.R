@@ -774,10 +774,8 @@ perfomances_dt <- rbindlist(big_list)
 perfomances_dt[,.N, .(id_10, mukey,id_field)] %>% 
   .[,.N, .(id_10, id_field)] %>% .[,.N, .(id_10)] %>% .[,N] %>% table() #number of fields by cell
 
-<<<<<<< HEAD
 perfomances_dt[,.N, .(id_10, mukey,id_field, policy, NMS)]$N %>% table() #number of z by all the other things
 
-=======
 perfomances_dt[,.N, .(id_10, mukey,id_field, policy, NMS)]$N %>% table()
 test <- perfomances_dt[,.N, .(id_10, mukey,id_field, policy, NMS)]
 test[N==9]

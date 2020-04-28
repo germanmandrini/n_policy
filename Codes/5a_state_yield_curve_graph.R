@@ -3,7 +3,12 @@
 # setwd("/home/germanm2")
 # setwd('~')
 rm(list=ls())
-codes_folder <-'C:/Users/germanm2/Documents'
+
+# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+
+setwd('~')#Server
+codes_folder <-'~' #Server
 
 
 source('./Codes_useful/R.libraries.R')
@@ -19,6 +24,8 @@ grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>%
 
 setnames(yc_yearly_dt3, c('Yld', 'Yld_soy', 'leach_1', 'leach_2'),
                         c('Y_corn', 'Y_soy', 'L1', 'L2'))
+setnames(perfomances_dt, c('Yld', 'Yld_soy', 'leach_1', 'leach_2', 'leach_n', 'gov' ),
+         c('Y_corn', 'Y_soy', 'L1', 'L2', "L",'G'))
 # yc_yearly_dt3[,L := L1 + L2] #update leaching adding corn and soy
 # yc_yearly_dt3[,P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits adding corn and soy
 
@@ -30,9 +37,11 @@ state_agg_dt <- merge(yc_yearly_dt3, areas_dt, by = c('id_10', 'mukey'))
 
 state_agg_dt2  <- aggregate_by_area(data_dt = state_agg_dt, variables = c('Y_corn', 'Y_soy', 'L1','L2'), 
                                     weight = 'area_ha', by_c = c('N_fert'))# %>% .[,-'area_ha']
-baselevel_leach <- 45.6537
-baselevel_yld <- 11136.46
-baselevel_nfert <- 186.5601
+baselevel_L1 <- 32.06890
+baselevel_L2 <- 24.28796
+baselevel_L <- 56.35686
+baselevel_Y_corn <- 11750.375
+baselevel_nfert <- 166.13483
 
 # state_agg_dt2[,leach_prop := round((leach_n / baselevel_leach) - 1,2)*100 ]
 

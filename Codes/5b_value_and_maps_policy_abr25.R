@@ -35,11 +35,13 @@ perfomances_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of rows by poli
 
 summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NMS, tech, z)]$area_ha)
 
-setnames(perfomances_dt, c('Yld', 'Yld_soy', 'leach_1', 'leach_2'),
-         c('Y_corn', 'Y_soy', 'L1', 'L2'))
-perfomances_dt[,L := L1 + L2] #update leaching adding corn and soy
-perfomances_dt[,P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits adding corn and soy
-
+setnames(perfomances_dt, c('Yld', 'Yld_soy', 'leach_1', 'leach_2', 'leach_n', 'gov' ),
+         c('Y_corn', 'Y_soy', 'L1', 'L2', "L",'G'))
+# perfomances_dt[,L := L1 + L2] #update leaching adding corn and soy
+# perfomances_dt[,P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits adding corn and soy
+perfomances_dt <- perfomances_dt[NMS %in% c('1_ok', '4')]
+perfomances_dt[NMS == '1_ok', NMS := '1']
+perfomances_dt[NMS == '4', NMS := '2']
 
 #-------------------------------------------------------------------------
 #-------------------------------------------------------------------------
@@ -50,7 +52,7 @@ perfomances_dt[,P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits add
 
 names(perfomances_dt)
 do_not_aggregate = c("policy",'region','id_10', 'NMS', 'tech', 'z', 'id_field')
-do_aggregate =  c("Y_corn", "L", "N_fert","P", "gov")
+do_aggregate =  c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G")
 
 if(FALSE){
   perfomances_dt2 <- aggregate_by_area(data_dt = perfomances_dt, variables = do_aggregate, 
@@ -77,7 +79,7 @@ perfomances_dt2 <- perfomances_dt2[order(id_10, z,id_field, NMS)]
 # AGGREGATE THE DATA TO CELL X Z LEVEL CONSIDERING THE AREA
 names(perfomances_dt)
 do_not_aggregate = c('policy','id_10', 'region','NMS', 'tech', 'z')
-do_aggregate =  c("Y_corn", "L", "N_fert","P", 'gov')
+do_aggregate =  c("Y_corn", 'L1', 'L2', "L", "N_fert","P", 'G')
 
 if(FALSE){
   #First aggregate without z so then we can get the leach_extreme
@@ -98,11 +100,13 @@ if(FALSE){
 
 
 perfomances_dt4 <- perfomances_dt3[, .(Y_corn =  mean(Y_corn),
+                                       L1 = mean(L1),
+                                       L2 = mean(L2),
                                        L = mean(L),
                                        leach_ext = max(L), #leaching in the year with max leaching. Most of the time will be after corn. Pushed UP
                                        N_fert = mean(N_fert),
                                        P = mean(P), 
-                                       gov = mean(gov),
+                                       G = mean(G),
                                        area_ha = mean(area_ha)), by = .(policy,region, id_10, NMS, tech)] #cell 
 
 #---------------------------------------------------------------------------
@@ -113,14 +117,15 @@ summary(grid10_tiles_dt$corn_avg_ha)
 perfomances_dt4[,id_10 := as.integer(id_10)]
 perfomances_dt4 <- merge(perfomances_dt4, grid10_tiles_dt, by = 'id_10')
 
-
-
-perfomances_dt5 <- aggregate_by_area(data_dt = perfomances_dt4, variables = c("Y_corn", "L", "leach_ext", "N_fert","P", "gov"), 
+perfomances_dt5 <- aggregate_by_area(data_dt = perfomances_dt4, variables = c("Y_corn", 'L1', 'L2', "L", "leach_ext", "N_fert","P", "G"), 
                                          weight = 'corn_avg_ha', by_c = c('policy','NMS', 'tech')) #state level, weighted by corn_ha
 perfomances_dt5[order(-P)]
 
 perfomances_dt5[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
 perfomances_dt5[,policy_name := lapply(perfomances_dt5$policy, function(x) str_split(x, pattern = '_')[[1]][1])]
+
+perfomances_dt5[,E := L * 0.4 * Pe_med]
+perfomances_dt5[,W := P + G - E]
 
 saveRDS(perfomances_dt5, "./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 
@@ -133,18 +138,18 @@ perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 unique(perfomances_dt5$policy)
 
 policies_f <- c("fee_0", "ratio_9", "fee_8", 'nred_0.85', 'nred_0.7')
-NMSs_f <- c('1', '4')
+NMSs_f <- c('1', '2')
 
 table_dt <- perfomances_dt5[policy %in% policies_f & NMS %in% NMSs_f]
 table_dt[policy == 'fee_0' & NMS == '1', order := 1]
-table_dt[policy == 'fee_0' & NMS == '4', order := 2] #science
+table_dt[policy == 'fee_0' & NMS == '2', order := 2] #science
 table_dt[policy == 'yr_0.9' & NMS == '1', order := 3] #ecological model
 table_dt[policy == 'ratio_9' & NMS == '1', order := 4] #tax
 table_dt[policy == 'fee_8' & NMS == '1', order := 5] #fee
-table_dt[policy == 'nred_0.85' & NMS == '4', order := 6] #ecological model + science
-table_dt[policy == 'ratio_9' & NMS == '4', order := 7] #tax+science
-table_dt[policy == 'fee_8' & NMS == '4', order := 8] #fee+science
-table_dt[policy == 'nred_0.7' & NMS == '4', order := 9] #ecological model strong  + science
+table_dt[policy == 'nred_0.85' & NMS == '2', order := 6] #ecological model + science
+table_dt[policy == 'ratio_9' & NMS == '2', order := 7] #tax+science
+table_dt[policy == 'fee_8' & NMS == '2', order := 8] #fee+science
+table_dt[policy == 'nred_0.7' & NMS == '2', order := 9] #ecological model strong  + science
 table_dt <- table_dt[order(order)]
 
 #---------------------------------------------------------------------------
@@ -165,7 +170,7 @@ table_dt[,abat_prop := round((abatement)/ baselevel_n,2)]
 target_abat_prop <- table_dt[order(-abat_prop)] %>% .[1:10, abat_prop] %>% mean()
 
 table_dt <- table_dt[abat_prop > (target_abat_prop - 0.01)]
-table_dt[,soc_benefits := P + gov] #only farmers
+table_dt[,soc_benefits := P + G] #only farmers
 table_dt <- table_dt[order(-soc_benefits)]
 table_dt
 
@@ -179,7 +184,7 @@ table_dt[,abat_prop := round((abatement)/ baselevel_n,2)]
 baselevel_Y_corn <- table_dt[policy == 'fee_0' & NMS == 1, Y_corn ]
 table_dt[,Y_corn_red := round((Y_corn / baselevel_Y_corn),2)]
 
-table_dt[,soc_benefits := P + gov]
+table_dt[,soc_benefits := P + G]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
 table_dt[,externatility := ifelse((L - target_n) > 0, (L -target_n)*Pe_med,0)] #externalities are pay for each kg above the 45% target
 table_dt[,soc_welfare := soc_benefits - externatility ]
@@ -198,32 +203,29 @@ table_dt[,abat_cost := (soc_benefits - baselevel_benefits)/abatement]
 #==========================================================================
 # RATIO CHART 2
 
-plot_dt <- perfomances_dt5[policy_name == 'ratio' & NMS %in% c('1','2','3','4','5') & policy_val <= 20 ] 
-current_ratio_dt <- perfomances_dt5[policy == 'fee_0' & NMS %in% c('1','2','3','4','5')]
-current_ratio_dt[,policy_name := 'ratio']
-current_ratio_dt[,policy_val := Pn/Pc]
-current_ratio_dt[,policy := paste('ratio', round(Pn/Pc,1), sep = '_')]   
-plot_dt <- rbind(plot_dt, current_ratio_dt)
-
-plot_dt[,soc_benefits := P + gov]
+plot_dt <- perfomances_dt5[policy_name == 'ratio' & NMS %in% c('1','2') & policy_val <= 20 ] 
+# current_ratio_dt <- perfomances_dt5[policy == 'fee_0' & NMS %in% c('1','2','3','4','5')]
+# current_ratio_dt[,policy_name := 'ratio']
+# current_ratio_dt[,policy_val := Pn/Pc]
+# current_ratio_dt[,policy := paste('ratio', round(Pn/Pc,1), sep = '_')]   
+# plot_dt <- rbind(plot_dt, current_ratio_dt)
+baselevel_n <- perfomances_dt5[policy == 'fee_0' & NMS == '1', L]
+baselevel_Y_corn <- perfomances_dt5[policy == 'fee_0' & NMS == '1', Y_corn ]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
-plot_dt[,externatility := ifelse((L - target_n) > 0, (L -target_n)*Pe_med,0)]
-plot_dt[,soc_welfare := soc_benefits - externatility ]
-plot_dt[order(-soc_welfare)][1:40]
 
 plot_dt[,L := round((L / baselevel_n) - 1,2)*100 ]
 
-ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
+ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L_red, color = NMS))
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
-                                                                                'P', 'gov', 'externatility','soc_welfare'))
+                                                                                'P', 'G', 'E','W'))
 plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
 plot_dt_long[variable == 'L', plot_name := 'b) N Leaching (% change)']
 plot_dt_long[variable == 'Y_corn', plot_name := 'c) Yield kg/ha']
 plot_dt_long[variable == 'P', plot_name := 'd) Profits $/ha']
-plot_dt_long[variable == 'gov', plot_name := 'e) Tax revenue $/ha']
-plot_dt_long[variable == 'externatility', plot_name := 'f) Externatility $/ha']
-plot_dt_long[variable == 'soc_welfare', plot_name := 'g) soc_welfare $/ha']
+plot_dt_long[variable == 'G', plot_name := 'e) Tax revenue $/ha']
+plot_dt_long[variable == 'E', plot_name := 'f) Externatility $/ha']
+plot_dt_long[variable == 'W', plot_name := 'g) soc_welfare $/ha']
 plot_dt_long[order(variable)]
 
 plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L', 'Y_corn')] 
@@ -234,7 +236,10 @@ hline_dt[plot_name == 'c) Yield kg/ha', y_label := '95% baselevel']
 hline_dt[plot_name == 'b) N Leaching (% change)', y_line  := 0]
 
 plot_1 <- ggplot() +
-  geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+  # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+  # scale_colour_manual(values = c("black", "brown"))+
+  geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, linetype = NMS)) +
+  scale_linetype_manual(values = c("dashed", "solid"))+
   geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
   geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
   facet_grid(plot_name~., scales = "free") +
@@ -253,7 +258,8 @@ ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/ratio_all_vars_par
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn')] 
 
 plot_1 <- ggplot(plot_dt_long2)+
-  geom_line(aes(x = policy_val, y =  value, colour = NMS)) +
+  geom_line(aes(x = policy_val, y =  value, linetype = NMS)) +
+  scale_linetype_manual(values = c("dashed", "solid"))+
   facet_grid(plot_name~., scales = "free") +
   scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
@@ -411,7 +417,7 @@ ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/valueISST_by_ratio
 unique(perfomances_dt5$policy_name)
 plot_dt <- perfomances_dt5[policy_name == 'nred' & NMS %in% c('1_ok','2','3','4','5')  ] 
 
-plot_dt[,soc_benefits := P + gov]
+plot_dt[,soc_benefits := P + G]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
 plot_dt[,externatility := ifelse((L - target_n) > 0, (L -target_n)*Pe_med,0)]
 plot_dt[,soc_welfare := soc_benefits - externatility ]
@@ -424,7 +430,7 @@ plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate']
 plot_dt_long[variable == 'L', plot_name := 'b) N Leaching']
 plot_dt_long[variable == 'Y_corn', plot_name := 'c) Yield']
 plot_dt_long[variable == 'P', plot_name := 'd) Profits']
-# plot_dt_long[variable == 'gov', plot_name := 'e) Tax revenue']
+# plot_dt_long[variable == 'G', plot_name := 'e) Tax revenue']
 plot_dt_long[variable == 'externatility', plot_name := 'f) externatility']
 plot_dt_long[variable == 'soc_welfare', plot_name := 'g) soc_welfare']
 plot_dt_long[order(variable)]
@@ -475,8 +481,8 @@ ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/nred_all_vars_part
 
 plot_dt <- perfomances_dt5[policy_name == 'fee' & NMS == '1'] 
 
-plot_dt1 <- melt(plot_dt, id.vars = 'policy_val', measure.vars = c('Y_corn', 'L', 'N_fert', 'P', 'gov'))
-plot_dt2 <- melt(plot_dt[policy_val == 6], id.vars = 'policy_val', measure.vars = c('Y_corn', 'L', 'N_fert', 'P', 'gov'))
+plot_dt1 <- melt(plot_dt, id.vars = 'policy_val', measure.vars = c('Y_corn', 'L', 'N_fert', 'P', 'G'))
+plot_dt2 <- melt(plot_dt[policy_val == 6], id.vars = 'policy_val', measure.vars = c('Y_corn', 'L', 'N_fert', 'P', 'G'))
 
 plot_dt3 <- merge(plot_dt1, plot_dt2[,.(variable, value_max = value)], by = c('variable'))
 plot_dt3[, value_rel := value/value_max]
@@ -1285,7 +1291,7 @@ do_aggregate =  c("Y_corn", "L2", "leach_ext", "N_fert","P")
 perfomances_dt5[,(do_aggregate) := (.SD * corn_avg_ha/1000), .SDcols=do_aggregate]
 
 state_total_production_dt <- perfomances_dt4[, lapply(.SD, function(x) sum(x)), .SDcols= do_aggregate] 
-2.2 * 10^9 * 25.4 /1000 #IL production in tons https://www.nass.usda.gov/Statistics_by_State/Illinois/Publications/Current_News_Release/2018/20180112-IL_Annual_Crop_Production.pdf
+2.2 * 10^9 * 25.4 /1000 #IL production in tons https://www.nass.usda.G/Statistics_by_State/Illinois/Publications/Current_News_Release/2018/20180112-IL_Annual_Crop_Production.pdf
 10.95 * 10^6 *0.4046#IL harvested area in ha
 201 * 25.4/0.4046 #IL Yield
 
