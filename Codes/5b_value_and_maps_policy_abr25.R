@@ -131,6 +131,145 @@ saveRDS(perfomances_dt5, "./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 
 perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 
+
+
+#==========================================================================
+# RATIO CHART 2
+
+plot_dt <- perfomances_dt5[policy_name == 'ratio' & NMS %in% c('1','2') & policy_val <= 20 ] 
+# current_ratio_dt <- perfomances_dt5[policy == 'fee_0' & NMS %in% c('1','2','3','4','5')]
+# current_ratio_dt[,policy_name := 'ratio']
+# current_ratio_dt[,policy_val := Pn/Pc]
+# current_ratio_dt[,policy := paste('ratio', round(Pn/Pc,1), sep = '_')]   
+# plot_dt <- rbind(plot_dt, current_ratio_dt)
+baselevel_n <- perfomances_dt5[policy == 'fee_0' & NMS == '1', L]
+baselevel_Y_corn <- perfomances_dt5[policy == 'fee_0' & NMS == '1', Y_corn ]
+target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
+
+plot_dt[,L := round((L / baselevel_n) - 1,2)*100 ]
+
+ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
+
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
+                                                                                 'P', 'G', 'E','W'))
+plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
+plot_dt_long[variable == 'L', plot_name := 'b) N Leaching (% change)']
+plot_dt_long[variable == 'Y_corn', plot_name := 'c) Yield kg/ha']
+plot_dt_long[variable == 'P', plot_name := 'd) Profits $/ha']
+plot_dt_long[variable == 'G', plot_name := 'e) G $/ha']
+plot_dt_long[variable == 'E', plot_name := 'f) E $/ha']
+plot_dt_long[variable == 'W', plot_name := 'g) W $/ha']
+plot_dt_long[order(variable)]
+
+plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L', 'Y_corn')] 
+
+hline_dt <- data.table(plot_name = unique(plot_dt_long1$plot_name))
+hline_dt[plot_name == 'c) Yield kg/ha', y_line := baselevel_Y_corn*0.95]
+hline_dt[plot_name == 'c) Yield kg/ha', y_label := '95% baselevel']
+hline_dt[plot_name == 'b) N Leaching (% change)', y_line  := 0]
+
+plot_1 <- ggplot() +
+  # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+  # scale_colour_manual(values = c("black", "brown"))+
+  geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, linetype = NMS)) +
+  scale_linetype_manual(values = c("dashed", "solid"))+
+  geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+  geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
+  facet_grid(plot_name~., scales = "free") +
+  scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
+  xlab('N:Corn price ratio')+
+  geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
+  theme_bw()+
+  theme(panel.grid = element_blank(), 
+        axis.title.y = element_blank())
+plot_1
+
+ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/ratio_all_vars_part1.jpg", width = 10, height = 10,
+       units = 'in')
+
+plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn')] 
+
+plot_1 <- ggplot(plot_dt_long2)+
+  geom_line(aes(x = policy_val, y =  value, linetype = NMS)) +
+  scale_linetype_manual(values = c("dashed", "solid"))+
+  facet_grid(plot_name~., scales = "free") +
+  scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
+  xlab('N:Corn price ratio')+
+  geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
+  theme_bw()+
+  theme(panel.grid = element_blank(), 
+        axis.title.y = element_blank())
+
+plot_1
+
+ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/ratio_all_vars_part2.jpg", width = 10, height = 10,
+       units = 'in')
+
+#==========================================================================
+# NRED CHART
+
+plot_dt <- perfomances_dt5[policy_name == 'nred' & NMS %in% c('1','2') ] 
+baselevel_n <- perfomances_dt5[policy == 'fee_0' & NMS == '1', L]
+baselevel_Y_corn <- perfomances_dt5[policy == 'fee_0' & NMS == '1', Y_corn ]
+
+plot_dt[,L := round((L / baselevel_n) - 1,2)*100 ]
+
+ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
+
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
+                                                                                 'P', 'G', 'E','W'))
+plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
+plot_dt_long[variable == 'L', plot_name := 'b) N Leaching (% change)']
+plot_dt_long[variable == 'Y_corn', plot_name := 'c) Yield kg/ha']
+plot_dt_long[variable == 'P', plot_name := 'd) Profits $/ha']
+plot_dt_long[variable == 'G', plot_name := 'e) G $/ha']
+plot_dt_long[variable == 'E', plot_name := 'f) E $/ha']
+plot_dt_long[variable == 'W', plot_name := 'g) W $/ha']
+plot_dt_long[order(variable)]
+
+plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L', 'Y_corn')] 
+
+hline_dt <- data.table(plot_name = unique(plot_dt_long1$plot_name))
+hline_dt[plot_name == 'c) Yield kg/ha', y_line := baselevel_Y_corn*0.95]
+hline_dt[plot_name == 'c) Yield kg/ha', y_label := '95% baselevel']
+hline_dt[plot_name == 'b) N Leaching (% change)', y_line  := 0]
+
+plot_1 <- ggplot() +
+  geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, linetype = NMS)) +
+  scale_linetype_manual(values = c("dashed", "solid"))+
+  geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+  # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
+  facet_grid(plot_name~., scales = "free") +
+  scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+  xlab('N reduction target')+
+  # geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
+  theme_bw()+
+  theme(panel.grid = element_blank(), 
+        axis.title.y = element_blank())
+
+plot_1
+
+ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/nred_all_vars_part1.jpg", width = 10, height = 10,
+       units = 'in')
+
+plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn', 'G')] 
+
+plot_1 <- ggplot(plot_dt_long2)+
+  geom_line(aes(x = policy_val, y =  value, linetype = NMS)) +
+  scale_linetype_manual(values = c("dashed", "solid"))+
+  facet_grid(plot_name~., scales = "free") +
+  scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+  xlab('N reduction target')+
+  # geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
+  theme_bw()+
+  theme(panel.grid = element_blank(), 
+        axis.title.y = element_blank())
+
+
+plot_1
+
+ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/nred_all_vars_part2.jpg", width = 10, height = 10,
+       units = 'in')
 #---------------------------------------------------------------------------
 # COMPARE A SAMPLE OF THE DIFFERENT MODELS THAT WOULD GET US TO THE 15% 
 # REDUCTION TARGET FROM CURRENT SITUATION (-15% by 2025, -45% by 2035)
@@ -199,81 +338,6 @@ table_dt[,abat_cost := (soc_benefits - baselevel_benefits)/abatement]
 
 10800000 * 0.404686 * 42 / 1e6 #millons to expend in RS and recovering
 +1-(33/45)
-
-#==========================================================================
-# RATIO CHART 2
-
-plot_dt <- perfomances_dt5[policy_name == 'ratio' & NMS %in% c('1','2') & policy_val <= 20 ] 
-# current_ratio_dt <- perfomances_dt5[policy == 'fee_0' & NMS %in% c('1','2','3','4','5')]
-# current_ratio_dt[,policy_name := 'ratio']
-# current_ratio_dt[,policy_val := Pn/Pc]
-# current_ratio_dt[,policy := paste('ratio', round(Pn/Pc,1), sep = '_')]   
-# plot_dt <- rbind(plot_dt, current_ratio_dt)
-baselevel_n <- perfomances_dt5[policy == 'fee_0' & NMS == '1', L]
-baselevel_Y_corn <- perfomances_dt5[policy == 'fee_0' & NMS == '1', Y_corn ]
-target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
-
-plot_dt[,L := round((L / baselevel_n) - 1,2)*100 ]
-
-ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L_red, color = NMS))
-
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
-                                                                                'P', 'G', 'E','W'))
-plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
-plot_dt_long[variable == 'L', plot_name := 'b) N Leaching (% change)']
-plot_dt_long[variable == 'Y_corn', plot_name := 'c) Yield kg/ha']
-plot_dt_long[variable == 'P', plot_name := 'd) Profits $/ha']
-plot_dt_long[variable == 'G', plot_name := 'e) Tax revenue $/ha']
-plot_dt_long[variable == 'E', plot_name := 'f) Externatility $/ha']
-plot_dt_long[variable == 'W', plot_name := 'g) soc_welfare $/ha']
-plot_dt_long[order(variable)]
-
-plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L', 'Y_corn')] 
-
-hline_dt <- data.table(plot_name = unique(plot_dt_long1$plot_name))
-hline_dt[plot_name == 'c) Yield kg/ha', y_line := baselevel_Y_corn*0.95]
-hline_dt[plot_name == 'c) Yield kg/ha', y_label := '95% baselevel']
-hline_dt[plot_name == 'b) N Leaching (% change)', y_line  := 0]
-
-plot_1 <- ggplot() +
-  # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
-  # scale_colour_manual(values = c("black", "brown"))+
-  geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, linetype = NMS)) +
-  scale_linetype_manual(values = c("dashed", "solid"))+
-  geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
-  geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
-  facet_grid(plot_name~., scales = "free") +
-  scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
-  xlab('N:Corn price ratio')+
-  geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
-  # ylab('Yield (kg/ha)')+
-  theme_bw()+
-  theme(panel.grid = element_blank())
-
-plot_1
-
-ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/ratio_all_vars_part1.jpg", width = 10, height = 10,
-       units = 'in')
-
-plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn')] 
-
-plot_1 <- ggplot(plot_dt_long2)+
-  geom_line(aes(x = policy_val, y =  value, linetype = NMS)) +
-  scale_linetype_manual(values = c("dashed", "solid"))+
-  facet_grid(plot_name~., scales = "free") +
-  scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
-  xlab('N:Corn price ratio')+
-  geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
-  # ylab('Yield (kg/ha)')+
-  theme_bw()+
-  theme(panel.grid = element_blank())
-
-plot_1
-
-ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/ratio_all_vars_part2.jpg", width = 10, height = 10,
-       units = 'in')
-
-#RF can 
 
 #---------------------------------------------------------------------------
 # Get RMSE
