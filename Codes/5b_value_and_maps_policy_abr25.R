@@ -18,125 +18,134 @@ source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 
 
 # source('./Codes_useful/gm_functions.R')
-
-grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds") 
-grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
-grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
-# reg_model_stuff <- readRDS("./n_policy_box/Data/files_rds/reg_model_stuff.rds")
-
-perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt.rds")
-
-# perfomances_dt[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
-# perfomances_dt[,policy_name := lapply(perfomances_dt$policy, function(x) str_split(x, pattern = '_')[[1]][1])]
-
-perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
-perfomances_dt[,.N, .(id_10, id_field, mukey, policy, NMS)] %>% .[,N] %>% table() #number of z by mukey. SHould be all equal
-perfomances_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of rows by policy NMS. SHould be all equal
-
-summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NMS, tech, z)]$area_ha)
-
-setnames(perfomances_dt, c('Yld', 'Yld_soy', 'leach_1', 'leach_2', 'leach_n', 'gov' ),
-         c('Y_corn', 'Y_soy', 'L1', 'L2', "L",'G'))
-# perfomances_dt[,L := L1 + L2] #update leaching adding corn and soy
-# perfomances_dt[,P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits adding corn and soy
-perfomances_dt <- perfomances_dt[NMS %in% c('1_ok', '4')]
-perfomances_dt[NMS == '1_ok', NMS := '1']
-perfomances_dt[NMS == '4', NMS := '2']
-
-#-------------------------------------------------------------------------
-#-------------------------------------------------------------------------
-# AGGREGATE THE DATA TO FIELD X Z LEVEL CONSIDERING THE AREA
-# library(lme4)
-# library(lsmeans)
-# library(car)
-
-names(perfomances_dt)
-do_not_aggregate = c("policy",'region','id_10', 'NMS', 'tech', 'z', 'id_field')
-do_aggregate =  c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G")
-
 if(FALSE){
-  perfomances_dt2 <- aggregate_by_area(data_dt = perfomances_dt, variables = do_aggregate, 
-                                      weight = 'area_ha', by_c = do_not_aggregate) #field x z level (mukey is out)
-}else{
-  split_list <- split(perfomances_dt,perfomances_dt$z)
-  split_list_output <- list()
-  for(split_list_n in split_list){
-    split_list_output[[unique(split_list_n$z)]] <- aggregate_by_area(data_dt = split_list_n, variables = do_aggregate, 
-                                       weight = 'area_ha', by_c = do_not_aggregate) #field x z level (mukey is out)
+  grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds") 
+  grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
+  grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
+  # reg_model_stuff <- readRDS("./n_policy_box/Data/files_rds/reg_model_stuff.rds")
+  
+  perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt.rds")
+  
+  # perfomances_dt[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
+  # perfomances_dt[,policy_name := lapply(perfomances_dt$policy, function(x) str_split(x, pattern = '_')[[1]][1])]
+  
+  perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
+  perfomances_dt[,.N, .(id_10, id_field, mukey, policy, NMS)] %>% .[,N] %>% table() #number of z by mukey. SHould be all equal
+  perfomances_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of rows by policy NMS. SHould be all equal
+  
+  summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NMS, tech, z)]$area_ha)
+  
+  setnames(perfomances_dt, c('Yld', 'Yld_soy', 'leach_1', 'leach_2', 'leach_n', 'gov' ),
+           c('Y_corn', 'Y_soy', 'L1', 'L2', "L",'G'))
+  # perfomances_dt[,L := L1 + L2] #update leaching adding corn and soy
+  # perfomances_dt[,P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits adding corn and soy
+  perfomances_dt <- perfomances_dt[NMS %in% c('1_ok', '4')]
+  perfomances_dt[NMS == '1_ok', NMS := '1']
+  perfomances_dt[NMS == '4', NMS := '2']
+  
+  #-------------------------------------------------------------------------
+  #-------------------------------------------------------------------------
+  # AGGREGATE THE DATA TO FIELD X Z LEVEL CONSIDERING THE AREA
+  # library(lme4)
+  # library(lsmeans)
+  # library(car)
+  
+  names(perfomances_dt)
+  do_not_aggregate = c("policy",'region','id_10', 'NMS', 'tech', 'z', 'id_field')
+  do_aggregate =  c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G")
+  
+  if(FALSE){
+    perfomances_dt2 <- aggregate_by_area(data_dt = perfomances_dt, variables = do_aggregate, 
+                                        weight = 'area_ha', by_c = do_not_aggregate) #field x z level (mukey is out)
+  }else{
+    split_list <- split(perfomances_dt,perfomances_dt$z)
+    split_list_output <- list()
+    for(split_list_n in split_list){
+      split_list_output[[unique(split_list_n$z)]] <- aggregate_by_area(data_dt = split_list_n, variables = do_aggregate, 
+                                         weight = 'area_ha', by_c = do_not_aggregate) #field x z level (mukey is out)
+    }
+    
+    perfomances_dt2 <- rbindlist(split_list_output)
   }
   
-  perfomances_dt2 <- rbindlist(split_list_output)
-}
-
-str(perfomances_dt2)
-
-# perfomances_dt2[,NMS := factor(NMS, levels = 1:12)]
-# perfomances_dt2[,id_10 := as.character(id_10)]
-
-perfomances_dt2 <- perfomances_dt2[order(id_10, z,id_field, NMS)]
-
-#-------------------------------------------------------------------------
-# AGGREGATE THE DATA TO CELL X Z LEVEL CONSIDERING THE AREA
-names(perfomances_dt)
-do_not_aggregate = c('policy','id_10', 'region','NMS', 'tech', 'z')
-do_aggregate =  c("Y_corn", 'L1', 'L2', "L", "N_fert","P", 'G')
-
-if(FALSE){
-  #First aggregate without z so then we can get the leach_extreme
-  perfomances_dt3 <- aggregate_by_area(data_dt = perfomances_dt2, variables = do_aggregate, 
-                                       weight = 'area_ha', by_c = do_not_aggregate) #cell x z level (mukey and field are out)
-}else{
-  split_list <- split(perfomances_dt2,perfomances_dt2$region)
-  split_list_output <- list()
-  for(split_list_n in split_list){
-    split_list_output[[unique(split_list_n$region)]] <- aggregate_by_area(data_dt = split_list_n, variables = do_aggregate, 
-                                                                     weight = 'area_ha', by_c = do_not_aggregate) #field x z level (mukey is out)
+  str(perfomances_dt2)
+  
+  # perfomances_dt2[,NMS := factor(NMS, levels = 1:12)]
+  # perfomances_dt2[,id_10 := as.character(id_10)]
+  
+  perfomances_dt2 <- perfomances_dt2[order(id_10, z,id_field, NMS)]
+  
+  #-------------------------------------------------------------------------
+  # AGGREGATE THE DATA TO CELL X Z LEVEL CONSIDERING THE AREA
+  names(perfomances_dt)
+  do_not_aggregate = c('policy','id_10', 'region','NMS', 'tech', 'z')
+  do_aggregate =  c("Y_corn", 'L1', 'L2', "L", "N_fert","P", 'G')
+  
+  if(FALSE){
+    #First aggregate without z so then we can get the leach_extreme
+    perfomances_dt3 <- aggregate_by_area(data_dt = perfomances_dt2, variables = do_aggregate, 
+                                         weight = 'area_ha', by_c = do_not_aggregate) #cell x z level (mukey and field are out)
+  }else{
+    split_list <- split(perfomances_dt2,perfomances_dt2$region)
+    split_list_output <- list()
+    for(split_list_n in split_list){
+      split_list_output[[unique(split_list_n$region)]] <- aggregate_by_area(data_dt = split_list_n, variables = do_aggregate, 
+                                                                       weight = 'area_ha', by_c = do_not_aggregate) #field x z level (mukey is out)
+    }
+    
+    perfomances_dt3 <- rbindlist(split_list_output)
   }
   
-  perfomances_dt3 <- rbindlist(split_list_output)
-}
-
-
-
-
-perfomances_dt4 <- perfomances_dt3[, .(Y_corn =  mean(Y_corn),
-                                       L1 = mean(L1),
-                                       L2 = mean(L2),
-                                       L = mean(L),
-                                       leach_ext = max(L), #leaching in the year with max leaching. Most of the time will be after corn. Pushed UP
-                                       N_fert = mean(N_fert),
-                                       P = mean(P), 
-                                       G = mean(G),
-                                       area_ha = mean(area_ha)), by = .(policy,region, id_10, NMS, tech)] #cell 
-
-#---------------------------------------------------------------------------
-# AGGREGATE AGAIN CONSIDERING THE CORN PRODUCTION OF THE CELL
-grid10_tiles_dt <- data.table(grid10_tiles_sf7)[,.N, .(id_tile,id_10, corn_avg_ha,corn5_tile )][,-'N']
-
-summary(grid10_tiles_dt$corn_avg_ha)
-perfomances_dt4[,id_10 := as.integer(id_10)]
-perfomances_dt4 <- merge(perfomances_dt4, grid10_tiles_dt, by = 'id_10')
-
-perfomances_dt5 <- aggregate_by_area(data_dt = perfomances_dt4, variables = c("Y_corn", 'L1', 'L2', "L", "leach_ext", "N_fert","P", "G"), 
-                                         weight = 'corn_avg_ha', by_c = c('policy','NMS', 'tech')) #state level, weighted by corn_ha
-perfomances_dt5[order(-P)]
-
-perfomances_dt5[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
-perfomances_dt5[,policy_name := lapply(perfomances_dt5$policy, function(x) str_split(x, pattern = '_')[[1]][1])]
-
-perfomances_dt5[,E := L * 0.4 * Pe_med]
-perfomances_dt5[,W := P + G - E]
-
-saveRDS(perfomances_dt5, "./n_policy_box/Data/files_rds/perfomances_dt5.rds")
+  
+  
+  
+  perfomances_dt4 <- perfomances_dt3[, .(Y_corn =  mean(Y_corn),
+                                         L1 = mean(L1),
+                                         L2 = mean(L2),
+                                         L = mean(L),
+                                         leach_ext = max(L), #leaching in the year with max leaching. Most of the time will be after corn. Pushed UP
+                                         N_fert = mean(N_fert),
+                                         P = mean(P), 
+                                         G = mean(G),
+                                         area_ha = mean(area_ha)), by = .(policy,region, id_10, NMS, tech)] #cell 
+  
+  #---------------------------------------------------------------------------
+  # AGGREGATE AGAIN CONSIDERING THE CORN PRODUCTION OF THE CELL
+  grid10_tiles_dt <- data.table(grid10_tiles_sf7)[,.N, .(id_tile,id_10, corn_avg_ha,corn5_tile )][,-'N']
+  
+  summary(grid10_tiles_dt$corn_avg_ha)
+  perfomances_dt4[,id_10 := as.integer(id_10)]
+  perfomances_dt4 <- merge(perfomances_dt4, grid10_tiles_dt, by = 'id_10')
+  
+  perfomances_dt5 <- aggregate_by_area(data_dt = perfomances_dt4, variables = c("Y_corn", 'L1', 'L2', "L", "leach_ext", "N_fert","P", "G"), 
+                                           weight = 'corn_avg_ha', by_c = c('policy','NMS', 'tech')) #state level, weighted by corn_ha
+  perfomances_dt5[order(-P)]
+  
+  perfomances_dt5[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
+  perfomances_dt5[,policy_name := lapply(perfomances_dt5$policy, function(x) str_split(x, pattern = '_')[[1]][1])]
+  
+  perfomances_dt5[,E := L * 0.4 * Pe_med]
+  perfomances_dt5[,W := P + G - E]
+  
+  saveRDS(perfomances_dt5, "./n_policy_box/Data/files_rds/perfomances_dt5.rds")
+  
+}  
 
 perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 
 
+perfomances_dt5[,.SD[W == max(W)], by = NMS] #peak in W
 
 #==========================================================================
 # RATIO CHART 2
 
 plot_dt <- perfomances_dt5[policy_name == 'ratio' & NMS %in% c('1','2') & policy_val <= 20 ] 
+
+# Total G collections in IL
+if(FALSE){
+  IL_corn_area_ha = 5179976
+  plot_dt[policy == 'ratio_10' & NMS == 1, G] * IL_corn_area_ha / 1000000 #million in IL
+}
 # current_ratio_dt <- perfomances_dt5[policy == 'fee_0' & NMS %in% c('1','2','3','4','5')]
 # current_ratio_dt[,policy_name := 'ratio']
 # current_ratio_dt[,policy_val := Pn/Pc]
@@ -144,16 +153,17 @@ plot_dt <- perfomances_dt5[policy_name == 'ratio' & NMS %in% c('1','2') & policy
 # plot_dt <- rbind(plot_dt, current_ratio_dt)
 baselevel_n <- perfomances_dt5[policy == 'fee_0' & NMS == '1', L]
 baselevel_Y_corn <- perfomances_dt5[policy == 'fee_0' & NMS == '1', Y_corn ]
-target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
 
 plot_dt[,L := round((L / baselevel_n) - 1,2)*100 ]
+
+plot_dt[,.SD[W == max(W)], by = NMS] #peak in W
 
 ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
                                                                                  'P', 'G', 'E','W'))
 plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
-plot_dt_long[variable == 'L', plot_name := 'b) N Leaching (% change)']
+plot_dt_long[variable == 'L', plot_name := 'b) L (% change)']
 plot_dt_long[variable == 'Y_corn', plot_name := 'c) Yield kg/ha']
 plot_dt_long[variable == 'P', plot_name := 'd) Profits $/ha']
 plot_dt_long[variable == 'G', plot_name := 'e) G $/ha']
@@ -163,10 +173,11 @@ plot_dt_long[order(variable)]
 
 plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L', 'Y_corn')] 
 
+
 hline_dt <- data.table(plot_name = unique(plot_dt_long1$plot_name))
 hline_dt[plot_name == 'c) Yield kg/ha', y_line := baselevel_Y_corn*0.95]
 hline_dt[plot_name == 'c) Yield kg/ha', y_label := '95% baselevel']
-hline_dt[plot_name == 'b) N Leaching (% change)', y_line  := 0]
+hline_dt[plot_name == 'b) L (% change)', y_line  := 0]
 
 plot_1 <- ggplot() +
   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
@@ -181,15 +192,13 @@ plot_1 <- ggplot() +
   geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
   theme_bw()+
   theme(panel.grid = element_blank(), 
+        legend.position = "none",
         axis.title.y = element_blank())
 plot_1
 
-ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/ratio_all_vars_part1.jpg", width = 10, height = 10,
-       units = 'in')
-
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn')] 
 
-plot_1 <- ggplot(plot_dt_long2)+
+plot_2 <- ggplot(plot_dt_long2)+
   geom_line(aes(x = policy_val, y =  value, linetype = NMS)) +
   scale_linetype_manual(values = c("dashed", "solid"))+
   facet_grid(plot_name~., scales = "free") +
@@ -200,26 +209,32 @@ plot_1 <- ggplot(plot_dt_long2)+
   theme(panel.grid = element_blank(), 
         axis.title.y = element_blank())
 
-plot_1
+plot_2
 
-ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/ratio_all_vars_part2.jpg", width = 10, height = 10,
+ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), filename = "./n_policy_box/Data/figures/ratio_all_vars.jpg", width = 979/300*3, height = 1042/300*3,
        units = 'in')
 
-#==========================================================================
-# NRED CHART
 
-plot_dt <- perfomances_dt5[policy_name == 'nred' & NMS %in% c('1','2') ] 
-baselevel_n <- perfomances_dt5[policy == 'fee_0' & NMS == '1', L]
-baselevel_Y_corn <- perfomances_dt5[policy == 'fee_0' & NMS == '1', Y_corn ]
+
+#==========================================================================
+# LRED CHART
+
+plot_dt <- perfomances_dt5[policy_name == 'nred' & NMS %in% c('1','2') & policy_val <= 20 ] 
+
+
+compare_dt <- perfomances_dt5[policy == 'ratio_6' | policy == 'nred_1' | policy == 'fee_0' & NMS %in% c('1','2')]
+compare_dt[,L := round((L / baselevel_n) - 1,2)*100 ]
 
 plot_dt[,L := round((L / baselevel_n) - 1,2)*100 ]
+
+plot_dt[,.SD[W == max(W)], by = NMS] #peak in W
 
 ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
                                                                                  'P', 'G', 'E','W'))
 plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
-plot_dt_long[variable == 'L', plot_name := 'b) N Leaching (% change)']
+plot_dt_long[variable == 'L', plot_name := 'b) L (% change)']
 plot_dt_long[variable == 'Y_corn', plot_name := 'c) Yield kg/ha']
 plot_dt_long[variable == 'P', plot_name := 'd) Profits $/ha']
 plot_dt_long[variable == 'G', plot_name := 'e) G $/ha']
@@ -229,10 +244,11 @@ plot_dt_long[order(variable)]
 
 plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L', 'Y_corn')] 
 
+
 hline_dt <- data.table(plot_name = unique(plot_dt_long1$plot_name))
 hline_dt[plot_name == 'c) Yield kg/ha', y_line := baselevel_Y_corn*0.95]
 hline_dt[plot_name == 'c) Yield kg/ha', y_label := '95% baselevel']
-hline_dt[plot_name == 'b) N Leaching (% change)', y_line  := 0]
+hline_dt[plot_name == 'b) L (% change)', y_line  := 0]
 
 plot_1 <- ggplot() +
   geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, linetype = NMS)) +
@@ -241,35 +257,122 @@ plot_1 <- ggplot() +
   # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
   facet_grid(plot_name~., scales = "free") +
   scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
-  xlab('N reduction target')+
+  xlab('L reduction target')+
   # geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
   theme_bw()+
   theme(panel.grid = element_blank(), 
+        legend.position = "none",
         axis.title.y = element_blank())
-
 plot_1
-
-ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/nred_all_vars_part1.jpg", width = 10, height = 10,
-       units = 'in')
 
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn', 'G')] 
 
-plot_1 <- ggplot(plot_dt_long2)+
+plot_2 <- ggplot(plot_dt_long2)+
   geom_line(aes(x = policy_val, y =  value, linetype = NMS)) +
   scale_linetype_manual(values = c("dashed", "solid"))+
   facet_grid(plot_name~., scales = "free") +
   scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
-  xlab('N reduction target')+
+  xlab('L reduction target')+
   # geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
   theme_bw()+
   theme(panel.grid = element_blank(), 
         axis.title.y = element_blank())
 
+plot_2
 
+ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
+       filename = "./n_policy_box/Data/figures/Lred_all_vars.jpg", width = 979/300*3, height = 1042/300*3,
+       units = 'in')
+
+#==========================================================================
+# FEE CHART
+
+plot_dt <- perfomances_dt5[policy_name == 'fee' & NMS %in% c('1','2') ] 
+
+plot_dt[,L := round((L / baselevel_n) - 1,2)*100 ]
+
+plot_dt[, .SD[ W == max( W)], by = .(NMS)]#peak in W
+
+ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
+
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
+                                                                                 'P', 'G', 'E','W'))
+plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
+plot_dt_long[variable == 'L', plot_name := 'b) L (% change)']
+plot_dt_long[variable == 'Y_corn', plot_name := 'c) Yield kg/ha']
+plot_dt_long[variable == 'P', plot_name := 'd) Profits $/ha']
+plot_dt_long[variable == 'G', plot_name := 'e) G $/ha']
+plot_dt_long[variable == 'E', plot_name := 'f) E $/ha']
+plot_dt_long[variable == 'W', plot_name := 'g) W $/ha']
+plot_dt_long[order(variable)]
+
+plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L', 'Y_corn')] 
+
+
+hline_dt <- data.table(plot_name = unique(plot_dt_long1$plot_name))
+hline_dt[plot_name == 'c) Yield kg/ha', y_line := baselevel_Y_corn*0.95]
+hline_dt[plot_name == 'c) Yield kg/ha', y_label := '95% baselevel']
+hline_dt[plot_name == 'b) L (% change)', y_line  := 0]
+
+plot_1 <- ggplot() +
+  geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, linetype = NMS)) +
+  scale_linetype_manual(values = c("dashed", "solid"))+
+  geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+  # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
+  facet_grid(plot_name~., scales = "free") +
+  scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+  xlab('Fee on L ($/kg)')+
+  # geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
+  theme_bw()+
+  theme(panel.grid = element_blank(), 
+        legend.position = "none",
+        axis.title.y = element_blank())
 plot_1
 
-ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/nred_all_vars_part2.jpg", width = 10, height = 10,
+plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn')] 
+
+plot_2 <- ggplot(plot_dt_long2)+
+  geom_line(aes(x = policy_val, y =  value, linetype = NMS)) +
+  scale_linetype_manual(values = c("dashed", "solid"))+
+  facet_grid(plot_name~., scales = "free") +
+  scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+  xlab('Fee on L ($/kg)')+
+  # geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
+  theme_bw()+
+  theme(panel.grid = element_blank(), 
+        axis.title.y = element_blank())
+
+plot_2
+
+ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
+       filename = "./n_policy_box/Data/figures/fee_all_vars.jpg", width = 979/300*3, height = 1042/300*3,
        units = 'in')
+
+
+#==========================================================================
+# W MAXIMIZATION
+perfomances_dt5[,policy_name := as.character(policy_name)]
+w_dt <- perfomances_dt5[,.SD[W == max(W)], by = .(policy_name, NMS)][order(-W)] #peak in W
+
+latex_table_dt <- w_dt[,c('policy_name', 'NMS', 'policy_val', 'N_fert', 'Y_corn', 'L', 'P', 'G',  'E', 'W')]
+
+cols_1 <- c('N_fert', 'Y_corn', 'L', 'P', 'G',  'E', 'W')
+latex_table_dt[,(cols_1) := round(.SD,1), .SDcols=cols_1]
+latex_table_dt[,Y_corn := round(Y_corn, 0)]
+
+
+setnames(latex_table_dt, c('policy_name', 'policy_val', 'N_fert', 'P'),
+                               c('policy', 'level', 'N rate', 'Profits'))
+
+library('xtable')
+print(xtable(latex_table_dt, type = "latex", auto = TRUE, label = 'tab:w_maximization', 
+             caption = 'Indicators for the level that maximized W for each policy and NMS combination'), 
+      file = "./n_policy_box/Data/figures/w_maximization.tex", include.rownames=FALSE)
+
+
+
+
+
 #---------------------------------------------------------------------------
 # COMPARE A SAMPLE OF THE DIFFERENT MODELS THAT WOULD GET US TO THE 15% 
 # REDUCTION TARGET FROM CURRENT SITUATION (-15% by 2025, -45% by 2035)

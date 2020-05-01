@@ -294,7 +294,7 @@ TrainSet_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)]
 red_seq <- seq(0.7, 1, by = 0.05)
 
 for(n_red in red_seq){
-  # n_red = 0.75
+  # n_red = 1
   print(n_red)
   small_model_list <- list()
 
@@ -335,7 +335,7 @@ for(n_red in red_seq){
   
   # Type I and II: cases where there are rates with L below the target
   TrainSet_nr_tmp1 <- TrainSet_nr[leach_rel <= n_red][order(N_fert )]
-  
+  TrainSet_nr_tmp1[mukey == 1591902 & z == 3]
   #Chose the EONR below the target reduction L
   TrainSet_nr_tmp1 <- TrainSet_nr_tmp1[, .SD[ P == max( P)], by = .(id_10, mukey, z)] #pick the EONR
   TrainSet_nr_tmp1 <- TrainSet_nr_tmp1[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)] #in case more than one rate had the same P
