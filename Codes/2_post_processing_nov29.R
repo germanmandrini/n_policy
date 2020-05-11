@@ -43,9 +43,12 @@ if(FALSE){
   yc_yearly_dt2a <- yc_yearly_dt[lai_v5 >= yc_yearly_dt[Yld > 200, min(lai_v5)]] #lai thereshold = lowest lai where yld was positive
   
   # Assumption: if the lai is too low, the farmer will not apply the rate and will plant soybean
-  
+  yc_yearly_dt2a[id_10 == 259 & mukey == 942156 & N_fert==160]
+  hist(yc_yearly_dt2a$leach_1)
+  summary(yc_yearly_dt2a$leach_1)
+  yc_yearly_dt2a[leach_1 > 500]
   #------------------------------------------------------------------------------------
-  #Remove low yielding mukeys (farmers will not plant here)
+  #Remove low yielding mukeys (farmers will not plant here). Use the N that maximizes Yield
   
   yearly_ymax_dt <- copy(yc_yearly_dt2a) %>% 
     .[,yld_max_mky := max(Yld), by = .(id_10, mukey, z)] %>% 
@@ -55,18 +58,20 @@ if(FALSE){
   yearly_ymax_dt[Yld == 0]
   summary(yearly_ymax_dt)
   
+  yearly_ymax_dt[,leach_n := leach_1 + leach_2]
   yearly_ymax_dt2 <- yearly_ymax_dt[,.(Yld = mean(Yld), 
+                                       leach_n = mean(leach_n),
                                  n_deep_v5 = mean(n_deep_v5),
                                  n_deep_v5_max = max(n_deep_v5)), by = .(id_10, mukey)]
   summary(yearly_ymax_dt2$Yld)
-  
+  summary(yearly_ymax_dt2$leach_n)
   hist(yearly_ymax_dt2$Yld)
   hist(yearly_ymax_dt2$n_deep_v5)
   summary(yearly_ymax_dt2$n_deep_v5)
   summary(yearly_ymax_dt2$n_deep_v5_max)
   hist(yearly_ymax_dt2[n_deep_v5 > 300]$n_deep_v5)
   
-  qc_control <- yearly_ymax_dt2[Yld < 3000 | n_deep_v5 > 200 | n_deep_v5_max > 900]
+  qc_control <- yearly_ymax_dt2[Yld < 3000 | n_deep_v5 > 200 | n_deep_v5_max > 900 | leach_n > 300]
   
   remove_this <- filter_dt_in_dt(yc_yearly_dt2a, filter_dt = qc_control[,.(id_10, mukey)])
   yc_yearly_dt2b <- yc_yearly_dt2a[-remove_this]

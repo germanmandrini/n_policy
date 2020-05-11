@@ -52,7 +52,7 @@ if(FALSE){
   
   names(perfomances_dt)
   do_not_aggregate = c("policy",'region','id_10', 'NMS', 'tech', 'z', 'id_field')
-  do_aggregate =  c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G")
+  do_aggregate =  c("Y_corn", 'Y_soy', 'L1', 'L2', "L", "N_fert","P", "G")
   
   if(FALSE){
     perfomances_dt2 <- aggregate_by_area(data_dt = perfomances_dt, variables = do_aggregate, 
@@ -74,6 +74,8 @@ if(FALSE){
   # perfomances_dt2[,id_10 := as.character(id_10)]
   
   perfomances_dt2 <- perfomances_dt2[order(id_10, z,id_field, NMS)]
+  
+  saveRDS(perfomances_dt2, "./n_policy_box/Data/files_rds/perfomances_dt2.rds") #for 5d_pdf.R
   
   #-------------------------------------------------------------------------
   # AGGREGATE THE DATA TO CELL X Z LEVEL CONSIDERING THE AREA
