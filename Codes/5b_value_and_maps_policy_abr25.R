@@ -146,6 +146,19 @@ if(FALSE){
   IL_corn_area_ha = 5179976
   plot_dt[policy == 'ratio_10' & NMS == 1, G] * IL_corn_area_ha / 1000000 #million in IL
 }
+
+# Elasticity of Demand Point-Slope Formula: https://pressbooks.bccampus.ca/uvicecon103/chapter/4-2-elasticity/
+if(FALSE){
+  elasticity_dt <- plot_dt[NMS == 1 & policy_val %in% c(4,6,8)]
+  d_quantity <- (elasticity_dt[policy_val == 8, N_fert] - elasticity_dt[policy_val == 6, N_fert])/
+                (elasticity_dt[policy_val == 6, N_fert])
+  
+  d_price <- (Pc*8 -  Pc*6)/
+              (Pc*6)
+  
+  d_quantity/d_price
+}
+
 # current_ratio_dt <- perfomances_dt5[policy == 'fee_0' & NMS %in% c('1','2','3','4','5')]
 # current_ratio_dt[,policy_name := 'ratio']
 # current_ratio_dt[,policy_val := Pn/Pc]
@@ -351,6 +364,9 @@ ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1),
 
 #==========================================================================
 # W MAXIMIZATION
+perfomances_dt5[policy  == 'ratio_6']
+
+
 perfomances_dt5[,policy_name := as.character(policy_name)]
 w_dt <- perfomances_dt5[,.SD[W == max(W)], by = .(policy_name, NMS)][order(-W)] #peak in W
 
