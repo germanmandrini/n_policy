@@ -55,7 +55,8 @@ if(FALSE){
   do_aggregate =  c("Y_corn", 'Y_soy', 'L1', 'L2', "L", "N_fert","P", "G")
   
   if(FALSE){
-    perfomances_dt2 <- aggregate_by_area(data_dt = perfomances_dt, variables = do_aggregate, 
+    
+     perfomances_dt2 <- aggregate_by_area(data_dt = perfomances_dt, variables = do_aggregate, 
                                         weight = 'area_ha', by_c = do_not_aggregate) #field x z level (mukey is out)
   }else{
     split_list <- split(perfomances_dt,perfomances_dt$z)
@@ -76,12 +77,13 @@ if(FALSE){
   perfomances_dt2 <- perfomances_dt2[order(id_10, z,id_field, NMS)]
   
   saveRDS(perfomances_dt2, "./n_policy_box/Data/files_rds/perfomances_dt2.rds") #for 5d_pdf.R
+  perfomances_dt2 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt2.rds") 
   
   #-------------------------------------------------------------------------
   # AGGREGATE THE DATA TO CELL X Z LEVEL CONSIDERING THE AREA
   names(perfomances_dt)
   do_not_aggregate = c('policy','id_10', 'region','NMS', 'tech', 'z')
-  do_aggregate =  c("Y_corn", 'L1', 'L2', "L", "N_fert","P", 'G')
+  do_aggregate =  c("Y_corn", 'Y_soy', 'L1', 'L2', "L", "N_fert","P", 'G')
   
   if(FALSE){
     #First aggregate without z so then we can get the leach_extreme
@@ -99,7 +101,7 @@ if(FALSE){
   }
   
   
-  
+  saveRDS(perfomances_dt3, "./n_policy_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
   
   perfomances_dt4 <- perfomances_dt3[, .(Y_corn =  mean(Y_corn),
                                          L1 = mean(L1),
@@ -188,7 +190,7 @@ plot_dt_long[order(variable)]
 
 plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L', 'Y_corn')] 
 
-
+#use https://ggplot2.tidyverse.org/reference/labellers.html
 hline_dt <- data.table(plot_name = unique(plot_dt_long1$plot_name))
 hline_dt[plot_name == 'c) Yield kg/ha', y_line := baselevel_Y_corn*0.95]
 hline_dt[plot_name == 'c) Yield kg/ha', y_label := '95% baselevel']
@@ -371,6 +373,12 @@ perfomances_dt5[policy  == 'ratio_6']
 
 perfomances_dt5[,policy_name := as.character(policy_name)]
 w_dt <- perfomances_dt5[,.SD[W == max(W)], by = .(policy_name, NMS)][order(-W)] #peak in W
+baselevel_dt <- perfomances_dt5[policy  == 'ratio_6' & NMS == 1]
+baselevel_dt[,policy_name := 'base-level']
+baselevel_dt[,policy_val := '-']
+baselevel_dt
+
+w_dt <- rbind(w_dt ,baselevel_dt) %>% .[order(-W)]
 
 latex_table_dt <- w_dt[,c('policy_name', 'NMS', 'policy_val', 'N_fert', 'Y_corn', 'L', 'P', 'G',  'E', 'W')]
 
@@ -384,7 +392,8 @@ setnames(latex_table_dt, c('policy_name', 'policy_val', 'N_fert', 'P'),
 
 library('xtable')
 print(xtable(latex_table_dt, type = "latex", auto = TRUE, label = 'tab:w_maximization', 
-             caption = 'Indicators for the level that maximized W for each policy and NMS combination'), 
+             caption = 'Indicators for the level that maximized W for each policy and NMS combination, 
+             ordered by their W. The base-level system is also shown as a benchmark'), 
       file = "./n_policy_box/Data/figures/w_maximization.tex", include.rownames=FALSE)
 
 
