@@ -35,6 +35,29 @@ validation_dt2[,L2 := data.table::shift(L2, n=1, fill=NA, type="lag")]
 validation_dt2[,L := L1 + L2]
 validation_dt2 <- validation_dt2[-1]
 
+#---------------------------------------------------------------------------
+# Add the weather
+weather_historic_dt <- readRDS('./n_policy_box/Data/met_files/weather_historic_dt2019.rds')
+rain_dt <- weather_historic_dt[,.(rain = sum(rain)), by = .(year, id_10)][,.(rain = mean(rain)), by = .(year)]
+validation_dt2 <- merge(validation_dt2, rain_dt, by = 'year')
+
+ggplot(validation_dt2, aes(x = rain, y = Y_corn))+
+  geom_point()+geom_smooth()
+
+ggplot(validation_dt2, aes(x = rain, y = L))+
+  geom_point()+geom_smooth()
+
+ggplot(validation_dt2)+
+  geom_line(aes(x = year, y = L1*50))+
+  geom_bar(stat="identity", aes(x = year, y = rain))
+
+
+#---------------------------------------------------------------------------
+
+
+
+
+
 data.table::shift(validation_dt2$L2, n=1, fill=NA, type="lag")
 shift(validation_dt2$L2, n=1, fill=NA, type="lag")
 
