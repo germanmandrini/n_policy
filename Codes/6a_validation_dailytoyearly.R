@@ -9,9 +9,13 @@
 library(stringr)
 library(data.table)
 # install.packages('XML','~/Rlibs')"
+reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
+minimum_ok <- reg_model_stuff$ratio_6$minimum_ok
+rm(reg_model_stuff)
+grid10_tiles_dt <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf6.rds") %>% data.table()
+
 
 #Get the computer where this is running
-
 if(FALSE){
 
   server <- ifelse(Sys.info()["nodename"] == "campodonico", TRUE, FALSE)
@@ -63,6 +67,12 @@ make_yearly_summary <- function(file_n){
     daily_yc_dt <- readRDS(file_n) 
     daily_yc_dt <- daily_yc_dt[!str_detect(daily_yc_dt$sim_name, pattern = 'n_rich|n_minus' )] #remove sensor's treatments
     
+    daily_yc_dt$N_fert <- as.numeric(lapply(strsplit(as.character(daily_yc_dt$sim_name), split="_"), "[", 5))+10
+    baselevel_n <- minimum_ok[region == grid10_tiles_dt[id_10 == unique(daily_yc_dt$id_10)]$region]$eonr_pred
+    
+    #filter the rows with baselevel n
+    daily_yc_dt <- daily_yc_dt[N_fert == baselevel_n]
+    
     weather_cell_dt <- readRDS(paste('./n_policy_box/Data/met_files/weather_z_cell', unique(daily_yc_dt$id_10), '_dt.rds', sep = '')) %>%
       .[year == 2010]
     
@@ -77,27 +87,27 @@ make_yearly_summary <- function(file_n){
       
       weather_cell_dt2 <- weather_cell_dt[z == z_n]
       
-      #=====================================================================================================#
-      # Frozen
-      make_it_dt <- daily_yc_dt2[,.(id_10, mukey, z, year,day, sim_name, stage_name, 
-                                   paddock.maize.lai,  LeafNo, paddock.maize.swdef_photo, paddock.maize.swdef_expan)][year== 2010]
-      
-      make_it_dt[,id_10:= as.integer(id_10)]
-      make_it_dt[,z:= as.integer(z)]
-      
-      # make_it_dt <- merge(make_it_dt, 
-      #                     weather_cell_dt2[,.(id_10, year, day, maxt,  mint, z )], 
-      #                     by = c('id_10', 'z', 'year', 'day'))
-      
-      # make_it_dt <- make_it_dt[sim_name == '259_942156_SMM_A2_YC_110']
-      # make_it_dt[stage_name != 'nocrop']
-      
-      
-      #max lai, stages
-      make_it_dt2 <- make_it_dt[, .(LAI_max = max(paddock.maize.lai),
-                     stages_cnt = length(unique(stage_name)),
-                     end_crop = any(stage_name == 'end_crop')),
-                 by = sim_name]
+      # #=====================================================================================================#
+      # # Frozen
+      # make_it_dt <- daily_yc_dt2[,.(id_10, mukey, z, year,day, sim_name, stage_name, 
+      #                              paddock.maize.lai,  LeafNo, paddock.maize.swdef_photo, paddock.maize.swdef_expan)][year== 2010]
+      # 
+      # make_it_dt[,id_10:= as.integer(id_10)]
+      # make_it_dt[,z:= as.integer(z)]
+      # 
+      # # make_it_dt <- merge(make_it_dt, 
+      # #                     weather_cell_dt2[,.(id_10, year, day, maxt,  mint, z )], 
+      # #                     by = c('id_10', 'z', 'year', 'day'))
+      # 
+      # # make_it_dt <- make_it_dt[sim_name == '259_942156_SMM_A2_YC_110']
+      # # make_it_dt[stage_name != 'nocrop']
+      # 
+      # 
+      # #max lai, stages
+      # make_it_dt2 <- make_it_dt[, .(LAI_max = max(paddock.maize.lai),
+      #                stages_cnt = length(unique(stage_name)),
+      #                end_crop = any(stage_name == 'end_crop')),
+      #            by = sim_name]
       #frozen
       # make_it_dt2 <- merge(make_it_dt2, make_it_dt[LeafNo > 5, .(frost_temp = min(mint)), by = sim_name], by = 'sim_name')
       
@@ -132,10 +142,8 @@ make_yearly_summary <- function(file_n){
       yearly_data <- merge(yearly_data, sowing_day, by = c('sim_name'))
       #=====================================================================================================#
       # LEACHING April to April
-      daily_yc_dt2[year == 2010 & day > 100 ,leach_period := 1]
-      daily_yc_dt2[year == 2011 & day <= 100 ,leach_period := 1]
-      daily_yc_dt2[year == 2011 & day > 100 ,leach_period := 2]
-      daily_yc_dt2[year == 2012 & day <= 100 ,leach_period := 2]
+      daily_yc_dt2[year == 2010,leach_period := 1]
+      daily_yc_dt2[year == 2011,leach_period := 2]
       
       leach_data <- daily_yc_dt2[leach_period %in% c(1,2), .(leach_n = sum(leach_no3)), by = .(id_10, mukey, z, sim_name, leach_period)]
       
@@ -198,62 +206,62 @@ make_yearly_summary <- function(file_n){
       #=====================================================================================================#
       # SOIL FILES
       
-      horizons_cell_dt <- grid10_horizons_v2_dt[mukey == unique(daily_yc_dt2$mukey)]
-      horizons_cell_dt2 <- horizons_cell_dt[bottom <= 40, .(sand_40cm = mean(sand),
-                                                           clay_40cm = mean(clay))]
+      # horizons_cell_dt <- grid10_horizons_v2_dt[mukey == unique(daily_yc_dt2$mukey)]
+      # horizons_cell_dt2 <- horizons_cell_dt[bottom <= 40, .(sand_40cm = mean(sand),
+      #                                                      clay_40cm = mean(clay))]
       
       #=====================================================================================================#
       # V5 data
       
-      v5_data <- daily_yc_dt2[LeafNo > 0 & LeafNo < 5 & year == 2010, .SD[LeafNo == max(LeafNo)], by = sim_name]
-      
-      v5_data[,oc_20cm := (oc_1*5 + oc_2*5 + oc_3*5 + oc_4*5)/20] #this should be done using the Bulk Density of each layer
-      v5_data[,oc_40cm := (oc_20cm*20 + oc_5*20)/40]
-      v5_data[,n_20cm :=  no3_1 + no3_2 + no3_3 + no3_4 + nh4_1 + nh4_2 + nh4_3 + nh4_4]
-      v5_data[,n_40cm := n_20cm + no3_5 + nh4_5]
-      v5_data[,n_60cm := n_40cm + no3_6 + nh4_6]
-      # v5_data[,n_deep := no3_1 +no3_2+no3_3+no3_4 + no3_5 + no3_6 + no3_7 + no3_8 + no3_9 + no3_10 + no3_11 + 
-      #           nh4_1 + nh4_2 + nh4_3 + nh4_4 + nh4_5 + nh4_6 + nh4_7 + nh4_8 + nh4_9 + nh4_10 + nh4_11]
-      
-      v5_data[,esw_pct := (sw_dep - ll15_dep)/(dul_dep- ll15_dep)]
-      v5_data[,esw_pct := ifelse(esw_pct>1, 1, esw_pct)]
-      # cols_v5 <- c("sim_name","day", "sw_dep", "paddock.maize.biomass_n", "paddock.maize.biomass","paddock.maize.green_biomass_n", "paddock.maize.greenn",
-      #  "paddock.maize.leafgreennconc", "paddock.maize.leafgreenn", "paddock.maize.swdef_expan",
-      #  "paddock.maize.swdef_pheno", "paddock.maize.swdef_photo", "paddock.maize.lai", "oc_20cm", "oc_40cm", "n_20cm", "n_40cm", "n_60cm","n_deep","esw_pct")
-      # cols_v5 <- c("sim_name","day", "sw_dep", "paddock.maize.biomass_n", "paddock.maize.biomass",
-      #              "paddock.maize.green_biomass_n", "paddock.maize.greenn",
-      #              "paddock.maize.leafgreennconc",
-      #             "paddock.maize.lai", "oc_20cm", "oc_40cm", "n_20cm", "n_40cm", "n_60cm","n_deep","esw_pct")
-      
-      cols_v5 <- unique(c("sim_name","day", "sw_dep", "paddock.maize.biomass",
-                   "paddock.maize.lai", "oc_20cm", "oc_40cm", "n_20cm", "n_40cm", "n_60cm","n_deep","esw_pct",
-                   "paddock.maize.biomass_n", "paddock.maize.green_biomass_n", "paddock.maize.greenn",
-                   "paddock.maize.leafgreennconc", "paddock.maize.leafgreenn"))
-      
-      v5_data <- v5_data[,cols_v5, with = F]
-      
-      names(v5_data) <- paste0(str_replace(names(v5_data), pattern = 'paddock.maize.', replacement = ''), '_v5')
-      setnames(v5_data, 'sim_name_v5', 'sim_name')
-      summary_tmp1 <- merge(yearly_data, v5_data, by = 'sim_name') %>% 
-        merge(make_it_dt2, by = 'sim_name') %>% cbind(horizons_cell_dt2)
+      # v5_data <- daily_yc_dt2[LeafNo > 0 & LeafNo < 5 & year == 2010, .SD[LeafNo == max(LeafNo)], by = sim_name]
+      # 
+      # v5_data[,oc_20cm := (oc_1*5 + oc_2*5 + oc_3*5 + oc_4*5)/20] #this should be done using the Bulk Density of each layer
+      # v5_data[,oc_40cm := (oc_20cm*20 + oc_5*20)/40]
+      # v5_data[,n_20cm :=  no3_1 + no3_2 + no3_3 + no3_4 + nh4_1 + nh4_2 + nh4_3 + nh4_4]
+      # v5_data[,n_40cm := n_20cm + no3_5 + nh4_5]
+      # v5_data[,n_60cm := n_40cm + no3_6 + nh4_6]
+      # # v5_data[,n_deep := no3_1 +no3_2+no3_3+no3_4 + no3_5 + no3_6 + no3_7 + no3_8 + no3_9 + no3_10 + no3_11 + 
+      # #           nh4_1 + nh4_2 + nh4_3 + nh4_4 + nh4_5 + nh4_6 + nh4_7 + nh4_8 + nh4_9 + nh4_10 + nh4_11]
+      # 
+      # v5_data[,esw_pct := (sw_dep - ll15_dep)/(dul_dep- ll15_dep)]
+      # v5_data[,esw_pct := ifelse(esw_pct>1, 1, esw_pct)]
+      # # cols_v5 <- c("sim_name","day", "sw_dep", "paddock.maize.biomass_n", "paddock.maize.biomass","paddock.maize.green_biomass_n", "paddock.maize.greenn",
+      # #  "paddock.maize.leafgreennconc", "paddock.maize.leafgreenn", "paddock.maize.swdef_expan",
+      # #  "paddock.maize.swdef_pheno", "paddock.maize.swdef_photo", "paddock.maize.lai", "oc_20cm", "oc_40cm", "n_20cm", "n_40cm", "n_60cm","n_deep","esw_pct")
+      # # cols_v5 <- c("sim_name","day", "sw_dep", "paddock.maize.biomass_n", "paddock.maize.biomass",
+      # #              "paddock.maize.green_biomass_n", "paddock.maize.greenn",
+      # #              "paddock.maize.leafgreennconc",
+      # #             "paddock.maize.lai", "oc_20cm", "oc_40cm", "n_20cm", "n_40cm", "n_60cm","n_deep","esw_pct")
+      # 
+      # cols_v5 <- unique(c("sim_name","day", "sw_dep", "paddock.maize.biomass",
+      #              "paddock.maize.lai", "oc_20cm", "oc_40cm", "n_20cm", "n_40cm", "n_60cm","n_deep","esw_pct",
+      #              "paddock.maize.biomass_n", "paddock.maize.green_biomass_n", "paddock.maize.greenn",
+      #              "paddock.maize.leafgreennconc", "paddock.maize.leafgreenn"))
+      # 
+      # v5_data <- v5_data[,cols_v5, with = F]
+      # 
+      # names(v5_data) <- paste0(str_replace(names(v5_data), pattern = 'paddock.maize.', replacement = ''), '_v5')
+      # setnames(v5_data, 'sim_name_v5', 'sim_name')
+      # summary_tmp1 <- merge(yearly_data, v5_data, by = 'sim_name') %>% 
+      #   merge(make_it_dt2, by = 'sim_name') %>% cbind(horizons_cell_dt2)
       
       #=====================================================================================================#
       # WEATHER FILES
         #SUmmarize weather 30, 60, 90 days before v5
-      day_v5_n <- unique(v5_data$day_v5)
-      weather_v5_dt <- weather_cell_dt2[day <= day_v5_n] %>% .[order(-day)]
-      weather_v5_dt[,w_period := (rep(1:12, each = 30)*30)[1:nrow(weather_v5_dt)]]
-      keep <- names(table(weather_v5_dt$w_period)[table(weather_v5_dt$w_period)==30]) #keep those whose count is 30 (period complete)
-      keep <- keep[!keep %in% c('120','150')] #150 is too far
-      weather_v5_dt <- weather_v5_dt[w_period %in% keep]
-      
-      weather_v5_sum_dt <- weather_v5_dt[,.(rain = sum(rain),
-                                            t_max = mean(maxt),
-                                            t_min = mean(mint)), w_period]
-      
-      weather_v5_sum_dt <- dcast(weather_v5_sum_dt, . ~ w_period, value.var = c("rain", 't_max', 't_min'))[,-1]
-      summary_tmp2 <- cbind(summary_tmp1, weather_v5_sum_dt)
-      all_summaries[[length(all_summaries)+1]] <- summary_tmp2
+      # day_v5_n <- unique(v5_data$day_v5)
+      # weather_v5_dt <- weather_cell_dt2[day <= day_v5_n] %>% .[order(-day)]
+      # weather_v5_dt[,w_period := (rep(1:12, each = 30)*30)[1:nrow(weather_v5_dt)]]
+      # keep <- names(table(weather_v5_dt$w_period)[table(weather_v5_dt$w_period)==30]) #keep those whose count is 30 (period complete)
+      # keep <- keep[!keep %in% c('120','150')] #150 is too far
+      # weather_v5_dt <- weather_v5_dt[w_period %in% keep]
+      # 
+      # weather_v5_sum_dt <- weather_v5_dt[,.(rain = sum(rain),
+      #                                       t_max = mean(maxt),
+      #                                       t_min = mean(mint)), w_period]
+      # 
+      # weather_v5_sum_dt <- dcast(weather_v5_sum_dt, . ~ w_period, value.var = c("rain", 't_max', 't_min'))[,-1]
+      # summary_tmp2 <- cbind(summary_tmp1, weather_v5_sum_dt)
+      all_summaries[[length(all_summaries)+1]] <- yearly_data
     }#end of z_n loop
     
   }, error = function(e) e)
@@ -261,8 +269,8 @@ make_yearly_summary <- function(file_n){
   #REAL WORK:if there is no error
   if(!inherits(possibleError, "error")){
     # return(rbindlist(all_summaries, fill = TRUE))
-    if(!dir.exists("./n_policy_box/Data/yc_output_summary")){dir.create("./n_policy_box/Data/yc_output_summary")}
-    saveRDS(rbindlist(all_summaries, fill = TRUE), paste0("./n_policy_box/Data/yc_output_summary/", basename(file_n)))
+    if(!dir.exists("./n_policy_box/Data/yc_output_summary_calendar")){dir.create("./n_policy_box/Data/yc_output_summary_calendar")}
+    saveRDS(rbindlist(all_summaries, fill = TRUE), paste0("./n_policy_box/Data/yc_output_summary_calendar/", basename(file_n)))
     return(rbindlist(all_summaries, fill = TRUE))
   } else {
     return(c(file_n, possibleError))
@@ -276,11 +284,12 @@ grid10_horizons_v2_dt <- readRDS("./n_policy_box/Data/Grid/grid10_horizons_v2_dt
 # files_daily <- list.files('S:/Bioinformatics Lab/germanm2/n_policy/yc_output',full.names = T, recursive = T)
 files_daily <- list.files('./n_policy_box/Data/yc_output',full.names = T, recursive = T)
 
-test <- make_yearly_summary(file_n)
+test <- make_yearly_summary(files_daily[1])
+
 
 # start <- Sys.time()
 results_list <- list()
-for(file_n in files_daily){
+for(file_n in sample(files_daily,1000)){
   # file_n <- files_daily[2]
   # print(file_n)
   results_list[[basename(file_n)]] <- make_yearly_summary(file_n)
