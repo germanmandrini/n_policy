@@ -43,6 +43,8 @@ if(FALSE){
   perfomances_dt[NMS == '1_ok', NMS := '1']
   perfomances_dt[NMS == '4', NMS := '2']
   
+  test <- perfomances_dt3[NMS == 1 & policy == 'ratio_6', .(Y_corn = mean(Y_corn)), by = z][order(z)]
+  test[,year := as.numeric(z) + 1988]
   #-------------------------------------------------------------------------
   #-------------------------------------------------------------------------
   # AGGREGATE THE DATA TO FIELD X Z LEVEL CONSIDERING THE AREA
