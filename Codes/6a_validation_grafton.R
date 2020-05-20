@@ -1,42 +1,37 @@
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
-
-# setwd("/home/germanm2")
-
-rm(list=ls())
-
 # setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
 # codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+# setwd("/home/germanm2")
 
 setwd('~')#Server
 codes_folder <-'~' #Server
-
+rm(list=ls())
 
 source('./Codes_useful/R.libraries.R')
-# library(scales)
 source('./Codes_useful/gm_functions.R')
 
-# perfomances_dt3 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
-# validation_dt <- perfomances_dt3[policy == 'ratio_6' & NMS ==1]
+perfomances_dt3 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
+validation_dt <- perfomances_dt3[policy == 'ratio_6' & NMS ==1]
 grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds") 
 
-if(FALSE){
-  multiple_files <- list.files("./n_policy_box/Data/yc_output_summary_calendar", full.names = T)
-  length(multiple_files)
-  
-  yc_yearly_list <- list()
-  for(file_n in multiple_files){
-    yc_yearly_list[[length(yc_yearly_list)+1]] <- readRDS(file_n)
-  }
-  # yc_yearly_list[[4207]] <- yc_yearly_list[[4207]][,-'NA'] #for some reason this came with one column called NA
-  validation_dt <- rbindlist(yc_yearly_list)
-  validation_dt[,id_10 := as.integer(id_10)]
-  ggplot(validation_dt) + geom_boxplot(aes(y = Yld, x = z))
-  
-  validation_dt2 <- validation_dt[,.(L1 = mean(leach_1),
-                   L2 = mean(leach_2),
-                   Y_corn = mean(Yld),
-                   N_fert = mean(N_fert)), by = z]
-}
+# if(FALSE){
+#   multiple_files <- list.files("./n_policy_box/Data/yc_output_summary_calendar", full.names = T)
+#   length(multiple_files)
+#   
+#   yc_yearly_list <- list()
+#   for(file_n in multiple_files){
+#     yc_yearly_list[[length(yc_yearly_list)+1]] <- readRDS(file_n)
+#   }
+#   # yc_yearly_list[[4207]] <- yc_yearly_list[[4207]][,-'NA'] #for some reason this came with one column called NA
+#   validation_dt <- rbindlist(yc_yearly_list)
+#   validation_dt[,id_10 := as.integer(id_10)]
+#   ggplot(validation_dt) + geom_boxplot(aes(y = Yld, x = z))
+#   
+#   validation_dt2 <- validation_dt[,.(L1 = mean(leach_1),
+#                    L2 = mean(leach_2),
+#                    Y_corn = mean(Yld),
+#                    N_fert = mean(N_fert)), by = z]
+# }
 
 
 
@@ -87,25 +82,26 @@ ggplot(validation_dt2)+
 
 library(gdata)
 #Year is corrected from april to april
-graffton_waterquality <- read.xls('./n_policy_box/Data/graffton_waterquality.xlsx', sheet = 'import', header = TRUE, stringsAsFactors=FALSE)
+graffton_waterquality <- read.xls('./n_policy_box/Data/validation/graffton_waterquality.xlsx', sheet = 'import', header = TRUE, stringsAsFactors=FALSE)
 setnames(graffton_waterquality, 'Year', 'year')
 validation_dt2 <- merge(validation_dt2, graffton_waterquality, by = 'year')
 
 lm(data = validation_dt2, formula = 'L~NO3.kg_sec')
 
-plot_1 <- ggplot(validation_dt2, aes(x = NO3.kg_sec, y = L))+ ylim(0, 80)+ xlim(0, 25)+
+(plot_1 <- ggplot(validation_dt2, aes(x = NO3.kg_sec, y = L, color = year))+ ylim(0, 80)+ xlim(0, 25)+
   geom_point()+
   geom_smooth(formula = 'y~x', method = 'lm', se = FALSE, color = 'darkgrey') +
   # xlab('Grafton N-NO3 (kg sec-1)')+
   # ylab('L (kg ha-1)')+
-  labs(x=expression(paste("Grafton N-", NO[3],"(kg sec-1)",sep="")),
-       y='L (kg ha-1)')+
+  labs(x=expression(paste("Grafton N-", NO[3],"(kg sec"^"-1",")",sep="")),
+      y = expression(paste("L (kg ha"^"-1", "year"^"-1",")")))+
+ #geom_text(x = 20, y = 30, label = 'equation', parse = TRUE)+
+    annotate("text", x=17, y=30, label= "y=1.773x + 35.597", size = 4)+
   theme_bw()+
-  theme(panel.grid = element_blank(), 
-        legend.position = "none")
+  theme(panel.grid = element_blank()))
 
 ggsave(plot = plot_1, 
-       filename = "./n_policy_box/Data/figures/validation_grafton.jpg", width = 5, height = 5,
+       filename = "./n_policy_box/Data/figures/validation_grafton.jpg", width = 493/300*3, height = 390/300*3,
        units = 'in')
 
 #---------------------------------------------------------------------------
