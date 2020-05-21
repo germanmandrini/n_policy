@@ -116,9 +116,9 @@ validation_dt4_monthly <- validation_dt4[, .(L = mean(L),
       panel.grid = element_blank())+
   annotate("text", x=1, y=22, label= "a)", size = 8) )
 
-ggsave(plot = plot_1, 
-       filename = "./n_policy_box/Data/figures/validation_grafton_time.jpg", width = 493/300*3, height = 390/300*3,
-       units = 'in')
+# ggsave(plot = plot_1, 
+#        filename = "./n_policy_box/Data/figures/validation_grafton_time.jpg", width = 493/300*3, height = 390/300*3,
+#        units = 'in')
 
 #---------------------------------------------------------------------------
 #Monthly obs vs predicted
@@ -201,9 +201,9 @@ corr_num <- round(cor(validation_dt4_season$L, validation_dt4_season$NO3.kg.sec)
     labs(y=expression(paste("Grafton N-", NO[3],"(kg sec"^"-1",")",sep="")),
          x = expression(paste("State L (kg ha"^"-1", "year"^"-1",")")))+
     #geom_text(x = 20, y = 30, label = 'equation', parse = TRUE)+
-    annotate("text", x=10, y=4, label= "y=0.903x + 8.129", size = 4)+
-    annotate("text", x=10, y=3, label= expression(paste("R"^"2", "= 0.22")), size = 4)+
-    annotate("text", x=10, y=2, label= "correlation = 0.47", size = 4)+
+    annotate("text", x=10, y=4, label= "y=0.93x + 8.12", size = 4)+
+    annotate("text", x=10, y=3, label= expression(paste("R"^"2", "= 0.20")), size = 4)+
+    annotate("text", x=10, y=2, label= paste("correlation =",  corr_num), size = 4)+
     theme_bw()+
     theme(panel.grid = element_blank())+
     annotate("text", x=0.3, y=25, label= "b)", size = 8) )
@@ -212,7 +212,6 @@ plot_grid <- grid.arrange(plot_1, plot_4, ncol=2, nrow = 2,
                           layout_matrix = rbind(c(1,2), c(NA,2)),
                           widths = c(5, 5), heights = c(2.5, 0.05))
 ggsave(plot = plot_grid, 
-       filename = "./n_policy_box/Data/figures/validation_grafton_correlation.jpg", width = 10, height = 5,
+       filename = "./n_policy_box/Data/figures/validation_grafton.jpg",  width = 1263/300*3, height = 502/300*3,
        units = 'in')
-
 

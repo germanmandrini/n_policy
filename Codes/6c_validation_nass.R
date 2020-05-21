@@ -60,6 +60,7 @@ nass_county_yied_corn_dt[,Y_corn_nass := 62.77*Y_corn_nass]
 nass_county_yied_soy_dt <- fread('./n_policy_box/Data/validation/nass_county_yields_soy.csv')
 nass_county_yied_soy_dt <- nass_county_yied_soy_dt[,c("Year", "County" ,  "Value")]
 setnames(nass_county_yied_soy_dt, c("Year", "County" ,  "Value"), c("year", "county_name" ,  "Y_soy_nass"))
+
 # Soy: 1 bushel/acre = 67.25 (67) kilograms/hectare
 nass_county_yied_soy_dt[,Y_soy_nass := 67.25*Y_soy_nass]
 
@@ -77,19 +78,27 @@ unique(nass_county_yied_dt$county_name)[!unique(nass_county_yied_dt$county_name)
 
 validation_nass_dt <- merge(validation_dt5, nass_county_yied_dt, by = c('year', 'county_name'))
 
-# Pred vs obs plot  
+reg <- lm(data = validation_nass_dt, formula = 'Y_corn_nass~Y_corn')
+reg_sum <- summary(reg)
+r_sq_num <- round(reg_sum$r.squared,2)
+corr_num <- round(cor(validation_nass_dt$Y_corn_nass, validation_nass_dt$Y_corn),2)
 
-(plot_1 <- ggplot(data=validation_nass_dt, aes(x = Y_corn_nass, y = Y_corn, color = year)) +
+# Pred vs obs plot  
+(plot_1 <- ggplot(data=validation_nass_dt, aes(y = Y_corn_nass, x = Y_corn, color = year)) +
   geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + ylim(0, 15500)+ xlim(0, 15500) +
   labs(# x=expression(paste("Grafton N-", NO[3],"(kg sec-1)",sep=""))
        # expression(paste("4"^"th")
-       y = expression(paste("APSIM County yield (kg ha"^"-1", "year"^"-1",")")),
-       x = expression(paste("NASS County yield (kg ha"^"-1", "year"^"-1",")")))+
+       x = expression(paste("APSIM County yield (kg ha"^"-1", "year"^"-1",")")),
+       y = expression(paste("NASS County yield (kg ha"^"-1", "year"^"-1",")")))+
   annotate("text", x=0, y=15500, label= "a)", size = 10)+
+  annotate("text", x=10000, y=2000, label= paste("correlation =",  corr_num), size = 4, hjust = 0)+
   theme_bw()+
   theme(panel.grid = element_blank())+
   theme(legend.position="bottom")
   )
+
+corr_num <- round(cor(validation_nass_dt$Y_soy_nass, validation_nass_dt$Y_soy),2)
+
 
 (plot_2 <- ggplot(data=validation_nass_dt, aes(x = Y_soy_nass, y = Y_soy, color = year)) +
     geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + ylim(0, 6000)+ xlim(0, 6000) +
@@ -98,6 +107,7 @@ validation_nass_dt <- merge(validation_dt5, nass_county_yied_dt, by = c('year', 
       y = expression(paste("APSIM County yield (kg ha"^"-1", "year"^"-1",")")),
       x = expression(paste("NASS County yield (kg ha"^"-1", "year"^"-1",")")))+
     annotate("text", x=0, y=6000, label= "b)", size = 10)+
+    annotate("text", x=4000, y=800, label= paste("correlation =",  corr_num), size = 4, hjust = 0)+
     theme_bw()+
     theme(panel.grid = element_blank(), 
           legend.position = "none")
