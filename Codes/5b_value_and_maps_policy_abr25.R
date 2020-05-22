@@ -139,7 +139,6 @@ if(FALSE){
 
 perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 
-
 perfomances_dt5[,.SD[W == max(W)], by = NMS] #peak in W
 
 #==========================================================================
@@ -181,56 +180,109 @@ ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
                                                                                  'P', 'G', 'E','W'))
-plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
-plot_dt_long[variable == 'L', plot_name := 'b) L (% change)']
-plot_dt_long[variable == 'Y_corn', plot_name := 'c) Yield kg/ha']
-plot_dt_long[variable == 'P', plot_name := 'd) Profits $/ha']
-plot_dt_long[variable == 'G', plot_name := 'e) G $/ha']
-plot_dt_long[variable == 'E', plot_name := 'f) E $/ha']
-plot_dt_long[variable == 'W', plot_name := 'g) W $/ha']
-plot_dt_long[order(variable)]
+
+plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L', 'Y_corn', 'P', 'G', 'E','W'),
+                                            labels = c(expression("Fertilizer (N kg " * ha^"-1" *yr^"-1"* ")"), 
+                                                       # expression("L ('%'change)"), 
+                                                       # "'%'*V",
+                                                       expression("L ("*'%'*" change)"),
+                                                       expression("Corn Yield (kg N " * ha^"-1" *yr^"-1"* ")"), 
+                                                       expression("P ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                       expression("G ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                       expression("E ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                       expression("W ($ " * ha^"-1" * yr^"-1"* ")")))]
+
+# plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
+# plot_dt_long[variable == 'L', plot_name := 'b) L (% change)']
+# plot_dt_long[variable == 'Y_corn', plot_name := 'c) Yield kg/ha']
+# plot_dt_long[variable == 'P', plot_name := 'd) Profits $/ha']
+# plot_dt_long[variable == 'G', plot_name := 'e) G $/ha']
+# plot_dt_long[variable == 'E', plot_name := 'f) E $/ha']
+# plot_dt_long[variable == 'W', plot_name := 'g) W $/ha']
+# plot_dt_long[order(variable)]
 
 plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L', 'Y_corn')] 
 
 #use https://ggplot2.tidyverse.org/reference/labellers.html
-hline_dt <- data.table(plot_name = unique(plot_dt_long1$plot_name))
-hline_dt[plot_name == 'c) Yield kg/ha', y_line := baselevel_Y_corn*0.95]
-hline_dt[plot_name == 'c) Yield kg/ha', y_label := '95% baselevel']
-hline_dt[plot_name == 'b) L (% change)', y_line  := 0]
+hline_dt <- data.table(unique(plot_dt_long1[,.(variable, variable_labels)]))
+hline_dt[variable == 'Y_corn', y_line := baselevel_Y_corn*0.95]
+hline_dt[variable == 'Y_corn', y_label := '95% baselevel']
+hline_dt[variable == 'L', y_line  := 0]
 
-plot_1 <- ggplot() +
+#----
+# ADD letters outside plot (go down) https://stackoverflow.com/questions/12409960/ggplot2-annotate-outside-of-plot
+ann_text <- plot_dt_long[,.(x = min(policy_val)-5,
+                value = max(value)), by = .(variable, variable_labels)]
+#Sort in the right order
+ann_text <- ann_text[match(c('N_fert', 'L', 'Y_corn', 'P', 'G', 'E','W'), ann_text$variable),]
+ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)")]
+#----
+
+(plot_1 <- ggplot() +
   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
   # scale_colour_manual(values = c("black", "brown"))+
-  geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, linetype = NMS)) +
-  scale_linetype_manual(values = c("dashed", "solid"))+
+  geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, color = NMS)) +
+  # scale_linetype_manual(values = c("dashed", "solid"))+
   geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
   geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
-  facet_grid(plot_name~., scales = "free") +
+     scale_color_manual(values=c("royalblue2", "tomato3"))+   
+  geom_text(data = ann_text[variable %in% unique(plot_dt_long1$variable)], aes(y = value, x = x, label = lab), 
+            hjust = 0, size = 8) +
+    coord_cartesian(xlim = c(2, 20), # This focuses the x-axis on the range of interest
+                    clip = 'off') +   # This keeps the labels from disappearing
+  facet_wrap(variable_labels~., 
+             ncol = 1,
+             labeller = label_parsed,
+             scales="free",
+             strip.position = "left") +
   scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
   geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
-  theme_bw()+
+    theme_bw()+
   theme(panel.grid = element_blank(), 
+        strip.background = element_blank(),
+        strip.placement = "outside",
+        panel.spacing = unit(1.5, "lines"),
+        # axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
         legend.position = "none",
-        axis.title.y = element_blank())
-plot_1
+        plot.margin =  unit(c(2,1,1,1), "lines")))
 
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn')] 
 
-plot_2 <- ggplot(plot_dt_long2)+
-  geom_line(aes(x = policy_val, y =  value, linetype = NMS)) +
-  scale_linetype_manual(values = c("dashed", "solid"))+
-  facet_grid(plot_name~., scales = "free") +
-  scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
-  xlab('N:Corn price ratio')+
-  geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
-  theme_bw()+
-  theme(panel.grid = element_blank(), 
-        axis.title.y = element_blank())
+(plot_2 <- ggplot() +
+    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+    # scale_colour_manual(values = c("black", "brown"))+
+    geom_line(data = plot_dt_long2, aes(x = policy_val, y =  value, color = NMS)) +
+    # scale_linetype_manual(values = c("dashed", "solid"))+
+    # geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+    # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
+     scale_color_manual(values=c("royalblue2", "tomato3"))+   
+    geom_text(data = ann_text[variable %in% unique(plot_dt_long2$variable)], aes(y = value, x = x, label = lab), 
+              hjust = 0, size = 8) +
+    coord_cartesian(xlim = c(2, 20), # This focuses the x-axis on the range of interest
+                    clip = 'off') +   # This keeps the labels from disappearing
+    facet_wrap(variable_labels~., 
+               ncol = 1,
+               labeller = label_parsed,
+               scales="free",
+               strip.position = "left") +
+    scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
+    xlab('N:Corn price ratio')+
+    geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
+    theme_bw()+
+    theme(panel.grid = element_blank(), 
+          strip.background = element_blank(),
+          strip.placement = "outside",
+          panel.spacing = unit(1.5, "lines"),
+          # axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          plot.margin =  unit(c(2,1,1,1), "lines"))
+  )
 
-plot_2
 
-ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), filename = "./n_policy_box/Data/figures/ratio_all_vars.jpg", width = 979/300*3, height = 1042/300*3,
+ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
+       filename = "./n_policy_box/Data/figures/ratio_all_vars.jpg", width = 979/300*3, height = 1042/300*3,
        units = 'in')
 
 
@@ -252,52 +304,96 @@ ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
                                                                                  'P', 'G', 'E','W'))
-plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
-plot_dt_long[variable == 'L', plot_name := 'b) L (% change)']
-plot_dt_long[variable == 'Y_corn', plot_name := 'c) Yield kg/ha']
-plot_dt_long[variable == 'P', plot_name := 'd) Profits $/ha']
-plot_dt_long[variable == 'G', plot_name := 'e) G $/ha']
-plot_dt_long[variable == 'E', plot_name := 'f) E $/ha']
-plot_dt_long[variable == 'W', plot_name := 'g) W $/ha']
-plot_dt_long[order(variable)]
+
+plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L', 'Y_corn', 'P', 'G', 'E','W'),
+                                        labels = c(expression("Fertilizer (N kg " * ha^"-1" *yr^"-1"* ")"), 
+                                                   # expression("L ('%'change)"), 
+                                                   # "'%'*V",
+                                                   expression("L ("*'%'*" change)"),
+                                                   expression("Corn Yield (kg N " * ha^"-1" *yr^"-1"* ")"), 
+                                                   expression("P ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("G ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("E ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("W ($ " * ha^"-1" * yr^"-1"* ")")))]
 
 plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L', 'Y_corn')] 
 
 
-hline_dt <- data.table(plot_name = unique(plot_dt_long1$plot_name))
-hline_dt[plot_name == 'c) Yield kg/ha', y_line := baselevel_Y_corn*0.95]
-hline_dt[plot_name == 'c) Yield kg/ha', y_label := '95% baselevel']
-hline_dt[plot_name == 'b) L (% change)', y_line  := 0]
+hline_dt <- data.table(unique(plot_dt_long1[,.(variable, variable_labels)]))
+hline_dt[variable == 'Y_corn', y_line := baselevel_Y_corn*0.95]
+hline_dt[variable == 'Y_corn', y_label := '95% baselevel']
+hline_dt[variable == 'L', y_line  := 0]
 
-plot_1 <- ggplot() +
-  geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, linetype = NMS)) +
-  scale_linetype_manual(values = c("dashed", "solid"))+
-  geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
-  # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
-  facet_grid(plot_name~., scales = "free") +
-  scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
-  xlab('L reduction target')+
-  # geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
-  theme_bw()+
-  theme(panel.grid = element_blank(), 
-        legend.position = "none",
-        axis.title.y = element_blank())
-plot_1
+#----
+# ADD letters outside plot (go down) https://stackoverflow.com/questions/12409960/ggplot2-annotate-outside-of-plot
+ann_text <- plot_dt_long[,.(x = min(policy_val)-0.08,
+                            value = max(value)), by = .(variable, variable_labels)]
+#Sort in the right order
+ann_text <- ann_text[match(c('N_fert', 'L', 'Y_corn', 'P', 'E','W'), ann_text$variable),]
+ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)")]
+ann_text
+#----
+
+(plot_1 <- ggplot() +
+    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+    # scale_colour_manual(values = c("black", "brown"))+
+    geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, color = NMS)) +
+    # scale_linetype_manual(values = c("dashed", "solid"))+
+    geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+    # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
+    scale_color_manual(values=c("royalblue2", "tomato3"))+   
+    geom_text(data = ann_text[variable %in% unique(plot_dt_long1$variable)], aes(y = value, x = x, label = lab),              
+              hjust = 0, size = 8) +     
+    coord_cartesian(xlim = c(0.7, 1), # This focuses the x-axis on the range of interest                     
+                    clip = 'off') +   # This keeps the labels from disappearing   
+    facet_wrap(variable_labels~., 
+               ncol = 1,
+               labeller = label_parsed,
+               scales="free",
+               strip.position = "left") +
+    scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+    xlab('L reduction target')+
+    theme_bw()+
+    theme(panel.grid = element_blank(), 
+          strip.background = element_blank(),
+          strip.placement = "outside",
+          panel.spacing = unit(1.5, "lines"),
+          # axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          legend.position = "none",
+          plot.margin =  unit(c(2,1,1,1), "lines"))
+)
 
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn', 'G')] 
 
-plot_2 <- ggplot(plot_dt_long2)+
-  geom_line(aes(x = policy_val, y =  value, linetype = NMS)) +
-  scale_linetype_manual(values = c("dashed", "solid"))+
-  facet_grid(plot_name~., scales = "free") +
-  scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
-  xlab('L reduction target')+
-  # geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
-  theme_bw()+
-  theme(panel.grid = element_blank(), 
-        axis.title.y = element_blank())
-
-plot_2
+(plot_2 <- ggplot() +
+    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+    # scale_colour_manual(values = c("black", "brown"))+
+    geom_line(data = plot_dt_long2, aes(x = policy_val, y =  value, color = NMS)) +
+    # scale_linetype_manual(values = c("dashed", "solid"))+
+    # geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+    # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
+      scale_color_manual(values=c("royalblue2", "tomato3"))+   
+    geom_text(data = ann_text[variable %in% unique(plot_dt_long2$variable)], aes(y = value, x = x, label = lab),              
+              hjust = 0, size = 8) +     
+    coord_cartesian(xlim = c(0.7, 1), # This focuses the x-axis on the range of interest                     
+                    clip = 'off') +   # This keeps the labels from disappearing   
+    facet_wrap(variable_labels~., 
+               ncol = 1,
+               labeller = label_parsed,
+               scales="free",
+               strip.position = "left") +
+    scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+    xlab('L reduction target')+
+    theme_bw()+
+    theme(panel.grid = element_blank(), 
+          strip.background = element_blank(),
+          strip.placement = "outside",
+          panel.spacing = unit(1.5, "lines"),
+          # axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          plot.margin =  unit(c(2,1,1,1), "lines"))
+)
 
 ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
        filename = "./n_policy_box/Data/figures/Lred_all_vars.jpg", width = 979/300*3, height = 1042/300*3,
@@ -316,52 +412,96 @@ ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
                                                                                  'P', 'G', 'E','W'))
-plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
-plot_dt_long[variable == 'L', plot_name := 'b) L (% change)']
-plot_dt_long[variable == 'Y_corn', plot_name := 'c) Yield kg/ha']
-plot_dt_long[variable == 'P', plot_name := 'd) Profits $/ha']
-plot_dt_long[variable == 'G', plot_name := 'e) G $/ha']
-plot_dt_long[variable == 'E', plot_name := 'f) E $/ha']
-plot_dt_long[variable == 'W', plot_name := 'g) W $/ha']
-plot_dt_long[order(variable)]
+
+plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L', 'Y_corn', 'P', 'G', 'E','W'),
+                                        labels = c(expression("Fertilizer (N kg " * ha^"-1" *yr^"-1"* ")"), 
+                                                   # expression("L ('%'change)"), 
+                                                   # "'%'*V",
+                                                   expression("L ("*'%'*" change)"),
+                                                   expression("Corn Yield (kg N " * ha^"-1" *yr^"-1"* ")"), 
+                                                   expression("P ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("G ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("E ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("W ($ " * ha^"-1" * yr^"-1"* ")")))]
 
 plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L', 'Y_corn')] 
 
 
-hline_dt <- data.table(plot_name = unique(plot_dt_long1$plot_name))
-hline_dt[plot_name == 'c) Yield kg/ha', y_line := baselevel_Y_corn*0.95]
-hline_dt[plot_name == 'c) Yield kg/ha', y_label := '95% baselevel']
-hline_dt[plot_name == 'b) L (% change)', y_line  := 0]
+hline_dt <- data.table(unique(plot_dt_long1[,.(variable, variable_labels)]))
+hline_dt[variable == 'Y_corn', y_line := baselevel_Y_corn*0.95]
+hline_dt[variable == 'Y_corn', y_label := '95% baselevel']
+hline_dt[variable == 'L', y_line  := 0]
 
-plot_1 <- ggplot() +
-  geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, linetype = NMS)) +
-  scale_linetype_manual(values = c("dashed", "solid"))+
-  geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
-  # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
-  facet_grid(plot_name~., scales = "free") +
-  scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
-  xlab('Fee on L ($/kg)')+
-  # geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
-  theme_bw()+
-  theme(panel.grid = element_blank(), 
-        legend.position = "none",
-        axis.title.y = element_blank())
-plot_1
+#----
+# ADD letters outside plot (go down) https://stackoverflow.com/questions/12409960/ggplot2-annotate-outside-of-plot
+ann_text <- plot_dt_long[,.(x = min(policy_val)-7,
+                            value = max(value)), by = .(variable, variable_labels)]
+#Sort in the right order
+ann_text <- ann_text[match(c('N_fert', 'L', 'Y_corn', 'P', 'G', 'E','W'), ann_text$variable),]
+ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)")]
+#----
+
+(plot_1 <- ggplot() +
+    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+    # scale_colour_manual(values = c("black", "brown"))+
+    geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, color = NMS)) +
+    # scale_linetype_manual(values = c("dashed", "solid"))+
+    geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+    # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
+     scale_color_manual(values=c("royalblue2", "tomato3"))+   
+   geom_text(data = ann_text[variable %in% unique(plot_dt_long1$variable)], aes(y = value, x = x, label = lab),              
+             hjust = 0, size = 8) +     
+   coord_cartesian(xlim = c(min(unique(plot_dt$policy_val)), max(unique(plot_dt$policy_val))), # This focuses the x-axis on the range of interest                     
+                   clip = 'off') +   # This keeps the labels from disappearing
+    facet_wrap(variable_labels~., 
+               ncol = 1,
+               labeller = label_parsed,
+               scales="free",
+               strip.position = "left") +
+    scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+    xlab('Fee on L ($/kg)')+
+    theme_bw()+
+    theme(panel.grid = element_blank(), 
+          strip.background = element_blank(),
+          strip.placement = "outside",
+          panel.spacing = unit(1.5, "lines"),
+          # axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          legend.position = "none",
+          plot.margin =  unit(c(2,1,1,1), "lines"))
+)
 
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn')] 
 
-plot_2 <- ggplot(plot_dt_long2)+
-  geom_line(aes(x = policy_val, y =  value, linetype = NMS)) +
-  scale_linetype_manual(values = c("dashed", "solid"))+
-  facet_grid(plot_name~., scales = "free") +
-  scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
-  xlab('Fee on L ($/kg)')+
-  # geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
-  theme_bw()+
-  theme(panel.grid = element_blank(), 
-        axis.title.y = element_blank())
+(plot_2 <- ggplot() +
+    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+    # scale_colour_manual(values = c("black", "brown"))+
+    geom_line(data = plot_dt_long2, aes(x = policy_val, y =  value, color = NMS)) +
+    # scale_linetype_manual(values = c("dashed", "solid"))+
+    # geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+    # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
+     scale_color_manual(values=c("royalblue2", "tomato3"))+   
+    geom_text(data = ann_text[variable %in% unique(plot_dt_long2$variable)], aes(y = value, x = x, label = lab),              
+              hjust = 0, size = 8) +     
+    coord_cartesian(xlim = c(min(unique(plot_dt$policy_val)), max(unique(plot_dt$policy_val))), # This focuses the x-axis on the range of interest                     
+                    clip = 'off') +   # This keeps the labels from disappearing
+    facet_wrap(variable_labels~., 
+               ncol = 1,
+               labeller = label_parsed,
+               scales="free",
+               strip.position = "left") +
+    scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+    xlab('Fee on L ($/kg)')+
+    theme_bw()+
+    theme(panel.grid = element_blank(), 
+          strip.background = element_blank(),
+          strip.placement = "outside",
+          panel.spacing = unit(1.5, "lines"),
+          # axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          plot.margin =  unit(c(2,1,1,1), "lines"))
+)
 
-plot_2
 
 ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
        filename = "./n_policy_box/Data/figures/fee_all_vars.jpg", width = 979/300*3, height = 1042/300*3,

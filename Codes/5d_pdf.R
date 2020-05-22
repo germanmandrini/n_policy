@@ -62,7 +62,7 @@ ann_text <- data.frame(y = c(0.00075, 0.0005, 0.035, 0.05,
                        variable = unique(pdf_dt_long$variable))
 
 # FROM https://stackoverflow.com/questions/37573155/showing-different-axis-labels-using-ggplot2-with-facet-wrap
-plot_1 <- ggplot() +
+(plot_1 <- ggplot() +
   geom_density(data = pdf_dt_long, aes(x=value, color = policy, fill = policy), alpha = 0.4) +
   #scale_linetype_manual(values = c("dashed", "solid"))+
   #geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
@@ -94,7 +94,7 @@ plot_1 <- ggplot() +
         #legend.position = c(0, 1), 
         legend.justification = c(0, 0),
         legend.direction = "horizontal",
-        legend.position = "top")
+        legend.position = "top"))
 
 
 # I agree with most of the comments that it would be easier to make seperate plots. A painpoint of such an approach is often that the alignment of the axes is off. To counteract this, I'll point towards the patchwork package, that takes out most of this pain.
