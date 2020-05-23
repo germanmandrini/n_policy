@@ -133,6 +133,7 @@ if(FALSE){
   perfomances_dt5[,E := L * 0.4 * Pe_med]
   perfomances_dt5[,W := P + G - E]
   
+  perfomances_dt5[,policy_name := as.character(policy_name)]
   saveRDS(perfomances_dt5, "./n_policy_box/Data/files_rds/perfomances_dt5.rds")
   
 }  
