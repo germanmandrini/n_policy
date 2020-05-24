@@ -297,14 +297,14 @@ plot_dt <- perfomances_dt5[policy_name == 'nred' & NMS %in% c('1','2') & policy_
 compare_dt <- perfomances_dt5[policy == 'ratio_6' | policy == 'nred_1' | policy == 'fee_0' & NMS %in% c('1','2')]
 compare_dt[,L := round((L / baselevel_n) - 1,2)*100 ]
 
+# plot_dt[,L_red := round(1-(L / baselevel_n),2)*100 ]
 plot_dt[,L := round((L / baselevel_n) - 1,2)*100 ]
-
 plot_dt[,.SD[W == max(W)], by = NMS] #peak in W
-
+plot_dt[,policy_val  := (1-policy_val )*100]
 ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
-                                                                                 'P', 'G', 'E','W'))
+                                                                                 'P', 'G', 'E','W')) %>% data.table()
 
 plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L', 'Y_corn', 'P', 'G', 'E','W'),
                                         labels = c(expression("Fertilizer (N kg " * ha^"-1" *yr^"-1"* ")"), 
@@ -327,7 +327,7 @@ hline_dt[variable == 'L', y_line  := 0]
 
 #----
 # ADD letters outside plot (go down) https://stackoverflow.com/questions/12409960/ggplot2-annotate-outside-of-plot
-ann_text <- plot_dt_long[,.(x = min(policy_val)-0.08,
+ann_text <- plot_dt_long[,.(x = min(policy_val)-7,
                             value = max(value)), by = .(variable, variable_labels)]
 #Sort in the right order
 ann_text <- ann_text[match(c('N_fert', 'L', 'Y_corn', 'P', 'E','W'), ann_text$variable),]
@@ -345,7 +345,7 @@ ann_text
     scale_color_manual(values=c("royalblue2", "tomato3"))+   
     geom_text(data = ann_text[variable %in% unique(plot_dt_long1$variable)], aes(y = value, x = x, label = lab),              
               hjust = 0, size = 8) +     
-    coord_cartesian(xlim = c(0.7, 1), # This focuses the x-axis on the range of interest                     
+    coord_cartesian(xlim = c(0, 30), # This focuses the x-axis on the range of interest                     
                     clip = 'off') +   # This keeps the labels from disappearing   
     facet_wrap(variable_labels~., 
                ncol = 1,
@@ -353,7 +353,7 @@ ann_text
                scales="free",
                strip.position = "left") +
     scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
-    xlab('L reduction target')+
+    xlab('L reduction target (%)')+
     theme_bw()+
     theme(panel.grid = element_blank(), 
           strip.background = element_blank(),
@@ -377,7 +377,7 @@ plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn', 'G')]
       scale_color_manual(values=c("royalblue2", "tomato3"))+   
     geom_text(data = ann_text[variable %in% unique(plot_dt_long2$variable)], aes(y = value, x = x, label = lab),              
               hjust = 0, size = 8) +     
-    coord_cartesian(xlim = c(0.7, 1), # This focuses the x-axis on the range of interest                     
+    coord_cartesian(xlim = c(0, 30), # This focuses the x-axis on the range of interest                     
                     clip = 'off') +   # This keeps the labels from disappearing   
     facet_wrap(variable_labels~., 
                ncol = 1,
@@ -385,7 +385,7 @@ plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn', 'G')]
                scales="free",
                strip.position = "left") +
     scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
-    xlab('L reduction target')+
+    xlab('L reduction target (%)')+
     theme_bw()+
     theme(panel.grid = element_blank(), 
           strip.background = element_blank(),
@@ -1742,3 +1742,4 @@ dat.m <- melt(economics_dt,id.vars= c('id_10', 'id_field',  'z'), measure.vars=c
           strip.text = element_blank()))
 
 ggsave(p, filename = "./n_policy_box/Data/figures/value_boxplot.jpg")
+
