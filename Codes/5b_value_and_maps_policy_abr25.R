@@ -15,7 +15,7 @@ source('./Codes_useful/R.libraries.R')
 # library(scales)
 source('./Codes_useful/gm_functions.R')
 source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
-
+"~/n_policy_git/Codes/parameters.R"
 
 # source('./Codes_useful/gm_functions.R')
 if(FALSE){
@@ -130,7 +130,8 @@ if(FALSE){
   perfomances_dt5[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
   perfomances_dt5[,policy_name := lapply(perfomances_dt5$policy, function(x) str_split(x, pattern = '_')[[1]][1])]
   
-  perfomances_dt5[,E := L * 0.4 * Pe_med]
+  # perfomances_dt5[,E := L * 0.4 * Pe_med]
+  perfomances_dt5[,E := L * Pe_total]
   perfomances_dt5[,W := P + G - E]
   
   perfomances_dt5[,policy_name := as.character(policy_name)]
@@ -140,7 +141,7 @@ if(FALSE){
 
 perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 
-perfomances_dt5[,.SD[W == max(W)], by = NMS] #peak in W
+perfomances_dt5[,.SD[W == max(W)], by = .(policy_name)] #peak in W
 
 #==========================================================================
 # RATIO CHART 2
@@ -291,7 +292,7 @@ ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1),
 #==========================================================================
 # LRED CHART
 
-plot_dt <- perfomances_dt5[policy_name == 'nred' & NMS %in% c('1','2') & policy_val <= 20 ] 
+plot_dt <- perfomances_dt5[policy_name == 'nred' & NMS %in% c('1','2') & policy_val <= 20 ][order(NMS, -policy_val)]
 
 
 compare_dt <- perfomances_dt5[policy == 'ratio_6' | policy == 'nred_1' | policy == 'fee_0' & NMS %in% c('1','2')]
@@ -529,15 +530,17 @@ cols_1 <- c('N_fert', 'Y_corn', 'L', 'P', 'G',  'E', 'W')
 latex_table_dt[,(cols_1) := round(.SD,1), .SDcols=cols_1]
 latex_table_dt[,Y_corn := round(Y_corn, 0)]
 
+setnames(latex_table_dt, c('policy_name', 'policy_val', 'N_fert', 'Y_corn', 'L', 'P', 'G',  'E', 'W'),
+                               c('policy', 'level', 'N rate (kg/ha)', 'Y_corn (kg/ha)', 'L (kg/ha)', 'Profits ($/ha)', 'G ($/ha)',  'E ($/ha)', 'W ($/ha)'))
 
-setnames(latex_table_dt, c('policy_name', 'policy_val', 'N_fert', 'P'),
-                               c('policy', 'level', 'N rate', 'Profits'))
+latex_table_xt <- xtable(latex_table_dt, type = "latex", auto = TRUE, label = 'tab:w_maximization', 
+       caption = 'Indicators for the level that maximized W for each policy and NMS combination, ordered by their W. 
+       The base-level system is also shown as a benchmark')
+
+align( latex_table_xt ) <- c( 'l', 'p{1.5in}', rep('c',9) )
 
 library('xtable')
-print(xtable(latex_table_dt, type = "latex", auto = TRUE, label = 'tab:w_maximization', 
-             caption = 'Indicators for the level that maximized W for each policy and NMS combination, 
-             ordered by their W. The base-level system is also shown as a benchmark'), 
-      file = "./n_policy_box/Data/figures/w_maximization.tex", include.rownames=FALSE)
+print(latex_table_xt, file = "./n_policy_box/Data/figures/w_maximization.tex", include.rownames=FALSE)
 
 
 
@@ -598,7 +601,7 @@ table_dt[,Y_corn_red := round((Y_corn / baselevel_Y_corn),2)]
 
 table_dt[,soc_benefits := P + G]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
-table_dt[,externatility := ifelse((L - target_n) > 0, (L -target_n)*Pe_med,0)] #externalities are pay for each kg above the 45% target
+table_dt[,externatility := ifelse((L - target_n) > 0, (L -target_n)*Pe_total,0)] #externalities are pay for each kg above the 45% target
 table_dt[,soc_welfare := soc_benefits - externatility ]
 table_dt <- table_dt[order(-soc_welfare)][1:40]
 table_dt
@@ -756,7 +759,7 @@ plot_dt <- perfomances_dt5[policy_name == 'nred' & NMS %in% c('1_ok','2','3','4'
 
 plot_dt[,soc_benefits := P + G]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
-plot_dt[,externatility := ifelse((L - target_n) > 0, (L -target_n)*Pe_med,0)]
+plot_dt[,externatility := ifelse((L - target_n) > 0, (L -target_n)*Pe_total,0)]
 plot_dt[,soc_welfare := soc_benefits - externatility ]
 plot_dt[order(-soc_welfare)][1:40]
 
