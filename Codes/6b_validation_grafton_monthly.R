@@ -201,9 +201,9 @@ corr_num <- round(cor(validation_dt4_season$L, validation_dt4_season$NO3.kg.sec)
     labs(y=expression(paste("Grafton N-", NO[3],"(kg sec"^"-1",")",sep="")),
          x = expression(paste("State L (kg ha"^"-1", "year"^"-1",")")))+
     #geom_text(x = 20, y = 30, label = 'equation', parse = TRUE)+
-    annotate("text", x=10, y=4, label= "y=0.93x + 8.12", size = 4)+
-    annotate("text", x=10, y=3, label= expression(paste("R"^"2", "= 0.20")), size = 4)+
-    annotate("text", x=10, y=2, label= paste("correlation =",  corr_num), size = 4)+
+    annotate("text", x=8, y=4, label= "y=0.93x + 8.12", size = 4, hjust = 0)+
+    annotate("text", x=8, y=3, label= expression(paste("R"^"2", "= 0.20")), size = 4, hjust = 0)+
+    annotate("text", x=8, y=2, label= paste("correlation =",  corr_num), size = 4, hjust = 0)+
     theme_bw()+
     theme(panel.grid = element_blank())+
     annotate("text", x=0.3, y=25, label= "b)", size = 8) )

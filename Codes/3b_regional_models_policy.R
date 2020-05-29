@@ -20,8 +20,8 @@ reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
 names(reg_model_stuff)
 reg_model_stuff[['yr_0.95']]
 
-remove_list <- names(reg_model_stuff)[!names(reg_model_stuff) %in% c("full_fields", "stations", "TrainSet","training_z", "model_minimum_regional",
-                                                                     "minimum_ok")]
+
+remove_list <- names(reg_model_stuff)[!names(reg_model_stuff) %in% c("full_fields", "stations", "TrainSet","training_z")]
 for(n in remove_list){
   reg_model_stuff[[n]] <- NULL
 }
@@ -51,11 +51,14 @@ TrainSet2[,leach_n := leach_1 + leach_2]
 # =========================================================================================================================================================
 # CREATE THE N RATIO TAX MODEL
 
-ratio_seq <- seq(2, 20, by = 2)
+ratio_seq <- sort(c(seq(2, 20, by = 1), 7.5, 8.5, 11.5,12.5))
 set.seed(123)
 
 for(ratio_n in ratio_seq){
   # ratio_n = Pn/Pc
+  name_model = paste0('ratio_', ratio_n)
+  if(name_model %in% names(reg_model_stuff)){next}
+  
   small_model_list <- list()
   Pn_tmp = ratio_n * Pc
   print(Pn_tmp/Pc)
@@ -64,39 +67,39 @@ for(ratio_n in ratio_seq){
   # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL
   
-  #Analysis included only responsive sites (sawyer 2006)
-  TrainSet2[, Yld_response := max(Yld) - min(Yld), by = .(id_10, mukey,z)]
-  TrainSet_RMM <- TrainSet2[Yld_response > 500]
-  
-  #Select a few rates
-  #Alll this comes from https://rcompanion.org/handbook/I_11.html
-  # N_rates_trial <- c(10, 90,170,250, 330)
-  N_rates_trial <- seq(10,330,10)
-  
-  quadratic_dt <- TrainSet_RMM[,list(intercept=coef(lm(P ~ N_fert + I(N_fert^2)))[1], 
-                                     coef1=coef(lm(P ~ N_fert + I(N_fert^2)))[2],
-                                     coef2=coef(lm(P ~ N_fert + I(N_fert^2)))[3]),by=.(id_10, mukey,z, region)]
-  
-  # Expand and calculate P
-  N_rates_int <- seq(min(N_rates_trial),max(N_rates_trial), by = 10)
-  quadratic_dt2 <- quadratic_dt[rep(x = 1:nrow(quadratic_dt), each = length(N_rates_int))]
-  
-  
-  
-  quadratic_dt2[,N_fert := rep(N_rates_int, nrow(quadratic_dt))]
-  quadratic_dt2[,P := intercept + coef1 * N_fert + coef2 * (N_fert^2)]
-  # quadratic_dt2[,P:= Yld * Pc - N_fert * Pn]
-  
-  #Average all curves
-  quadratic_dt3 <- quadratic_dt2[,.(P_avg = mean(P)), by = .(region, N_fert)]
-  ggplot(quadratic_dt3) + geom_point(aes(x = N_fert, y = P_avg, colour = interaction(region)))
-  
-  #Select EONR
-  model_minimum_regional <- quadratic_dt3[, .SD[ P_avg == max( P_avg)], by = .(region)][,.( region, N_fert)]
-  setnames(model_minimum_regional, 'N_fert', 'eonr_pred')
-  
-  name_model = paste0('minimum')
-  small_model_list[[name_model]] <- model_minimum_regional
+  # #Analysis included only responsive sites (sawyer 2006)
+  # TrainSet2[, Yld_response := max(Yld) - min(Yld), by = .(id_10, mukey,z)]
+  # TrainSet_RMM <- TrainSet2[Yld_response > 500]
+  # 
+  # #Select a few rates
+  # #Alll this comes from https://rcompanion.org/handbook/I_11.html
+  # # N_rates_trial <- c(10, 90,170,250, 330)
+  # N_rates_trial <- seq(10,330,10)
+  # 
+  # quadratic_dt <- TrainSet_RMM[,list(intercept=coef(lm(P ~ N_fert + I(N_fert^2)))[1], 
+  #                                    coef1=coef(lm(P ~ N_fert + I(N_fert^2)))[2],
+  #                                    coef2=coef(lm(P ~ N_fert + I(N_fert^2)))[3]),by=.(id_10, mukey,z, region)]
+  # 
+  # # Expand and calculate P
+  # N_rates_int <- seq(min(N_rates_trial),max(N_rates_trial), by = 10)
+  # quadratic_dt2 <- quadratic_dt[rep(x = 1:nrow(quadratic_dt), each = length(N_rates_int))]
+  # 
+  # 
+  # 
+  # quadratic_dt2[,N_fert := rep(N_rates_int, nrow(quadratic_dt))]
+  # quadratic_dt2[,P := intercept + coef1 * N_fert + coef2 * (N_fert^2)]
+  # # quadratic_dt2[,P:= Yld * Pc - N_fert * Pn]
+  # 
+  # #Average all curves
+  # quadratic_dt3 <- quadratic_dt2[,.(P_avg = mean(P)), by = .(region, N_fert)]
+  # ggplot(quadratic_dt3) + geom_point(aes(x = N_fert, y = P_avg, colour = interaction(region)))
+  # 
+  # #Select EONR
+  # model_minimum_regional <- quadratic_dt3[, .SD[ P_avg == max( P_avg)], by = .(region)][,.( region, N_fert)]
+  # setnames(model_minimum_regional, 'N_fert', 'eonr_pred')
+  # 
+  # name_model = paste0('minimum')
+  # small_model_list[[name_model]] <- model_minimum_regional
   
   # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL - OK
@@ -124,14 +127,14 @@ for(ratio_n in ratio_seq){
   #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
   # 
   # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
-  best.m = 6
-  
-  rf1_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2[,c('eonr',no_cost_varb), with = FALSE],
-                          importance = TRUE , mtry = best.m, ntree=1000) # , ntree=500, nodesize = 20
-  
-  varImpPlot(rf1_eonr, type=2)
-  name_model = paste0('rf1')
-  small_model_list[[name_model]] <- rf1_eonr
+  # best.m = 6
+  # 
+  # rf1_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2[,c('eonr',no_cost_varb), with = FALSE],
+  #                         importance = TRUE , mtry = best.m, ntree=1000) # , ntree=500, nodesize = 20
+  # 
+  # varImpPlot(rf1_eonr, type=2)
+  # name_model = paste0('rf1')
+  # small_model_list[[name_model]] <- rf1_eonr
   
   # --------------------------------------
   # RF Model 2------------------------
@@ -156,8 +159,9 @@ for(ratio_n in ratio_seq){
 
 # =========================================================================================================================================================
 # CREATE THE LEACHING FEE MODEL
-fee_seq <- seq(0, Pe_max, by = 4)
 source('./n_policy_git/Codes/parameters.R')
+fee_seq <- sort(c(seq(0, 16, by = 1), Pe_total, 10.5, 11))
+
 set.seed(123)
 
 # CHECK IF THE DATA FOR CURRENT RATIO IS THE SAME THAN FEE_0
@@ -172,6 +176,10 @@ set.seed(123)
 for(fee_n in fee_seq){
   # fee_n = 0
   print(fee_n)
+  
+  name_model = paste0('fee_', fee_n)
+  if(name_model %in% names(reg_model_stuff)){next}
+  
   small_model_list <- list()
   TrainSet2[, P := Yld * Pc + Yld_soy * Ps - N_fert * Pn - leach_n * fee_n] #update profits
   
@@ -179,41 +187,41 @@ for(fee_n in fee_seq){
   # CREATE THE REGIONAL MINIMUM MODEL
   
   #Analysis included only responsive sites (sawyer 2006)
-  TrainSet2[, Yld_response := max(Yld) - min(Yld), by = .(id_10, mukey,z)]
-  TrainSet_RMM <- TrainSet2[Yld_response > 500]
-  
-  #Removes N_fert closer to the max yield
-  TrainSet_RMM[ , Yld_plateau_max := max(Yld), by = .(id_10, mukey,z)]
-  TrainSet_RMM[ , Yld_plateau_dist := Yld_plateau_max - Yld]
-  TrainSet_RMM[ Yld_plateau_dist > 30, yld_area := 'quadratic']
-  TrainSet_RMM[is.na(yld_area), yld_area := 'plateau']
-  
-  #Select a few rates
-  #Alll this comes from https://rcompanion.org/handbook/I_11.html
-
-  unique(TrainSet_RMM$id_10)
-  ggplot(TrainSet_RMM[id_10 == 761]) + geom_point(aes(x = N_fert, y = Yld, colour = interaction(id_10, mukey, z)))
-  
-  #Fit a line for P points in each trial (soil,z)
-  quadratic_dt <- TrainSet_RMM[yld_area == 'quadratic', list(intercept=coef(lm(Yld ~ N_fert + I(N_fert^2)))[1], 
-                                     coef1=coef(lm(Yld ~ N_fert + I(N_fert^2)))[2],
-                                     coef2=coef(lm(Yld ~ N_fert + I(N_fert^2)))[3]), by=.(id_10, mukey,z)]
-  
-  # Calculate Yld with new regression line
-  TrainSet_RMM <- merge(TrainSet_RMM, quadratic_dt, by = c('id_10', 'mukey', 'z'))
-  TrainSet_RMM[yld_area == 'plateau', Yld := mean(Yld), by = c('id_10', 'mukey', 'z')]
-  TrainSet_RMM[yld_area == 'quadratic', Yld := intercept + coef1 * N_fert + coef2 * (N_fert^2)]
-  
-  #Average all curves profits by region
-  TrainSet_RMM[, P := Yld * Pc + Yld_soy * Ps - N_fert * Pn - leach_n * fee_n]
-  TrainSet_RMM2 <- TrainSet_RMM[,.(P_avg = mean(P)), by = .(region, N_fert)]
-  ggplot(TrainSet_RMM2) + geom_point(aes(x = N_fert, y = P_avg, colour = interaction(region)))
-  
-  #Select EONR
-  model_minimum_regional <- TrainSet_RMM2[, .SD[ P_avg == max( P_avg)], by = .(region)][,.( region, eonr_pred = N_fert)]
-  
-  name_model = paste0('minimum')
-  small_model_list[[name_model]] <- model_minimum_regional
+  # TrainSet2[, Yld_response := max(Yld) - min(Yld), by = .(id_10, mukey,z)]
+  # TrainSet_RMM <- TrainSet2[Yld_response > 500]
+  # 
+  # #Removes N_fert closer to the max yield
+  # TrainSet_RMM[ , Yld_plateau_max := max(Yld), by = .(id_10, mukey,z)]
+  # TrainSet_RMM[ , Yld_plateau_dist := Yld_plateau_max - Yld]
+  # TrainSet_RMM[ Yld_plateau_dist > 30, yld_area := 'quadratic']
+  # TrainSet_RMM[is.na(yld_area), yld_area := 'plateau']
+  # 
+  # #Select a few rates
+  # #Alll this comes from https://rcompanion.org/handbook/I_11.html
+  # 
+  # unique(TrainSet_RMM$id_10)
+  # ggplot(TrainSet_RMM[id_10 == 761]) + geom_point(aes(x = N_fert, y = Yld, colour = interaction(id_10, mukey, z)))
+  # 
+  # #Fit a line for P points in each trial (soil,z)
+  # quadratic_dt <- TrainSet_RMM[yld_area == 'quadratic', list(intercept=coef(lm(Yld ~ N_fert + I(N_fert^2)))[1], 
+  #                                    coef1=coef(lm(Yld ~ N_fert + I(N_fert^2)))[2],
+  #                                    coef2=coef(lm(Yld ~ N_fert + I(N_fert^2)))[3]), by=.(id_10, mukey,z)]
+  # 
+  # # Calculate Yld with new regression line
+  # TrainSet_RMM <- merge(TrainSet_RMM, quadratic_dt, by = c('id_10', 'mukey', 'z'))
+  # TrainSet_RMM[yld_area == 'plateau', Yld := mean(Yld), by = c('id_10', 'mukey', 'z')]
+  # TrainSet_RMM[yld_area == 'quadratic', Yld := intercept + coef1 * N_fert + coef2 * (N_fert^2)]
+  # 
+  # #Average all curves profits by region
+  # TrainSet_RMM[, P := Yld * Pc + Yld_soy * Ps - N_fert * Pn - leach_n * fee_n]
+  # TrainSet_RMM2 <- TrainSet_RMM[,.(P_avg = mean(P)), by = .(region, N_fert)]
+  # ggplot(TrainSet_RMM2) + geom_point(aes(x = N_fert, y = P_avg, colour = interaction(region)))
+  # 
+  # #Select EONR
+  # model_minimum_regional <- TrainSet_RMM2[, .SD[ P_avg == max( P_avg)], by = .(region)][,.( region, eonr_pred = N_fert)]
+  # 
+  # name_model = paste0('minimum')
+  # small_model_list[[name_model]] <- model_minimum_regional
   # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL - OK
   
@@ -241,14 +249,14 @@ for(fee_n in fee_seq){
   # 
   # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
   # 
-  best.m <- 6
-  
-  rf1_eonr <- randomForest(eonr ~ ., 
-                           data = TrainSet_eonr2[,c('eonr',no_cost_varb), with = FALSE],
-                           importance = TRUE , mtry = best.m, ntree=1000) # , ntree=500, nodesize = 20
-  
-  name_model = paste0('rf1')
-  small_model_list[[name_model]] <- rf1_eonr
+  # best.m <- 6
+  # 
+  # rf1_eonr <- randomForest(eonr ~ ., 
+  #                          data = TrainSet_eonr2[,c('eonr',no_cost_varb), with = FALSE],
+  #                          importance = TRUE , mtry = best.m, ntree=1000) # , ntree=500, nodesize = 20
+  # 
+  # name_model = paste0('rf1')
+  # small_model_list[[name_model]] <- rf1_eonr
   
   # --------------------------------------
   # RF Model 2------------------------
@@ -291,10 +299,13 @@ TrainSet_nr[leach_n > 0 & leach_base == 0, leach_rel := leach_n/0.0001] #avoid d
 
 TrainSet_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)]
 
-red_seq <- seq(0.7, 1, by = 0.05)
+red_seq <- seq(0.7, 1.2, by = 0.01)
 
 for(n_red in red_seq){
   # n_red = 1
+  name_model = paste0('nred_', n_red)
+  if(name_model %in% names(reg_model_stuff)){next}
+  
   print(n_red)
   small_model_list <- list()
 
@@ -363,13 +374,13 @@ for(n_red in red_seq){
   #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
   # 
   # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
-  best.m <- 6
-  
-  rf1_eonr <- randomForest(eonr ~ ., data = TrainSet_nr_tmp[,c('eonr',no_cost_varb), with = FALSE],
-                           importance = TRUE , mtry = best.m, ntree=1000) # , ntree=500, nodesize = 20
-  
-  name_model = paste0('rf1')
-  small_model_list[[name_model]] <- rf1_eonr
+  # best.m <- 6
+  # 
+  # rf1_eonr <- randomForest(eonr ~ ., data = TrainSet_nr_tmp[,c('eonr',no_cost_varb), with = FALSE],
+  #                          importance = TRUE , mtry = best.m, ntree=1000) # , ntree=500, nodesize = 20
+  # 
+  # name_model = paste0('rf1')
+  # small_model_list[[name_model]] <- rf1_eonr
   # --------------------------------------
   # RF Model 2------------------------
   # mtry <- tuneRF(TrainSet_nr_tmp[,c(no_cost_varb, ss_varb), with = FALSE],TrainSet_nr_tmp$eonr, ntreeTry=1000,
