@@ -90,13 +90,13 @@ if(FALSE){
   if(FALSE){
     #First aggregate without z so then we can get the leach_extreme
     perfomances_dt3 <- aggregate_by_area(data_dt = perfomances_dt2, variables = do_aggregate, 
-                                         weight = 'area_ha', by_c = do_not_aggregate) #cell x z level (mukey and field are out)
+                                         weight = 'area_ha', by_c = do_not_aggregate) #cell x z level (field is out)
   }else{
     split_list <- split(perfomances_dt2,perfomances_dt2$region)
     split_list_output <- list()
     for(split_list_n in split_list){
       split_list_output[[unique(split_list_n$region)]] <- aggregate_by_area(data_dt = split_list_n, variables = do_aggregate, 
-                                                                       weight = 'area_ha', by_c = do_not_aggregate) #field x z level (mukey is out)
+                                                                       weight = 'area_ha', by_c = do_not_aggregate) #cell x z level (field is out)
     }
     
     perfomances_dt3 <- rbindlist(split_list_output)
@@ -115,7 +115,7 @@ if(FALSE){
                                          N_fert = mean(N_fert),
                                          P = mean(P), 
                                          G = mean(G),
-                                         area_ha = mean(area_ha)), by = .(policy,region, id_10, NMS, tech)] #cell 
+                                         area_ha = mean(area_ha)), by = .(policy,region, id_10, NMS, tech)] #cell (z is out)
   
   #---------------------------------------------------------------------------
   # AGGREGATE AGAIN CONSIDERING THE CORN PRODUCTION OF THE CELL
@@ -164,7 +164,8 @@ if(FALSE){
 perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 perfomances_dt5 <- perfomances_dt5[Y_corn_change >=0.95 & Y_corn_change <= 1.05]
 
-perfomances_dt5[,.SD[W == max(W)], by = .(policy_name)] #peak in W
+W_peak_dt <- perfomances_dt5[,.SD[W == max(W)], by = .(policy_name, NMS)] #peak in W
+saveRDS(W_peak_dt, "./n_policy_box/Data/files_rds/W_peak_dt.rds")
 
 #==========================================================================
 # RATIO CHART 2
