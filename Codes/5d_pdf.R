@@ -22,11 +22,13 @@ source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
   # reg_model_stuff <- readRDS("./n_policy_box/Data/files_rds/reg_model_stuff.rds")
   
 perfomances_dt2 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt2.rds") #data by field x z
+# W_peak_dt <- readRDS("./n_policy_box/Data/files_rds/W_peak_dt.rds")
 
-perfomances_dt2[,E := L * 0.4 * Pe_med]
+perfomances_dt2[,E := L * Pe_total]
 perfomances_dt2[,W := P + G - E]
 
-pdf_dt <- perfomances_dt2[((policy == 'ratio_6' & NMS == 1) | (policy == 'ratio_10' & NMS == 2)) & L < 400]
+pdf_dt <- perfomances_dt2[((policy == 'ratio_6' & NMS == 1) | (policy == 'ratio_11' & NMS == 2) | 
+                             (policy == 'fee_6' & NMS == 2) | (policy == 'nred_0.91' & NMS == 2)) & L < 400]
 
 ggplot(data = pdf_dt) +
   geom_density(aes(x=L, color = z, fill = policy), alpha = 0.4)
@@ -52,31 +54,32 @@ x_labels <- c('Corn yield (kg ha−1 yr−1)','Soy yield (kg ha−1 yr−1)', 'L
 plot_letters <- data.table(variable = unique(pdf_dt_long$variable),
                            x_lab = rep(-1, 8),
                            y_lab = rep(0.1, 8),
-                           label = c("a", "b", "c", "d", "e", "f", "g","h")
+                           label = c("a)", "b)", "c)", "d)", "e)", "f)", "g)","h)")
                            )
 
 ann_text <- data.frame(y = c(0.00075, 0.0005, 0.035, 0.05, 
                              0.43, 0.001, 0.003, 0.001), 
-                       value = rep(0, 8),
-                       lab = c("a", "b", "c", "d", "e", "f", "g","h"),
+                       value = rep(0.5, 8),
+                       lab = c("a)", "b)", "c)", "d)", "e)", "f)", "g)","h)"),
                        variable = unique(pdf_dt_long$variable))
 
 # FROM https://stackoverflow.com/questions/37573155/showing-different-axis-labels-using-ggplot2-with-facet-wrap
 (plot_1 <- ggplot() +
-  geom_density(data = pdf_dt_long, aes(x=value, color = policy, fill = policy), alpha = 0.4) +
+  geom_density(data = pdf_dt_long, aes(x=value, color = policy), alpha = 0.4) +
   #scale_linetype_manual(values = c("dashed", "solid"))+
   #geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
   #geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
   # annotate("text", x = -35,
   #                  y = 0.1, 
   #               label = c("a", "b", "c", "d", "e", "f", "g","h")) +
-  scale_fill_manual(values=c("royalblue2", "tomato3"),
-                     name="Policy",
-                     labels=c("W Maximizing policy", "Base-level"))+
-  scale_color_manual(values=c("royalblue2", "tomato3"),
+  # scale_fill_manual(values=c("royalblue2", "tomato3", "red", "yellow"),
+  #                    name="Policy",
+  #                   #labels=c("NMS2-ratio", "NMS2-fee", "NMS2-target", "Base-level")
+  #                   )+
+  scale_color_manual(values=c("darkgreen", "blue", "red", "yellow4"),
                     name="Policy",
-                    labels=c("W Maximizing policy", "Base-level"))+
-  geom_text(data = ann_text, aes(y = y, x = value, label = lab))+
+                    labels=c("NMS2-fee", "NMS2-target", "NMS2-ratio", "NMS1-Base-level"))+
+  geom_text(data = ann_text, aes(y = y, x = value, label = lab), size = 5, hjust = 0)+
   # labs(tag = c("a", "b", "c", "d", "e", "f", "g","h")) +
   facet_wrap(. ~ variable, nrow =2,
              labeller = as_labeller(setNames(x_labels, unique(pdf_dt_long$variable))),

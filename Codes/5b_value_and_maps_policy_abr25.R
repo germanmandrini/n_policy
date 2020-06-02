@@ -144,13 +144,13 @@ if(FALSE){
   perfomances_dt5[,policy_name := as.character(policy_name)]
   
   #---------
-  subsidy_dt <- perfomances_dt5[policy_name == 'nred']
-  subsidy_dt[ ,policy_name := 'subs']
-  subsidy_dt[ ,policy := paste0('subs_', policy_val)]
-  baselevel_P <- perfomances_dt5[policy == 'fee_0' & NMS == '1', P ]
-  subsidy_dt[,G := P - baselevel_P]
-  subsidy_dt[,P := P - G]
-  perfomances_dt5 <- rbind(perfomances_dt5, subsidy_dt)
+  # subsidy_dt <- perfomances_dt5[policy_name == 'nred']
+  # subsidy_dt[ ,policy_name := 'subs']
+  # subsidy_dt[ ,policy := paste0('subs_', policy_val)]
+  # baselevel_P <- perfomances_dt5[policy == 'fee_0' & NMS == '1', P ]
+  # subsidy_dt[,G := P - baselevel_P]
+  # subsidy_dt[,P := P - G]
+  # perfomances_dt5 <- rbind(perfomances_dt5, subsidy_dt)
   perfomances_dt5[,W := P + G - E]
   
   baselevel_Y_corn <- perfomances_dt5[policy == 'fee_0' & NMS == '1', Y_corn ]
@@ -160,6 +160,9 @@ if(FALSE){
   saveRDS(perfomances_dt5, "./n_policy_box/Data/files_rds/perfomances_dt5.rds")
   
 }  
+
+perfomances_dt5[policy %in% c('ratio_6', 'fee_0', 'nred_1')]
+
 
 perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 perfomances_dt5 <- perfomances_dt5[Y_corn_change >=0.95 & Y_corn_change <= 1.05]
