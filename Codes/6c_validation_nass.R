@@ -83,6 +83,7 @@ reg_sum <- summary(reg)
 r_sq_num <- round(reg_sum$r.squared,2)
 corr_num <- round(cor(validation_nass_dt$Y_corn_nass, validation_nass_dt$Y_corn),2)
 
+
 # Pred vs obs plot  
 (plot_1 <- ggplot(data=validation_nass_dt, aes(y = Y_corn_nass, x = Y_corn, color = year)) +
   geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + ylim(0, 15500)+ xlim(0, 15500) +
@@ -91,14 +92,17 @@ corr_num <- round(cor(validation_nass_dt$Y_corn_nass, validation_nass_dt$Y_corn)
        x = expression(paste("APSIM County yield (kg ha"^"-1", "year"^"-1",")")),
        y = expression(paste("NASS County yield (kg ha"^"-1", "year"^"-1",")")))+
   annotate("text", x=0, y=15500, label= "a)", size = 10)+
-  annotate("text", x=10000, y=2000, label= paste("correlation =",  corr_num), size = 4, hjust = 0)+
+  annotate("text", x=10000, y=2000, label= expression(paste("R"^"2"*"= 0.39")), size = 4, hjust = 0)+
+  annotate("text", x=10000, y=1000, label= paste("correlation =",  corr_num), size = 4, hjust = 0)+
   theme_bw()+
   theme(panel.grid = element_blank())+
   theme(legend.position="bottom")
   )
 
 corr_num <- round(cor(validation_nass_dt$Y_soy_nass, validation_nass_dt$Y_soy),2)
-
+reg <- lm(data = validation_nass_dt, formula = 'Y_soy_nass~Y_soy')
+reg_sum <- summary(reg)
+r_sq_num <- round(reg_sum$r.squared,2)
 
 (plot_2 <- ggplot(data=validation_nass_dt, aes(x = Y_soy_nass, y = Y_soy, color = year)) +
     geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + ylim(0, 6000)+ xlim(0, 6000) +
@@ -107,7 +111,8 @@ corr_num <- round(cor(validation_nass_dt$Y_soy_nass, validation_nass_dt$Y_soy),2
       y = expression(paste("APSIM County yield (kg ha"^"-1", "year"^"-1",")")),
       x = expression(paste("NASS County yield (kg ha"^"-1", "year"^"-1",")")))+
     annotate("text", x=0, y=6000, label= "b)", size = 10)+
-    annotate("text", x=4000, y=800, label= paste("correlation =",  corr_num), size = 4, hjust = 0)+
+    annotate("text", x=4000, y=800, label= expression(paste("R"^"2"*"= 0.13")), size = 4, hjust = 0)+
+    annotate("text", x=4000, y=400, label= paste("correlation =",  corr_num), size = 4, hjust = 0)+
     theme_bw()+
     theme(panel.grid = element_blank(), 
           legend.position = "none")

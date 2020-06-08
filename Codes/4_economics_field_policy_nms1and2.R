@@ -178,17 +178,17 @@ process_field_economics <- function(j){
       prediction_set_aggregated  <- aggregate_by_area(data_dt = prediction_set, variables = do_aggregate,
                                                     weight = 'area_ha', by_c = c('z'))# %>% .[,-'area_ha']
 
-      prediction_set_aggregated[,eonr_pred := ceiling(predict(reg_model_stuff[[policy_n]]$rf1,
-                                                              prediction_set_aggregated)/10)*10]
-
-      test[,n_0_60cm_v5 := n_0_60cm_v5 * area_ha]
-
-      test2 <- merge(test[,.(n_0_60cm_v5 = sum(n_0_60cm_v5) / sum(area_ha)),by= c("z")],
-                   prediction_set_aggregated[,.(z, n_0_60cm_v5)], by = c('z'))
-
-      test2[, ok := round(n_0_60cm_v5.x,1) == round(n_0_60cm_v5.y,1)]
-
-      all( test2$ok )
+      # prediction_set_aggregated[,eonr_pred := ceiling(predict(reg_model_stuff[[policy_n]]$rf1,
+      #                                                         prediction_set_aggregated)/10)*10]
+      # 
+      # test[,n_0_60cm_v5 := n_0_60cm_v5 * area_ha]
+      # 
+      # test2 <- merge(test[,.(n_0_60cm_v5 = sum(n_0_60cm_v5) / sum(area_ha)),by= c("z")],
+      #              prediction_set_aggregated[,.(z, n_0_60cm_v5)], by = c('z'))
+      # 
+      # test2[, ok := round(n_0_60cm_v5.x,1) == round(n_0_60cm_v5.y,1)]
+      # 
+      # all( test2$ok )
       # 
       # #---------------------------------------------------------------------------
       # # PERFORMANCE EVALUATION
@@ -244,29 +244,29 @@ process_field_economics <- function(j){
       # 11) EX POST UR - Best rate at the field level
       
       # Need to get EONR with aggregated data
-      prediction_set_aggregated_profits <- aggregate_by_area(data_dt = ic_field_dt[!z %in% training_z], 
-                                                             variables = c('P'), 
-                                                             weight = 'area_ha', by_c = c('N_fert','z'))  %>%
-        .[, .SD[ P == max( P)], by = .(z)] %>% .[, .SD[ N_fert == min( N_fert)], by = .(z)] %>%
-        .[,-c('area_ha', 'P')] %>% setnames('N_fert', 'eonr_pred')
-      
-      #---------------------------------------------------------------------------
-      # PERFORMANCE EVALUATION
-      testing_set <- merge(ic_field_dt[!z %in% training_z],
-                           prediction_set_aggregated_profits[,.(z, eonr_pred)], by = c('z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-        .[N_fert == eonr_pred] %>%
-        .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov" )]
-      
-      small_list[[length(small_list)+1]] <- testing_set[,NMS := '11'][,tech := 'UR'][,policy := policy_n]
-      #===================================================================================================================
-      # 12) EX POST VR
-      
-      # PERFORMANCE EVALUATION
-      testing_set <- ic_field_dt[!z %in% training_z] %>% 
-        .[, .SD[ P == max( P)], by = .(id_10, mukey, z)] %>% .[, .SD[ N_fert == min( N_fert )], by = .(id_10, mukey, z)] %>%
-        .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov" )]
-      
-      small_list[[length(small_list)+1]] <- testing_set[, NMS := '12'][,tech := 'VR'][,policy := policy_n]
+      # prediction_set_aggregated_profits <- aggregate_by_area(data_dt = ic_field_dt[!z %in% training_z], 
+      #                                                        variables = c('P'), 
+      #                                                        weight = 'area_ha', by_c = c('N_fert','z'))  %>%
+      #   .[, .SD[ P == max( P)], by = .(z)] %>% .[, .SD[ N_fert == min( N_fert)], by = .(z)] %>%
+      #   .[,-c('area_ha', 'P')] %>% setnames('N_fert', 'eonr_pred')
+      # 
+      # #---------------------------------------------------------------------------
+      # # PERFORMANCE EVALUATION
+      # testing_set <- merge(ic_field_dt[!z %in% training_z],
+      #                      prediction_set_aggregated_profits[,.(z, eonr_pred)], by = c('z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+      #   .[N_fert == eonr_pred] %>%
+      #   .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov" )]
+      # 
+      # small_list[[length(small_list)+1]] <- testing_set[,NMS := '11'][,tech := 'UR'][,policy := policy_n]
+      # #===================================================================================================================
+      # # 12) EX POST VR
+      # 
+      # # PERFORMANCE EVALUATION
+      # testing_set <- ic_field_dt[!z %in% training_z] %>% 
+      #   .[, .SD[ P == max( P)], by = .(id_10, mukey, z)] %>% .[, .SD[ N_fert == min( N_fert )], by = .(id_10, mukey, z)] %>%
+      #   .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov" )]
+      # 
+      # small_list[[length(small_list)+1]] <- testing_set[, NMS := '12'][,tech := 'VR'][,policy := policy_n]
       #===================================================================================================================
     }
   
@@ -323,28 +323,28 @@ process_field_economics <- function(j){
       # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
       prediction_set <- data.table(unique(ic_field_dt[!z %in% training_z,
                                                       c('mukey', 'z','area_ha', no_cost_varb, ss_var), with = FALSE])) #this is unique v5 conditions, doesn't have the different N rates
-      
+
       table(prediction_set$z)
-      
+
       test <- copy(prediction_set) #need to be here, before the columns are updated
-      
+
       # We need to aggregate at the field level because is UR
       do_not_aggregate = c("mukey", "z", "area_ha")
       do_aggregate = setdiff(c(no_cost_varb, ss_var), do_not_aggregate)
-      
-      prediction_set_aggregated  <- aggregate_by_area(data_dt = prediction_set, variables = do_aggregate, 
+
+      prediction_set_aggregated  <- aggregate_by_area(data_dt = prediction_set, variables = do_aggregate,
                                                       weight = 'area_ha', by_c = c('z'))# %>% .[,-'area_ha']
-      
-      prediction_set_aggregated[,eonr_pred := ceiling(predict(reg_model_stuff[[policy_n]]$rf1, 
-                                                              prediction_set_aggregated)/10)*10]
-      
+
+      # prediction_set_aggregated[,eonr_pred := ceiling(predict(reg_model_stuff[[policy_n]]$rf1,
+      #                                                         prediction_set_aggregated)/10)*10]
+      # 
       test[,n_0_60cm_v5 := n_0_60cm_v5 * area_ha]
-      
-      test2 <- merge(test[,.(n_0_60cm_v5 = sum(n_0_60cm_v5) / sum(area_ha)),by= c("z")], 
+
+      test2 <- merge(test[,.(n_0_60cm_v5 = sum(n_0_60cm_v5) / sum(area_ha)),by= c("z")],
                      prediction_set_aggregated[,.(z, n_0_60cm_v5)], by = c('z'))
-      
+
       test2[, ok := round(n_0_60cm_v5.x,1) == round(n_0_60cm_v5.y,1)]
-      
+
       all( test2$ok )
       
       # #---------------------------------------------------------------------------
@@ -402,29 +402,29 @@ process_field_economics <- function(j){
       # 11) EX POST UR - Best rate at the field level
       
       # Need to get EONR with aggregated data
-      prediction_set_aggregated_profits <- aggregate_by_area(data_dt = ic_field_dt[!z %in% training_z], 
-                                                             variables = c('P'), 
-                                                             weight = 'area_ha', by_c = c('N_fert','z'))  %>%
-        .[, .SD[ P == max( P)], by = .(z)] %>% .[, .SD[ N_fert == min( N_fert)], by = .(z)] %>%
-        .[,-c('area_ha', 'P')] %>% setnames('N_fert', 'eonr_pred')
-      
-      #---------------------------------------------------------------------------
-      # PERFORMANCE EVALUATION
-      testing_set <- merge(ic_field_dt[!z %in% training_z],
-                           prediction_set_aggregated_profits[,.(z, eonr_pred)], by = c('z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-        .[N_fert == eonr_pred] %>%
-        .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov" )]
-      
-      small_list[[length(small_list)+1]] <- testing_set[,NMS := '11'][,tech := 'UR'][,policy := policy_n]
-      #===================================================================================================================
-      # 12) EX POST VR
-      
-      # PERFORMANCE EVALUATION
-      testing_set <- ic_field_dt[!z %in% training_z] %>% 
-        .[, .SD[ P == max( P)], by = .(id_10, mukey, z)] %>% .[, .SD[ N_fert == min( N_fert )], by = .(id_10, mukey, z)] %>%
-        .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov" )]
-      
-      small_list[[length(small_list)+1]] <- testing_set[, NMS := '12'][,tech := 'VR'][,policy := policy_n]
+      # prediction_set_aggregated_profits <- aggregate_by_area(data_dt = ic_field_dt[!z %in% training_z], 
+      #                                                        variables = c('P'), 
+      #                                                        weight = 'area_ha', by_c = c('N_fert','z'))  %>%
+      #   .[, .SD[ P == max( P)], by = .(z)] %>% .[, .SD[ N_fert == min( N_fert)], by = .(z)] %>%
+      #   .[,-c('area_ha', 'P')] %>% setnames('N_fert', 'eonr_pred')
+      # 
+      # #---------------------------------------------------------------------------
+      # # PERFORMANCE EVALUATION
+      # testing_set <- merge(ic_field_dt[!z %in% training_z],
+      #                      prediction_set_aggregated_profits[,.(z, eonr_pred)], by = c('z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+      #   .[N_fert == eonr_pred] %>%
+      #   .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov" )]
+      # 
+      # small_list[[length(small_list)+1]] <- testing_set[,NMS := '11'][,tech := 'UR'][,policy := policy_n]
+      # #===================================================================================================================
+      # # 12) EX POST VR
+      # 
+      # # PERFORMANCE EVALUATION
+      # testing_set <- ic_field_dt[!z %in% training_z] %>% 
+      #   .[, .SD[ P == max( P)], by = .(id_10, mukey, z)] %>% .[, .SD[ N_fert == min( N_fert )], by = .(id_10, mukey, z)] %>%
+      #   .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov" )]
+      # 
+      # small_list[[length(small_list)+1]] <- testing_set[, NMS := '12'][,tech := 'VR'][,policy := policy_n]
       
       }
     #===================================================================================================================
@@ -487,28 +487,28 @@ process_field_economics <- function(j){
       # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
       prediction_set <- data.table(unique(ic_field_dt[!z %in% training_z,
                                                       c('mukey', 'z','area_ha', no_cost_varb, ss_var), with = FALSE])) #this is unique v5 conditions, doesn't have the different N rates
-      
+
       table(prediction_set$z)
-      
+
       test <- copy(prediction_set) #need to be here, before the columns are updated
-      
+
       # We need to aggregate at the field level because is UR
       do_not_aggregate = c("mukey", "z", "area_ha")
       do_aggregate = setdiff(c(no_cost_varb, ss_var), do_not_aggregate)
-      
-      prediction_set_aggregated  <- aggregate_by_area(data_dt = prediction_set, variables = do_aggregate, 
+
+      prediction_set_aggregated  <- aggregate_by_area(data_dt = prediction_set, variables = do_aggregate,
                                                       weight = 'area_ha', by_c = c('z'))# %>% .[,-'area_ha']
-      
-      prediction_set_aggregated[,eonr_pred := ceiling(predict(reg_model_stuff[[policy_n]]$rf1, 
-                                                              prediction_set_aggregated)/10)*10]
-      
+
+      # prediction_set_aggregated[,eonr_pred := ceiling(predict(reg_model_stuff[[policy_n]]$rf1,
+      #                                                         prediction_set_aggregated)/10)*10]
+
       test[,n_0_60cm_v5 := n_0_60cm_v5 * area_ha]
-      
-      test2 <- merge(test[,.(n_0_60cm_v5 = sum(n_0_60cm_v5) / sum(area_ha)),by= c("z")], 
+
+      test2 <- merge(test[,.(n_0_60cm_v5 = sum(n_0_60cm_v5) / sum(area_ha)),by= c("z")],
                      prediction_set_aggregated[,.(z, n_0_60cm_v5)], by = c('z'))
-      
+
       test2[, ok := round(n_0_60cm_v5.x,1) == round(n_0_60cm_v5.y,1)]
-      
+
       all( test2$ok )
       
       #---------------------------------------------------------------------------
@@ -567,35 +567,35 @@ process_field_economics <- function(j){
       
       # Need to get EONR with aggregated data
       
-      prediction_set_aggregated_profits <- aggregate_by_area(data_dt = ic_field_dt_nr, 
-                                                             variables = c('leach_rel'), 
-                                                             weight = 'area_ha', by_c = c('N_fert','z'))  %>%
-        .[leach_rel >= nred_n & leach_rel <= 1] %>% 
-        .[, .SD[ leach_rel == min( leach_rel)], by = .(z)] %>% #select minimum leach_rel
-        .[, .SD[ N_fert == min( N_fert)], by = .(z)] %>% #select minimum rate in case one is repeated
-        .[,.(z, eonr_pred = N_fert)]
-      
-      # ggplot(ic_field_dt_nr[z == 26]) + geom_line(aes(x = N_fert, y = leach_rel, colour = mukey))
-      
-      #---------------------------------------------------------------------------
-      # PERFORMANCE EVALUATION
-      testing_set <- merge(ic_field_dt[!z %in% training_z],
-                           prediction_set_aggregated_profits[,.(z, eonr_pred)], by = c('z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-        .[N_fert == eonr_pred] %>%
-        .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov" )]
-      
-      small_list[[length(small_list)+1]] <- testing_set[,NMS := '11'][,tech := 'UR'][,policy := policy_n]
-      
-      #===================================================================================================================
-      # 12) EX POST VR
-      
-      # PERFORMANCE EVALUATION
-      testing_set <- ic_field_dt_nr[leach_rel >= nred_n & leach_rel <= 1] %>% 
-        .[, .SD[ leach_rel == min( leach_rel)], by = .(mukey, z)] %>% #select minimum leach_rel
-        .[, .SD[ N_fert == min( N_fert)], by = .(mukey, z)] %>% #select minimum rate in case one is repeated
-        .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov" )]
-      
-      small_list[[length(small_list)+1]] <- testing_set[, NMS := '12'][,tech := 'VR'][,policy := policy_n]
+      # prediction_set_aggregated_profits <- aggregate_by_area(data_dt = ic_field_dt_nr, 
+      #                                                        variables = c('leach_rel'), 
+      #                                                        weight = 'area_ha', by_c = c('N_fert','z'))  %>%
+      #   .[leach_rel >= nred_n & leach_rel <= 1] %>% 
+      #   .[, .SD[ leach_rel == min( leach_rel)], by = .(z)] %>% #select minimum leach_rel
+      #   .[, .SD[ N_fert == min( N_fert)], by = .(z)] %>% #select minimum rate in case one is repeated
+      #   .[,.(z, eonr_pred = N_fert)]
+      # 
+      # # ggplot(ic_field_dt_nr[z == 26]) + geom_line(aes(x = N_fert, y = leach_rel, colour = mukey))
+      # 
+      # #---------------------------------------------------------------------------
+      # # PERFORMANCE EVALUATION
+      # testing_set <- merge(ic_field_dt[!z %in% training_z],
+      #                      prediction_set_aggregated_profits[,.(z, eonr_pred)], by = c('z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+      #   .[N_fert == eonr_pred] %>%
+      #   .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov" )]
+      # 
+      # small_list[[length(small_list)+1]] <- testing_set[,NMS := '11'][,tech := 'UR'][,policy := policy_n]
+      # 
+      # #===================================================================================================================
+      # # 12) EX POST VR
+      # 
+      # # PERFORMANCE EVALUATION
+      # testing_set <- ic_field_dt_nr[leach_rel >= nred_n & leach_rel <= 1] %>% 
+      #   .[, .SD[ leach_rel == min( leach_rel)], by = .(mukey, z)] %>% #select minimum leach_rel
+      #   .[, .SD[ N_fert == min( N_fert)], by = .(mukey, z)] %>% #select minimum rate in case one is repeated
+      #   .[,c("mukey", "z", "id_10", "area_ha", "Yld", 'Yld_soy', 'leach_1', 'leach_2', "leach_n", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov" )]
+      # 
+      # small_list[[length(small_list)+1]] <- testing_set[, NMS := '12'][,tech := 'VR'][,policy := policy_n]
     
     }
       

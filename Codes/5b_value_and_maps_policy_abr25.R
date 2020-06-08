@@ -15,7 +15,7 @@ source('./Codes_useful/R.libraries.R')
 # library(scales)
 source('./Codes_useful/gm_functions.R')
 source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
-
+"~/n_policy_git/Codes/parameters.R"
 
 # source('./Codes_useful/gm_functions.R')
 if(FALSE){
@@ -90,13 +90,13 @@ if(FALSE){
   if(FALSE){
     #First aggregate without z so then we can get the leach_extreme
     perfomances_dt3 <- aggregate_by_area(data_dt = perfomances_dt2, variables = do_aggregate, 
-                                         weight = 'area_ha', by_c = do_not_aggregate) #cell x z level (mukey and field are out)
+                                         weight = 'area_ha', by_c = do_not_aggregate) #cell x z level (field is out)
   }else{
     split_list <- split(perfomances_dt2,perfomances_dt2$region)
     split_list_output <- list()
     for(split_list_n in split_list){
       split_list_output[[unique(split_list_n$region)]] <- aggregate_by_area(data_dt = split_list_n, variables = do_aggregate, 
-                                                                       weight = 'area_ha', by_c = do_not_aggregate) #field x z level (mukey is out)
+                                                                       weight = 'area_ha', by_c = do_not_aggregate) #cell x z level (field is out)
     }
     
     perfomances_dt3 <- rbindlist(split_list_output)
@@ -105,6 +105,8 @@ if(FALSE){
   
   saveRDS(perfomances_dt3, "./n_policy_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
   
+  #-------------------------------------------------------------------------
+  # AGGREGATE THE DATA TO CELL 
   perfomances_dt4 <- perfomances_dt3[, .(Y_corn =  mean(Y_corn),
                                          L1 = mean(L1),
                                          L2 = mean(L2),
@@ -113,7 +115,7 @@ if(FALSE){
                                          N_fert = mean(N_fert),
                                          P = mean(P), 
                                          G = mean(G),
-                                         area_ha = mean(area_ha)), by = .(policy,region, id_10, NMS, tech)] #cell 
+                                         area_ha = mean(area_ha)), by = .(policy,region, id_10, NMS, tech)] #cell (z is out)
   
   #---------------------------------------------------------------------------
   # AGGREGATE AGAIN CONSIDERING THE CORN PRODUCTION OF THE CELL
@@ -130,16 +132,43 @@ if(FALSE){
   perfomances_dt5[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
   perfomances_dt5[,policy_name := lapply(perfomances_dt5$policy, function(x) str_split(x, pattern = '_')[[1]][1])]
   
-  perfomances_dt5[,E := L * 0.4 * Pe_med]
+  # perfomances_dt5[,E := L * 0.4 * Pe_med]
+  perfomances_dt5[,E := L * Pe_total]
+
+  
+  baselevel_L <- perfomances_dt5[policy == 'fee_0' & NMS == '1', L]
+  
+  
+  perfomances_dt5[,L_change := round((L / baselevel_L) - 1,3)*100 ]
+  
+  perfomances_dt5[,policy_name := as.character(policy_name)]
+  
+  #---------
+  # subsidy_dt <- perfomances_dt5[policy_name == 'nred']
+  # subsidy_dt[ ,policy_name := 'subs']
+  # subsidy_dt[ ,policy := paste0('subs_', policy_val)]
+  # baselevel_P <- perfomances_dt5[policy == 'fee_0' & NMS == '1', P ]
+  # subsidy_dt[,G := P - baselevel_P]
+  # subsidy_dt[,P := P - G]
+  # perfomances_dt5 <- rbind(perfomances_dt5, subsidy_dt)
   perfomances_dt5[,W := P + G - E]
+  
+  baselevel_Y_corn <- perfomances_dt5[policy == 'fee_0' & NMS == '1', Y_corn ]
+  perfomances_dt5[,Y_corn_change := Y_corn/baselevel_Y_corn]
+  
   
   saveRDS(perfomances_dt5, "./n_policy_box/Data/files_rds/perfomances_dt5.rds")
   
 }  
 
-perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
+perfomances_dt5[policy %in% c('ratio_6', 'fee_0', 'nred_1')]
 
-perfomances_dt5[,.SD[W == max(W)], by = NMS] #peak in W
+
+perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
+perfomances_dt5 <- perfomances_dt5[Y_corn_change >=0.95 & Y_corn_change <= 1.05]
+
+W_peak_dt <- perfomances_dt5[,.SD[W == max(W)], by = .(policy_name, NMS)] #peak in W
+saveRDS(W_peak_dt, "./n_policy_box/Data/files_rds/W_peak_dt.rds")
 
 #==========================================================================
 # RATIO CHART 2
@@ -149,7 +178,7 @@ plot_dt <- perfomances_dt5[policy_name == 'ratio' & NMS %in% c('1','2') & policy
 # Total G collections in IL
 if(FALSE){
   IL_corn_area_ha = 5179976
-  plot_dt[policy == 'ratio_10' & NMS == 1, G] * IL_corn_area_ha / 1000000 #million in IL
+  plot_dt[policy == 'ratio_11' & NMS == 1, G] * IL_corn_area_ha / 1000000 #million in IL
 }
 
 # Elasticity of Demand Point-Slope Formula: https://pressbooks.bccampus.ca/uvicecon103/chapter/4-2-elasticity/
@@ -169,19 +198,19 @@ if(FALSE){
 # current_ratio_dt[,policy_val := Pn/Pc]
 # current_ratio_dt[,policy := paste('ratio', round(Pn/Pc,1), sep = '_')]   
 # plot_dt <- rbind(plot_dt, current_ratio_dt)
-baselevel_n <- perfomances_dt5[policy == 'fee_0' & NMS == '1', L]
+baselevel_L <- perfomances_dt5[policy == 'fee_0' & NMS == '1', L]
 baselevel_Y_corn <- perfomances_dt5[policy == 'fee_0' & NMS == '1', Y_corn ]
 
-plot_dt[,L := round((L / baselevel_n) - 1,2)*100 ]
+# plot_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
 
 plot_dt[,.SD[W == max(W)], by = NMS] #peak in W
 
-ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
+ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L_change, color = NMS))
 
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
                                                                                  'P', 'G', 'E','W'))
 
-plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L', 'Y_corn', 'P', 'G', 'E','W'),
+plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'E','W'),
                                             labels = c(expression("Fertilizer (N kg " * ha^"-1" *yr^"-1"* ")"), 
                                                        # expression("L ('%'change)"), 
                                                        # "'%'*V",
@@ -201,20 +230,20 @@ plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L', 'Y_c
 # plot_dt_long[variable == 'W', plot_name := 'g) W $/ha']
 # plot_dt_long[order(variable)]
 
-plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L', 'Y_corn')] 
+plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L_change', 'Y_corn')] 
 
 #use https://ggplot2.tidyverse.org/reference/labellers.html
 hline_dt <- data.table(unique(plot_dt_long1[,.(variable, variable_labels)]))
 hline_dt[variable == 'Y_corn', y_line := baselevel_Y_corn*0.95]
 hline_dt[variable == 'Y_corn', y_label := '95% baselevel']
-hline_dt[variable == 'L', y_line  := 0]
+# hline_dt[variable == 'L_change', y_line  := 0]
 
 #----
 # ADD letters outside plot (go down) https://stackoverflow.com/questions/12409960/ggplot2-annotate-outside-of-plot
 ann_text <- plot_dt_long[,.(x = min(policy_val)-5,
                 value = max(value)), by = .(variable, variable_labels)]
 #Sort in the right order
-ann_text <- ann_text[match(c('N_fert', 'L', 'Y_corn', 'P', 'G', 'E','W'), ann_text$variable),]
+ann_text <- ann_text[match(c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'E','W'), ann_text$variable),]
 ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)")]
 #----
 
@@ -224,11 +253,11 @@ ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)")]
   geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, color = NMS)) +
   # scale_linetype_manual(values = c("dashed", "solid"))+
   geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
-  geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
+  geom_text(data = hline_dt, aes(x = 16, y = y_line, label =y_label ))+
      scale_color_manual(values=c("royalblue2", "tomato3"))+   
   geom_text(data = ann_text[variable %in% unique(plot_dt_long1$variable)], aes(y = value, x = x, label = lab), 
             hjust = 0, size = 8) +
-    coord_cartesian(xlim = c(2, 20), # This focuses the x-axis on the range of interest
+    coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest
                     clip = 'off') +   # This keeps the labels from disappearing
   facet_wrap(variable_labels~., 
              ncol = 1,
@@ -248,7 +277,7 @@ ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)")]
         legend.position = "none",
         plot.margin =  unit(c(2,1,1,1), "lines")))
 
-plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn')] 
+plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn')] 
 
 (plot_2 <- ggplot() +
     # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
@@ -260,7 +289,7 @@ plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn')]
      scale_color_manual(values=c("royalblue2", "tomato3"))+   
     geom_text(data = ann_text[variable %in% unique(plot_dt_long2$variable)], aes(y = value, x = x, label = lab), 
               hjust = 0, size = 8) +
-    coord_cartesian(xlim = c(2, 20), # This focuses the x-axis on the range of interest
+    coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest
                     clip = 'off') +   # This keeps the labels from disappearing
     facet_wrap(variable_labels~., 
                ncol = 1,
@@ -290,22 +319,27 @@ ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1),
 #==========================================================================
 # LRED CHART
 
-plot_dt <- perfomances_dt5[policy_name == 'nred' & NMS %in% c('1','2') & policy_val <= 20 ] 
+plot_dt <- perfomances_dt5[policy_name == 'nred' & NMS %in% c('1','2') & policy_val <= 20 ][order(NMS, -policy_val)]
 
+plot_dt[NMS == 2]
 
 compare_dt <- perfomances_dt5[policy == 'ratio_6' | policy == 'nred_1' | policy == 'fee_0' & NMS %in% c('1','2')]
-compare_dt[,L := round((L / baselevel_n) - 1,2)*100 ]
+compare_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
 
-plot_dt[,L := round((L / baselevel_n) - 1,2)*100 ]
-
+# plot_dt[,L_red := round(1-(L / baselevel_L),2)*100 ]
+# plot_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
 plot_dt[,.SD[W == max(W)], by = NMS] #peak in W
-
+plot_dt[,policy_val  := (1-policy_val )*100]
 ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
 
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
-                                                                                 'P', 'G', 'E','W'))
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
+                                                                                 'P', 'G', 'E','W')) %>% data.table()
 
-plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L', 'Y_corn', 'P', 'G', 'E','W'),
+plot_dt_long <- plot_dt_long[policy_val >= 0]
+
+
+
+plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'E','W'),
                                         labels = c(expression("Fertilizer (N kg " * ha^"-1" *yr^"-1"* ")"), 
                                                    # expression("L ('%'change)"), 
                                                    # "'%'*V",
@@ -316,20 +350,20 @@ plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L', 'Y_c
                                                    expression("E ($ " * ha^"-1" * yr^"-1"* ")"),
                                                    expression("W ($ " * ha^"-1" * yr^"-1"* ")")))]
 
-plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L', 'Y_corn')] 
+plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L_change', 'Y_corn')] 
 
 
 hline_dt <- data.table(unique(plot_dt_long1[,.(variable, variable_labels)]))
 hline_dt[variable == 'Y_corn', y_line := baselevel_Y_corn*0.95]
 hline_dt[variable == 'Y_corn', y_label := '95% baselevel']
-hline_dt[variable == 'L', y_line  := 0]
+# hline_dt[variable == 'L_change', y_line  := 0]
 
 #----
 # ADD letters outside plot (go down) https://stackoverflow.com/questions/12409960/ggplot2-annotate-outside-of-plot
-ann_text <- plot_dt_long[,.(x = min(policy_val)-0.08,
+ann_text <- plot_dt_long[,.(x = min(policy_val)-5,
                             value = max(value)), by = .(variable, variable_labels)]
 #Sort in the right order
-ann_text <- ann_text[match(c('N_fert', 'L', 'Y_corn', 'P', 'E','W'), ann_text$variable),]
+ann_text <- ann_text[match(c('N_fert', 'L_change', 'Y_corn', 'P', 'E','W'), ann_text$variable),]
 ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)")]
 ann_text
 #----
@@ -344,15 +378,15 @@ ann_text
     scale_color_manual(values=c("royalblue2", "tomato3"))+   
     geom_text(data = ann_text[variable %in% unique(plot_dt_long1$variable)], aes(y = value, x = x, label = lab),              
               hjust = 0, size = 8) +     
-    coord_cartesian(xlim = c(0.7, 1), # This focuses the x-axis on the range of interest                     
+   coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest                     
                     clip = 'off') +   # This keeps the labels from disappearing   
     facet_wrap(variable_labels~., 
                ncol = 1,
                labeller = label_parsed,
                scales="free",
                strip.position = "left") +
-    scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
-    xlab('L reduction target')+
+    # scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+    xlab('L reduction target (%)')+
     theme_bw()+
     theme(panel.grid = element_blank(), 
           strip.background = element_blank(),
@@ -364,8 +398,8 @@ ann_text
           plot.margin =  unit(c(2,1,1,1), "lines"))
 )
 
-plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn', 'G')] 
-
+plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn', 'G')] 
+table(plot_dt_long2$policy_val)
 (plot_2 <- ggplot() +
     # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
     # scale_colour_manual(values = c("black", "brown"))+
@@ -376,15 +410,15 @@ plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn', 'G')]
       scale_color_manual(values=c("royalblue2", "tomato3"))+   
     geom_text(data = ann_text[variable %in% unique(plot_dt_long2$variable)], aes(y = value, x = x, label = lab),              
               hjust = 0, size = 8) +     
-    coord_cartesian(xlim = c(0.7, 1), # This focuses the x-axis on the range of interest                     
+    coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest                     
                     clip = 'off') +   # This keeps the labels from disappearing   
     facet_wrap(variable_labels~., 
                ncol = 1,
                labeller = label_parsed,
                scales="free",
                strip.position = "left") +
-    scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
-    xlab('L reduction target')+
+    # scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+    xlab('L reduction target (%)')+
     theme_bw()+
     theme(panel.grid = element_blank(), 
           strip.background = element_blank(),
@@ -398,22 +432,29 @@ plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn', 'G')]
 ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
        filename = "./n_policy_box/Data/figures/Lred_all_vars.jpg", width = 979/300*3, height = 1042/300*3,
        units = 'in')
-
 #==========================================================================
-# FEE CHART
+# SUBS CHART
 
-plot_dt <- perfomances_dt5[policy_name == 'fee' & NMS %in% c('1','2') ] 
+plot_dt <- perfomances_dt5[policy_name == 'subs' & NMS %in% c('1','2') ][order(NMS, -policy_val)]
+plot_dt[,policy_val  := (1-policy_val )*100]
+#nms2_default_L <- plot_dt[policy_val == 0 & NMS ==2] $L_change
+#plot_dt[NMS ==2, policy_val := policy_val - nms2_default_L]
 
-plot_dt[,L := round((L / baselevel_n) - 1,2)*100 ]
 
-plot_dt[, .SD[ W == max( W)], by = .(NMS)]#peak in W
+# plot_dt[,L_red := round(1-(L / baselevel_L),2)*100 ]
+# plot_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
+plot_dt[,.SD[W == max(W)], by = NMS] #peak in W
 
 ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
 
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
-                                                                                 'P', 'G', 'E','W'))
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
+                                                                                 'P', 'G', 'E','W')) %>% data.table()
 
-plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L', 'Y_corn', 'P', 'G', 'E','W'),
+plot_dt_long <- plot_dt_long[policy_val >= 0]
+
+
+
+plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'E','W'),
                                         labels = c(expression("Fertilizer (N kg " * ha^"-1" *yr^"-1"* ")"), 
                                                    # expression("L ('%'change)"), 
                                                    # "'%'*V",
@@ -424,20 +465,142 @@ plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L', 'Y_c
                                                    expression("E ($ " * ha^"-1" * yr^"-1"* ")"),
                                                    expression("W ($ " * ha^"-1" * yr^"-1"* ")")))]
 
-plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L', 'Y_corn')] 
+plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L_change', 'Y_corn')] 
 
 
 hline_dt <- data.table(unique(plot_dt_long1[,.(variable, variable_labels)]))
 hline_dt[variable == 'Y_corn', y_line := baselevel_Y_corn*0.95]
 hline_dt[variable == 'Y_corn', y_label := '95% baselevel']
-hline_dt[variable == 'L', y_line  := 0]
+# hline_dt[variable == 'L_change', y_line  := 0]
 
 #----
 # ADD letters outside plot (go down) https://stackoverflow.com/questions/12409960/ggplot2-annotate-outside-of-plot
-ann_text <- plot_dt_long[,.(x = min(policy_val)-7,
+ann_text <- plot_dt_long[,.(x = min(policy_val)-5,
+                            value = max(value)), by = .(variable, variable_labels)]
+ann_text[variable == 'P', value := value+100]
+#Sort in the right order
+ann_text <- ann_text[match(c('N_fert', 'L_change', 'Y_corn', 'P', 'G','E','W'), ann_text$variable),]
+ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)")]
+ann_text
+#----
+
+(plot_1 <- ggplot() +
+   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+   # scale_colour_manual(values = c("black", "brown"))+
+   geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, color = NMS)) +
+   # scale_linetype_manual(values = c("dashed", "solid"))+
+   geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+   # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
+   scale_color_manual(values=c("royalblue2", "tomato3"))+   
+   geom_text(data = ann_text[variable %in% unique(plot_dt_long1$variable)], aes(y = value, x = x, label = lab),              
+             hjust = 0, size = 8) +     
+   coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest                     
+                   clip = 'off') +   # This keeps the labels from disappearing   
+   facet_wrap(variable_labels~., 
+              ncol = 1,
+              labeller = label_parsed,
+              scales="free",
+              strip.position = "left") +
+   #scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+   xlab('L reduction target (%)')+
+   theme_bw()+
+   theme(panel.grid = element_blank(), 
+         strip.background = element_blank(),
+         strip.placement = "outside",
+         panel.spacing = unit(1.5, "lines"),
+         # axis.title.x=element_blank(),
+         axis.title.y=element_blank(),
+         legend.position = "none",
+         plot.margin =  unit(c(2,1,1,1), "lines"))
+)
+
+
+
+plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn')] 
+table(plot_dt_long2$policy_val)
+
+#---Change the ylim to the P plots to make it look better
+# https://stackoverflow.com/questions/18046051/setting-individual-axis-limits-with-facet-wrap-and-scales-free-in-ggplot2
+
+baselevel_P <- mean(plot_dt_long2[variable == 'P']$value)
+
+dummy <- ann_text[variable == 'P'][c(1,1)]
+dummy$x <- 0
+dummy$value <- c(baselevel_P-100, baselevel_P+100)
+#---
+
+(plot_2 <- ggplot() +
+    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+    # scale_colour_manual(values = c("black", "brown"))+
+    geom_line(data = plot_dt_long2, aes(x = policy_val, y =  value, color = NMS)) +
+    # scale_linetype_manual(values = c("dashed", "solid"))+
+    # geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+    # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
+    scale_color_manual(values=c("royalblue2", "tomato3"))+   
+    geom_text(data = ann_text[variable %in% unique(plot_dt_long2$variable)], aes(y = value, x = x, label = lab),              
+              hjust = 0, size = 8) +     
+    coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest                     
+                    clip = 'off') +   # This keeps the labels from disappearing  
+    facet_wrap(variable_labels~., 
+               ncol = 1,
+               labeller = label_parsed,
+               scales="free",
+               strip.position = "left") +
+    geom_blank(data=dummy, aes(x = x, y =  value)) + 
+    # scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+    xlab('L reduction target (%)')+
+    theme_bw()+
+    theme(panel.grid = element_blank(), 
+          strip.background = element_blank(),
+          strip.placement = "outside",
+          panel.spacing = unit(1.5, "lines"),
+          # axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          plot.margin =  unit(c(2,1,1,1), "lines"))
+)
+
+ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
+       filename = "./n_policy_box/Data/figures/subs_all_vars.jpg", width = 979/300*3, height = 1042/300*3,
+       units = 'in')
+#==========================================================================
+# FEE CHART
+
+plot_dt <- perfomances_dt5[policy_name == 'fee' & NMS %in% c('1','2') ] 
+
+plot_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
+
+plot_dt[, .SD[ W == max( W)], by = .(NMS)]#peak in W
+
+ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
+
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
+                                                                                 'P', 'G', 'E','W'))
+
+plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'E','W'),
+                                        labels = c(expression("Fertilizer (N kg " * ha^"-1" *yr^"-1"* ")"), 
+                                                   # expression("L ('%'change)"), 
+                                                   # "'%'*V",
+                                                   expression("L ("*'%'*" change)"),
+                                                   expression("Corn Yield (kg N " * ha^"-1" *yr^"-1"* ")"), 
+                                                   expression("P ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("G ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("E ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("W ($ " * ha^"-1" * yr^"-1"* ")")))]
+
+plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L_change', 'Y_corn')] 
+
+
+hline_dt <- data.table(unique(plot_dt_long1[,.(variable, variable_labels)]))
+hline_dt[variable == 'Y_corn', y_line := baselevel_Y_corn*0.95]
+hline_dt[variable == 'Y_corn', y_label := '95% baselevel']
+# hline_dt[variable == 'L_change', y_line  := 0]
+
+#----
+# ADD letters outside plot (go down) https://stackoverflow.com/questions/12409960/ggplot2-annotate-outside-of-plot
+ann_text <- plot_dt_long[,.(x = min(policy_val)-4,
                             value = max(value)), by = .(variable, variable_labels)]
 #Sort in the right order
-ann_text <- ann_text[match(c('N_fert', 'L', 'Y_corn', 'P', 'G', 'E','W'), ann_text$variable),]
+ann_text <- ann_text[match(c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'E','W'), ann_text$variable),]
 ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)")]
 #----
 
@@ -458,7 +621,7 @@ ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)")]
                labeller = label_parsed,
                scales="free",
                strip.position = "left") +
-    scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+    # scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
     xlab('Fee on L ($/kg)')+
     theme_bw()+
     theme(panel.grid = element_blank(), 
@@ -471,7 +634,7 @@ ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)")]
           plot.margin =  unit(c(2,1,1,1), "lines"))
 )
 
-plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn')] 
+plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn')] 
 
 (plot_2 <- ggplot() +
     # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
@@ -490,7 +653,7 @@ plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn')]
                labeller = label_parsed,
                scales="free",
                strip.position = "left") +
-    scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+    # scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
     xlab('Fee on L ($/kg)')+
     theme_bw()+
     theme(panel.grid = element_blank(), 
@@ -510,11 +673,10 @@ ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1),
 
 #==========================================================================
 # W MAXIMIZATION
-perfomances_dt5[policy  == 'ratio_6']
-
-
-perfomances_dt5[,policy_name := as.character(policy_name)]
-w_dt <- perfomances_dt5[,.SD[W == max(W)], by = .(policy_name, NMS)][order(-W)] #peak in W
+w_dt <- perfomances_dt5[policy_name != 'subs',.SD[W == max(W)], by = .(policy_name, NMS)][order(-W)] #peak in W
+w_dt[,policy_val := as.numeric(policy_val )]
+w_dt[policy_name == 'nred', policy_val := (1-as.numeric(policy_val ))*100]
+w_dt[policy_name == 'nred', policy_name := 'target']
 baselevel_dt <- perfomances_dt5[policy  == 'ratio_6' & NMS == 1]
 baselevel_dt[,policy_name := 'base-level']
 baselevel_dt[,policy_val := '-']
@@ -522,21 +684,23 @@ baselevel_dt
 
 w_dt <- rbind(w_dt ,baselevel_dt) %>% .[order(-W)]
 
-latex_table_dt <- w_dt[,c('policy_name', 'NMS', 'policy_val', 'N_fert', 'Y_corn', 'L', 'P', 'G',  'E', 'W')]
+latex_table_dt <- w_dt[,c('policy_name', 'policy_val','NMS',  'N_fert', 'Y_corn', 'L_change', 'P', 'G',  'E', 'W')]
 
-cols_1 <- c('N_fert', 'Y_corn', 'L', 'P', 'G',  'E', 'W')
+cols_1 <- c('N_fert', 'Y_corn', 'L_change', 'P', 'G',  'E', 'W')
 latex_table_dt[,(cols_1) := round(.SD,1), .SDcols=cols_1]
 latex_table_dt[,Y_corn := round(Y_corn, 0)]
 
+setnames(latex_table_dt, c('policy_name', 'policy_val', 'N_fert', 'Y_corn', 'L_change', 'P', 'G',  'E', 'W'),
+                               c('policy', 'level', 'N rate (kg/ha)', 'Y_corn (kg/ha)', 'L change (%)', 'Profits ($/ha)', 'G ($/ha)',  'E ($/ha)', 'W ($/ha)'))
 
-setnames(latex_table_dt, c('policy_name', 'policy_val', 'N_fert', 'P'),
-                               c('policy', 'level', 'N rate', 'Profits'))
+latex_table_xt <- xtable(latex_table_dt, type = "latex", auto = TRUE, label = 'tab:w_maximization', 
+       caption = 'Indicators for the level that maximized W for each policy and NMS combination, ordered by their W. 
+       The base-level system is also shown as a benchmark')
+
+#make L in %. Change N red name to L reduction target
 
 library('xtable')
-print(xtable(latex_table_dt, type = "latex", auto = TRUE, label = 'tab:w_maximization', 
-             caption = 'Indicators for the level that maximized W for each policy and NMS combination, 
-             ordered by their W. The base-level system is also shown as a benchmark'), 
-      file = "./n_policy_box/Data/figures/w_maximization.tex", include.rownames=FALSE)
+print(latex_table_xt, file = "./n_policy_box/Data/figures/w_maximization.tex", include.rownames=FALSE)
 
 
 
@@ -568,7 +732,7 @@ table_dt <- table_dt[order(order)]
 # and not caring about the externality cost (we are already sending less N, that's it my friends)
 
 table_dt <- perfomances_dt5[ NMS %in% NMSs_f]
-baselevel_nleach <- table_dt[policy == 'fee_0' & NMS == 1, L] 
+baselevel_Lleach <- table_dt[policy == 'fee_0' & NMS == 1, L] 
 baselevel_Y_corn <- table_dt[policy == 'fee_0' & NMS == 1, Y_corn ]
 baselevel_nfert <- table_dt[policy == 'fee_0' & NMS == 1, N_fert ]
 
@@ -597,7 +761,7 @@ table_dt[,Y_corn_red := round((Y_corn / baselevel_Y_corn),2)]
 
 table_dt[,soc_benefits := P + G]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
-table_dt[,externatility := ifelse((L - target_n) > 0, (L -target_n)*Pe_med,0)] #externalities are pay for each kg above the 45% target
+table_dt[,externatility := ifelse((L - target_n) > 0, (L -target_n)*Pe_total,0)] #externalities are pay for each kg above the 45% target
 table_dt[,soc_welfare := soc_benefits - externatility ]
 table_dt <- table_dt[order(-soc_welfare)][1:40]
 table_dt
@@ -755,7 +919,7 @@ plot_dt <- perfomances_dt5[policy_name == 'nred' & NMS %in% c('1_ok','2','3','4'
 
 plot_dt[,soc_benefits := P + G]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
-plot_dt[,externatility := ifelse((L - target_n) > 0, (L -target_n)*Pe_med,0)]
+plot_dt[,externatility := ifelse((L - target_n) > 0, (L -target_n)*Pe_total,0)]
 plot_dt[,soc_welfare := soc_benefits - externatility ]
 plot_dt[order(-soc_welfare)][1:40]
 
@@ -1741,3 +1905,4 @@ dat.m <- melt(economics_dt,id.vars= c('id_10', 'id_field',  'z'), measure.vars=c
           strip.text = element_blank()))
 
 ggsave(p, filename = "./n_policy_box/Data/figures/value_boxplot.jpg")
+

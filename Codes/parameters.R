@@ -15,7 +15,7 @@ print(paste('Pn/Pc', Pn/Pc))
 Pe_min = 8.88 # $/kg N #    cost of the externality for each kg of N leached
 Pe_med = 18.54 # $/kg N #    cost of the externality for each kg of N leached
 Pe_max = 27.08 # $/kg N #    cost of the externality for each kg of N leached
-
+Pe_total = 10.108
 #Urea 340/1000/0.46=0.739$/kgN https://www.ams.usda.gov/mnreports/gx_gr210.txt
 #Liquid Nitrogen 28% spread 240/1000/0.28 = 0.857$/kgN https://www.ams.usda.gov/mnreports/gx_gr210.txt
 
