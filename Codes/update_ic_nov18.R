@@ -1,4 +1,4 @@
-update_ic <- function(base_doc, instructions_tmp, initial_conditions){  
+update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_residue){  
   #Open the initial conditions file
   # sim_name <- paste(unlist(instructions_tmp[,.(id_10, mukey, type)]), collapse = '_')
   
@@ -80,13 +80,19 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions){
       }
       
     }
-    
+    #Residue weight
     node <- xml_find_all(base_doc, '//surfaceom/mass')
     xml_text(node) <- as.character(variables_one_value_table$surfaceom_wt)
 
-    # surfaceom_cn ---
+    #Residue C:N ratio
     node <- xml_find_all(base_doc, '//surfaceom/cnr')
     xml_text(node) <- as.character(variables_one_value_table$surfaceom_cn)
+    
+    #Residue name
+    node <- xml_find_all(base_doc, '//surfaceom/PoolName')
+    xml_text(node) <- as.character(initial_residue) 
+    node <- xml_find_all(base_doc, '//surfaceom/type')
+    xml_text(node) <- as.character(initial_residue) 
     
     node <- xml_find_all(base_doc,'//SoilOrganicMatter/RootWt')
     xml_text(node) <- as.character(variables_one_value_table$root_wt)

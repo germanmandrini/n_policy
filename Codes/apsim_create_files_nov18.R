@@ -30,7 +30,7 @@ apsim_create_files <- function(i){
  	
   #--- load the base apsim file ---# 
   if(instructions_tmp$type == 'stab'){
-    base_doc <- xml2::read_xml("./n_policy_box/Data/apsim_files/vr_value_v6.apsim")
+    base_doc <- xml2::read_xml("./n_policy_box/Data/apsim_files/vr_value_v7.apsim")
     }else{
     base_doc <- xml2::read_xml(instructions_tmp$path)
     # unlink(dirname(instructions_tmp$path), recursive = TRUE)
@@ -39,13 +39,20 @@ apsim_create_files <- function(i){
   #Clean the plots
   # for(x in xml2::xml_find_all(base_doc, '//Graph')[2:10]){xml2::xml_remove(x)}
 
-  #--- edit the met module directory ---#
+  #--- edit the met directory ---#
   if(instructions_tmp$type == 'stab'){
     met_dir <- paste(directory, '/met_files/z_',instructions_tmp$z,'.met', sep = '')
     met_dir <- gsub("/", "\\", met_dir, fixed=TRUE)
     
     node <-  xml_find_all(base_doc,'//metfile/filename')
     xml_text(node) <- met_dir
+  }
+  
+  #--- edit modules directory ---#
+  if(instructions_tmp$type == 'stab'){
+    module_dir <- 'C:\\Users\\germanm2\\Box Sync\\My_Documents\\n_policy_box\\Data\\apsim_files\\modules_edited\\SurfaceOM_edited.xml'
+    node <-  xml_find_all(base_doc,'//surfaceom/ini/filename')
+    xml_text(node) <- module_dir
   }
   
   #--------------------------
@@ -94,7 +101,8 @@ apsim_create_files <- function(i){
   if(instructions_tmp$type == 'yc'){
     "C:/Users/germanm2/Documents/n_policy_git/Codes/update_ic_nov18.R"
     source(paste0(codes_folder, '/n_policy_git/Codes/update_ic_nov18.R'))
-    base_doc <- update_ic(base_doc, instructions_tmp)
+    #The initial residue assumes an alternation. Can be improved for account for other types of rotations
+    base_doc <- update_ic(base_doc, instructions_tmp, initial_residue = crop_seq[2]) 
   }
   
   #--- Set the rate for the stab period ---#
