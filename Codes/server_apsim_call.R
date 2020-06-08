@@ -12,6 +12,8 @@ print(Sys.info()["nodename"])
 #Set the wd
 if(server){
   setwd('~')
+  codes_folder <- getwd()
+  test_small <- TRUE 
 }else if(cpsc){
   setwd('C:/Users/germanm2/Box Sync/My_Documents')
   codes_folder <-'C:/Users/germanm2/Documents'
@@ -52,6 +54,7 @@ if(FALSE){
 
 # for(id10_n in id_10_seq){
 #id10_n = 172
+# id10_n = 736
 id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
 
 
@@ -59,6 +62,7 @@ print(id10_n)
 #CREATE ALL STAB FILES
 start1 <- Sys.time()
 "C:/Users/germanm2/Documents/n_policy_git/Codes/server1_create_stab_files.R"
+"./n_policy_git/Codes/server1_create_stab_files.R"
 source(paste0(codes_folder, '/n_policy_git/Codes/server1_create_stab_files.R'))
 instructions1_rows <- nrow(instructions)
 
@@ -70,6 +74,7 @@ source(paste0(codes_folder, '/n_policy_git/Codes/server_run_files_nov20.R'))
 #MERGE ALL THE OUTPUT
 start3 <- Sys.time()
 "C:/Users/germanm2/Documents/n_policy_git/Codes/server_merge_results.R"
+"./n_policy_git/Codes/server_merge_results.R"
 source(paste0(codes_folder, '/n_policy_git/Codes/server_merge_results.R'))
 
 #CREATE ALL YC FILES
@@ -81,6 +86,7 @@ instructions2_rows <- nrow(instructions)
 #RUN ALL APSIM FILES
 start5 <- Sys.time()
 "C:/Users/germanm2/Documents/n_policy_git/Codes/server_run_files_nov20.R"
+"./n_policy_git/Codes/server_run_files_nov20.R"
 source(paste0(codes_folder, '/n_policy_git/Codes/server_run_files_nov20.R'))
 
 #MERGE ALL THE OUTPUT

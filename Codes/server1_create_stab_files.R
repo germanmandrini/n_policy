@@ -12,6 +12,7 @@ source('./n_policy_box/Data/APssurgo_master/R/calc_apsim_variables_onesoil.R')
 source('./n_policy_box/Data/APssurgo_master/R/make_apsoils_toolbox.R')
 source(paste0(codes_folder, '/n_policy_git/Codes/make_met_files.R'))
 
+list.files('./n_policy_box/Data/APssurgo_master/')
 
 if(server){
   directory <- paste('/home/germanm2/apsim_temp/n_policy/cell', id10_n, sep = '')
@@ -74,4 +75,5 @@ instructions <- rbind(instructions1, instructions2) %>% setcolorder(c('id_10',  
 if(test_small) {instructions <- instructions[1,]}
 print(instructions )
 "C:/Users/germanm2/Documents/n_policy_git/Codes/apsim_create_files_nov18.R"
+"./n_policy_git/Codes/apsim_create_files_nov18.R"
 source(paste0(codes_folder, '/n_policy_git/Codes/apsim_create_files_nov18.R'))

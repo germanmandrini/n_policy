@@ -50,7 +50,10 @@ apsim_create_files <- function(i){
   
   #--- edit modules directory ---#
   if(instructions_tmp$type == 'stab'){
-    module_dir <- 'C:\\Users\\germanm2\\Box Sync\\My_Documents\\n_policy_box\\Data\\apsim_files\\modules_edited\\SurfaceOM_edited.xml'
+    # module_dir <- 'C:\\Users\\germanm2\\Box Sync\\My_Documents\\n_policy_box\\Data\\apsim_files\\modules_edited\\SurfaceOM_edited.xml'
+    module_dir <- paste0(getwd(), '/n_policy_box/Data/apsim_files/modules_edited/SurfaceOM_edited.xml')
+    module_dir <- gsub("/", "\\", module_dir, fixed=TRUE)
+    
     node <-  xml_find_all(base_doc,'//surfaceom/ini/filename')
     xml_text(node) <- module_dir
   }
