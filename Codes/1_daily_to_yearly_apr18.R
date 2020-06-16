@@ -274,9 +274,9 @@ make_yearly_summary <- function(file_n){
 grid10_horizons_v2_dt <- readRDS("./n_policy_box/Data/Grid/grid10_horizons_v2_dt.rds")
 
 # files_daily <- list.files('S:/Bioinformatics Lab/germanm2/n_policy/yc_output',full.names = T, recursive = T)
-files_daily <- list.files('./n_policy_box/Data/yc_output',full.names = T, recursive = T)
+# files_daily <- list.files('./n_policy_box/Data/yc_output',full.names = T, recursive = T)
 
-test <- make_yearly_summary(file_n)
+# test <- make_yearly_summary(file_n)
 
 # start <- Sys.time()
 results_list <- list()
