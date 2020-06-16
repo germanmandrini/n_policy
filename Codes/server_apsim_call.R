@@ -13,7 +13,7 @@ print(Sys.info()["nodename"])
 if(server){
   setwd('~')
   codes_folder <- getwd()
-  test_small <- FALSE 
+  test_small <- TRUE 
 }else if(cpsc){
   setwd('C:/Users/germanm2/Box Sync/My_Documents')
   codes_folder <-'C:/Users/germanm2/Documents'
