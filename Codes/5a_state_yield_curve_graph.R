@@ -42,6 +42,7 @@ baselevel_L2 <- 24.28796
 baselevel_L <- 56.35686
 baselevel_Y_corn <- 11750.375
 baselevel_nfert <- 166.13483
+
 # ----------------------------------------------------
 #Max possible reduction:
 max_red_dt  <-state_agg_dt2[N_fert == 10 | N_fert == round(baselevel_nfert/10)*10][order(N_fert)]

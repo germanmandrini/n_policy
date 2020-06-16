@@ -13,7 +13,7 @@ print(Sys.info()["nodename"])
 if(server){
   setwd('~')
   codes_folder <- getwd()
-  test_small <- TRUE 
+  test_small <- FALSE 
 }else if(cpsc){
   setwd('C:/Users/germanm2/Box Sync/My_Documents')
   codes_folder <-'C:/Users/germanm2/Documents'
@@ -54,6 +54,7 @@ if(FALSE){
 
 # for(id10_n in id_10_seq){
 #id10_n = 172
+# id10_n = 1024
 # id10_n = 736
 id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
 
