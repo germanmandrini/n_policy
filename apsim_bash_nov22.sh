@@ -8,7 +8,12 @@ module load singularity ## Load the singularity runtime to your environment
 # cell_n=$1 #split the cell string for bash work
 cell_n=${cell_n} #for qsub
 
-# echo "$cell_n"
+
+## Code to get the cell_n from qsub or from bash
+## if [ -z ${cell+x} ]; then echo "var is unset"; else echo "var is set to '$cell'"; fi
+## if [ -z ${cell+x} ]; then cell_n=$1; cell_n=${cell_n};fi
+
+echo "$cell_n"
 
 singularity exec /projects/aces/germanm2/apsim_nov16.simg Rscript /projects/aces/germanm2/n_policy_git/Codes/server_apsim_call.R $cell_n
 
