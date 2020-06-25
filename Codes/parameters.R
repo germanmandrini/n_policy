@@ -2,10 +2,12 @@
 # Corn and N price
 #--------------------------
 Pc = 0.14#3.5/25.4 #$/bu to $/kg https://markets.businessinsider.com/commodities/corn-price
+Pc*25.4 #$/bu
 # Pc = 3.3/25.4#3.5/25.4 #$/bu to $/kg https://markets.businessinsider.com/commodities/corn-price
 # Pn = 0.87 #400/460 #  0.3944 $\lb N   https://www.ams.usda.gov/mnreports/gx_gr210.txt
 Ps = 8.3/27.2155 #https://farmdoc.illinois.edu/handbook/2020-budgets-for-all-regions
 Pn = 6*Pc
+Pn/2.20462 #$\lb N
 # https://farmdocdaily.illinois.edu/2018/09/fertilizer-prices-higher-for-2019-crop.html
 # https://www.ams.usda.gov/mnreports/gx_gr210.txt
 

@@ -21,8 +21,7 @@ id_10_walltime_dt[N >2, dur := N *  5]
 id_10_walltime_dt[N >4, dur := N *  4]
 
 #Pick only the failed ones
-id_failed <- c(442, 1124,618,953,319,627,924,126,406,825,98,473,1042,260,825)
-id_failed <- c(1116, 1035)
+id_failed <- c(442, 1124,618,953,319,627,924,126,406,825,98,473,1042,260,825, 1116, 1035)
 id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed, dur := N *  6]
 
 id_10_walltime_dt <- id_10_walltime_dt[order(dur)][1:950]

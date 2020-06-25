@@ -22,7 +22,7 @@ if(server){
   setwd('/projects/aces/germanm2/')
   cluster <- TRUE	
   codes_folder <- '/projects/aces/germanm2'
-  test_small <- FALSE #makes a small run 
+  test_small <- TRUE #makes a small run 
 }
 
 
@@ -56,6 +56,7 @@ if(FALSE){
 #id10_n = 172
 # id10_n = 1024
 # id10_n = 736
+# id10_n = 1504
 id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
 
 

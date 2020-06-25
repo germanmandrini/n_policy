@@ -16,7 +16,7 @@ cl <- makeCluster(no_cores,type='SOCK')
 #i =   1
 
 apsim_create_files <- function(i){
-  # i = 3
+  # i = 1
   #--------------------------
 	# preparation
 	#--------------------------
@@ -67,7 +67,40 @@ apsim_create_files <- function(i){
     module_dir <- gsub("/", "\\", module_dir, fixed=TRUE)
     node <-  xml_find_all(base_doc,'//soybean/ini/filename')
     xml_text(node) <- module_dir
-  }
+    
+    #--------------------------
+    # PLANTING DATE BY REGION
+    #--------------------------
+    planting_start_corn <- c('01-Apr', '05-Apr', '10-Apr')[instructions_tmp$region]
+    planting_end_corn <- c('05-Apr', '10-Apr', '15-Apr')[instructions_tmp$region]
+    
+    x <- xml_find_all(base_doc, ".//manager/ui/date1_corn")
+    xml_text(x) <- as.character(planting_start_corn)
+    
+    x <- xml_find_all(base_doc, ".//manager/ui/date2_corn")
+    xml_text(x) <- as.character(planting_end_corn)
+    
+    planting_start_soy <- c('15-Apr', '20-Apr', '24-Apr')[instructions_tmp$region]
+    planting_end_soy <- c('20-Apr', '24-Apr', '30-Apr')[instructions_tmp$region]
+    
+    x <- xml_find_all(base_doc, ".//manager/ui/date1_soy")
+    xml_text(x) <- as.character(planting_start_soy)
+    
+    x <- xml_find_all(base_doc, ".//manager/ui/date2_soy")
+    xml_text(x) <- as.character(planting_end_soy)
+    
+    #--------------------------
+    # CULTIVAR BY REGION
+    #--------------------------
+    cultivar_corn <- c('B_115_gm', 'B_110_gm', 'B_105_gm')[instructions_tmp$region]
+    x <- xml_find_all(base_doc, ".//manager/ui/cultivar_corn")
+    xml_text(x) <- as.character(cultivar_corn)
+    
+    cultivar_soy <- c('MG_4', 'MG_3', 'MG_2')[instructions_tmp$region]
+    x <- xml_find_all(base_doc, ".//manager/ui/cultivar_soy")
+    xml_text(x) <- as.character(cultivar_soy)
+    
+    }
   
   #--------------------------
   # CLOCK
