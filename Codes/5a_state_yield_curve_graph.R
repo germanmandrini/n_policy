@@ -24,8 +24,8 @@ grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>%
 
 setnames(yc_yearly_dt3, c('Yld', 'Yld_soy', 'leach_1', 'leach_2'),
                         c('Y_corn', 'Y_soy', 'L1', 'L2'))
-setnames(perfomances_dt, c('Yld', 'Yld_soy', 'leach_1', 'leach_2', 'leach_n', 'gov' ),
-         c('Y_corn', 'Y_soy', 'L1', 'L2', "L",'G'))
+# setnames(perfomances_dt, c('Yld', 'Yld_soy', 'leach_1', 'leach_2', 'leach_n', 'gov' ),
+#          c('Y_corn', 'Y_soy', 'L1', 'L2', "L",'G'))
 # yc_yearly_dt3[,L := L1 + L2] #update leaching adding corn and soy
 # yc_yearly_dt3[,P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits adding corn and soy
 
@@ -37,15 +37,15 @@ state_agg_dt <- merge(yc_yearly_dt3, areas_dt, by = c('id_10', 'mukey'))
 
 state_agg_dt2  <- aggregate_by_area(data_dt = state_agg_dt, variables = c('Y_corn', 'Y_soy', 'L1','L2'), 
                                     weight = 'area_ha', by_c = c('N_fert'))# %>% .[,-'area_ha']
-baselevel_L1 <- 32.06890
-baselevel_L2 <- 24.28796
-baselevel_L <- 56.35686
-baselevel_Y_corn <- 11750.375
-baselevel_nfert <- 166.13483
+baselevel_L1 <- 30.29278
+baselevel_L2 <- 21.92814
+baselevel_L <- 52.22092  
+baselevel_Y_corn <- 11125.63 
+baselevel_nfert <- 175.3900
 
 # ----------------------------------------------------
 #Max possible reduction:
-max_red_dt  <-state_agg_dt2[N_fert == 10 | N_fert == round(baselevel_nfert/10)*10][order(N_fert)]
+max_red_dt  <- state_agg_dt2[N_fert == 10 | N_fert == round(baselevel_nfert/10)*10][order(N_fert)]
 max_red_dt[,L := L1 + L2]
 (max_red_dt[2, L] - max_red_dt[N_fert == 10, L])/ max_red_dt[2, L]
 

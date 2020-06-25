@@ -10,9 +10,7 @@ source('./Codes_useful/gm_functions.R')
 # library(ranger)
 # library(mlr)
 source('./n_policy_git/Codes/parameters.R')
-# Pn = 0.87 * 2
 
-# eonr_mukey_dt2 <- readRDS("./n_policy_box/Data/files_rds/eonr_mukey_dt2.rds")
 grid10_tiles_sf6 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf6.rds") 
 grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
 yc_yearly_dt3 <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
@@ -181,7 +179,7 @@ TrainSet_eonr <- TrainSet2[, P := Yld * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 :=
 setnames(TrainSet_eonr, 'N_fert', 'eonr')
 
 TrainSet_eonr[id_10 == 438]
-unique(stations_dt[,.(id_10, id_field, mukey)]) %>% .[,.N, by = .(id_10, id_field)] %>% .[,.(N = mean(N))]
+unique(stations_dt[,.(id_10, id_field, mukey)]) %>% .[,.N, by = .(id_10, id_field)] %>% .[,.(N = mean(N))] #mean number of soils in the stations fields
 
 ggplot(data = TrainSet_eonr, aes(x = n_0_60cm_v5, y = eonr)) + 
   geom_point() + geom_smooth(formula = 'y ~ x', method = lm)

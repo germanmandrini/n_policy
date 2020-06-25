@@ -18,7 +18,7 @@ source('./n_policy_git/Codes/parameters.R')
 
 reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
 names(reg_model_stuff)
-reg_model_stuff[['yr_0.95']]
+reg_model_stuff[['ratio_6']]
 
 
 remove_list <- names(reg_model_stuff)[!names(reg_model_stuff) %in% c("full_fields", "stations", "TrainSet","training_z")]
@@ -37,6 +37,8 @@ for(n in remove_list){
 # =========================================================================================================================================================
 ## SET THE VARIABLES ========
 TrainSet2 <- reg_model_stuff[['TrainSet']]
+
+hist(TrainSet2$n_0_60cm_v5)
 
 no_cost_varb <- c('region', "rain_30", "rain_60", "rain_90",
                   "t_max_30", "t_max_60", "t_max_90", "t_min_30", "t_min_60",

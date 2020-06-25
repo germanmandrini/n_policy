@@ -43,7 +43,7 @@ if(FALSE){
   yc_yearly_dt2a <- yc_yearly_dt[lai_v5 >= yc_yearly_dt[Yld > 200, min(lai_v5)]] #lai thereshold = lowest lai where yld was positive
   
   # Assumption: if the lai is too low, the farmer will not apply the rate and will plant soybean
-  yc_yearly_dt2a[id_10 == 259 & mukey == 942156 & N_fert==160]
+  yc_yearly_dt2a[id_10 == 259 & mukey == 942156 & N_fert==160] #very high leaching
   hist(yc_yearly_dt2a$leach_1)
   summary(yc_yearly_dt2a$leach_1)
   yc_yearly_dt2a[leach_1 > 500]
