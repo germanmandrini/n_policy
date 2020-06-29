@@ -22,7 +22,7 @@ if(server){
   setwd('/projects/aces/germanm2/')
   cluster <- TRUE	
   codes_folder <- '/projects/aces/germanm2'
-  test_small <- TRUE #makes a small run 
+  test_small <- FALSE #makes a small run 
 }
 
 
