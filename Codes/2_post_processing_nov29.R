@@ -24,6 +24,12 @@ if(FALSE){
   
   yc_yearly_dt[,.N, by = .(id_10, mukey, z)]$N %>% table() #of rates by mukey z, has to be 33
   yc_yearly_dt[,.N, by = .(id_10, mukey, z)][,.N, by = .(id_10, mukey)]$N %>% table()#of z by mukey, has to be 30 or 15
+
+  setnames(yc_yearly_dt, 
+           c('Yld', 'Yld_soy', 'leach_1', 'leach_2' ),
+           c('Y_corn', 'Y_soy', 'L1', 'L2'))
+  
+  yc_yearly_dt[,L := L1 + L2]
   
   saveRDS(yc_yearly_dt, './n_policy_box/Data/files_rds/yc_yearly_dt.rds')
   
@@ -37,41 +43,47 @@ if(FALSE){
   hist(yc_yearly_dt$lai_v5)
   yc_yearly_dt
   
-  ggplot(yc_yearly_dt[sample(1:nrow(yc_yearly_dt), 10000, replace = F)], aes(x = lai_v5, y = Yld)) + 
+  ggplot(yc_yearly_dt[sample(1:nrow(yc_yearly_dt), 10000, replace = F)], aes(x = lai_v5, y = Y_corn)) + 
     geom_point()
   
-  yc_yearly_dt2a <- yc_yearly_dt[lai_v5 >= yc_yearly_dt[Yld > 200, min(lai_v5)]] #lai thereshold = lowest lai where yld was positive
+  yc_yearly_dt2a <- yc_yearly_dt[lai_v5 >= yc_yearly_dt[Y_corn > 200, min(lai_v5)]] #lai thereshold = lowest lai where Y_corn was positive
   
   # Assumption: if the lai is too low, the farmer will not apply the rate and will plant soybean
   yc_yearly_dt2a[id_10 == 259 & mukey == 942156 & N_fert==160] #very high leaching
-  hist(yc_yearly_dt2a$leach_1)
-  summary(yc_yearly_dt2a$leach_1)
-  yc_yearly_dt2a[leach_1 > 500]
+  hist(yc_yearly_dt2a$L1)
+  summary(yc_yearly_dt2a$L1)
+  yc_yearly_dt2a[L1 > 500]
   #------------------------------------------------------------------------------------
   #Remove low yielding mukeys (farmers will not plant here). Use the N that maximizes Yield
   
   yearly_ymax_dt <- copy(yc_yearly_dt2a) %>% 
-    .[,yld_max_mky := max(Yld), by = .(id_10, mukey, z)] %>% 
-    .[Yld == yld_max_mky] %>% 
+    .[,Y_corn_max_mky := max(Y_corn), by = .(id_10, mukey, z)] %>% 
+    .[Y_corn == Y_corn_max_mky] %>% 
     .[, .SD[ N_fert  == min(N_fert )], by = .(id_10, mukey, z)] #filter the rate that maximized yield
   
-  yearly_ymax_dt[Yld == 0]
+  yearly_ymax_dt[Y_corn == 0]
   summary(yearly_ymax_dt)
   
-  yearly_ymax_dt[,leach_n := leach_1 + leach_2]
-  yearly_ymax_dt2 <- yearly_ymax_dt[,.(Yld = mean(Yld), 
-                                       leach_n = mean(leach_n),
+  yearly_ymax_dt[,L := L1 + L2]
+  yearly_ymax_dt2 <- yearly_ymax_dt[,.(Y_corn = mean(Y_corn), 
+                                       L = mean(L),
+                                       N_fert = mean(N_fert),
                                  n_deep_v5 = mean(n_deep_v5),
                                  n_deep_v5_max = max(n_deep_v5)), by = .(id_10, mukey)]
-  summary(yearly_ymax_dt2$Yld)
-  summary(yearly_ymax_dt2$leach_n)
-  hist(yearly_ymax_dt2$Yld)
+  summary(yearly_ymax_dt2$Y_corn)
+  summary(yearly_ymax_dt2$L)
+  hist(yearly_ymax_dt2$Y_corn)
   hist(yearly_ymax_dt2$n_deep_v5)
+  hist(yearly_ymax_dt2$N_fert)
+  summary(yearly_ymax_dt2$N_fert)
   summary(yearly_ymax_dt2$n_deep_v5)
   summary(yearly_ymax_dt2$n_deep_v5_max)
   hist(yearly_ymax_dt2[n_deep_v5 > 300]$n_deep_v5)
+  hist(yearly_ymax_dt2[N_fert < 100]$N_fert)
+  yearly_ymax_dt2[N_fert < 40]
   
-  qc_control <- yearly_ymax_dt2[Yld < 3000 | n_deep_v5 > 200 | n_deep_v5_max > 900 | leach_n > 300]
+  #Remove mukeys that have low yield (farmers would not plant or APSIM is not simulating well)
+  qc_control <- yearly_ymax_dt2[Y_corn < 7000 | n_deep_v5 > 200 | n_deep_v5_max > 900 | L > 250 | N_fert < 60]
   
   remove_this <- filter_dt_in_dt(yc_yearly_dt2a, filter_dt = qc_control[,.(id_10, mukey)])
   yc_yearly_dt2b <- yc_yearly_dt2a[-remove_this]
@@ -179,15 +191,15 @@ tm_shape(grid10_tiles_sf6) + tm_polygons("region")
 
 #======================================================================================
 # ADD LONG TERM YIELD
-long_term_yld_dt <- yc_yearly_dt3[,.(Yld = max(Yld)), by = .(id_10, mukey,z)] %>%
-                                 .[, .(Yld_lt_avg = mean(Yld),
-                                       Yld_lt_min = min(Yld),
-                                       Yld_lt_max = max(Yld)), by = .(id_10, mukey)]
-hist(long_term_yld_dt$Yld_lt_avg)
-# eonr_mukey_dt2 <- merge(eonr_mukey_dt2, long_term_yld_dt, by = c('id_10', 'mukey'))
+long_term_Y_corn_dt <- yc_yearly_dt3[,.(Y_corn = max(Y_corn)), by = .(id_10, mukey,z)] %>%
+                                 .[, .(Y_corn_lt_avg = mean(Y_corn),
+                                       Y_corn_lt_min = min(Y_corn),
+                                       Y_corn_lt_max = max(Y_corn)), by = .(id_10, mukey)]
+hist(long_term_Y_corn_dt$Y_corn_lt_avg)
+# eonr_mukey_dt2 <- merge(eonr_mukey_dt2, long_term_Y_corn_dt, by = c('id_10', 'mukey'))
 # saveRDS(eonr_mukey_dt2, "./n_policy_box/Data/files_rds/eonr_mukey_dt2.rds")
 
-yc_yearly_dt3 <- merge(yc_yearly_dt3, long_term_yld_dt, by = c('id_10', 'mukey'))
+yc_yearly_dt3 <- merge(yc_yearly_dt3, long_term_Y_corn_dt, by = c('id_10', 'mukey'))
 
 yc_yearly_dt3 <- yc_yearly_dt3[,-c('sim_name', 'day_v5', 'year') ]
 
@@ -196,7 +208,6 @@ yc_yearly_dt3[,.N, by = .(id_10, mukey)]
 yc_yearly_dt3[,.N, by = .(id_10, mukey, z)]$N %>% table() #of rates by mukey z, has to be 33
 yc_yearly_dt3[,.N, by = .(id_10, mukey, z)][,.N, by = .(id_10, mukey)]$N %>% table()#of z by mukey, has to be 30 or 15
 
-# Add the region 
 
 saveRDS(yc_yearly_dt3, "./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
 

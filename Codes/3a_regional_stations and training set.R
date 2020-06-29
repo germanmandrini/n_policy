@@ -107,12 +107,16 @@ grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
     rm(reg_model_stuff)
   }
 
-# EXPLORE THE DATA-------------------
-yld_explore_dt <- yc_yearly_dt3[,.(Yld = mean(Yld)), by = z]
-yld_explore_dt[,z:= as.numeric(z)]
-yld_explore_dt <- yld_explore_dt[order(z)]
+candidates_dt2 <- candidates_dt[id_10 %in% unique(stations_dt$id_10) & id_field %in% c(1,2)]
+stations_dt <- candidates_dt2
 
-eonr_explore_dt <- yc_yearly_dt3[, P := Yld * Pc - N_fert * Pn] %>% 
+
+# EXPLORE THE DATA-------------------
+Y_corn_explore_dt <- yc_yearly_dt3[,.(Y_corn = mean(Y_corn)), by = z]
+Y_corn_explore_dt[,z:= as.numeric(z)]
+Y_corn_explore_dt <- Y_corn_explore_dt[order(z)]
+
+eonr_explore_dt <- yc_yearly_dt3[, P := Y_corn * Pc - N_fert * Pn] %>% 
   .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
 setnames(eonr_explore_dt, 'N_fert', 'eonr')
 eonr_explore_dt[,z:= as.numeric(z)]
@@ -149,7 +153,7 @@ indx <- filter_dt_in_dt(yc_yearly_dt3, filter_dt = unique(stations_dt[,.(id_10, 
 TrainSet <- yc_yearly_dt3[indx]
 TrainSet <- TrainSet[z %in% training_z]
 
-z_dry <- TrainSet[,.(Yld = mean(Yld), .N), by = z][Yld < 5000]$z
+z_dry <- TrainSet[,.(Y_corn = mean(Y_corn), .N), by = z][Y_corn < 5000]$z
 TrainSet <- TrainSet[!z %in% z_dry]
 
 # Filter the right training z, depending on odd or even fields. Remove some z that are coming from fields 1 and 2 that are not RS
@@ -174,7 +178,7 @@ TrainSet2[,.N, by = id_10] %>% nrow() # of stations, has to be 120
 TrainSet2[,.N, by = .(id_10, mukey)][,.N,by = .(id_10)] # of mukey by station, just exploratory
 
 # Plot a relationship
-TrainSet_eonr <- TrainSet2[, P := Yld * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% 
+TrainSet_eonr <- TrainSet2[, P := Y_corn * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% 
   .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
 setnames(TrainSet_eonr, 'N_fert', 'eonr')
 
@@ -191,7 +195,7 @@ ggplot(data = TrainSet_eonr, aes(x = n_0_60cm_v5, y = eonr)) +
 # sets_rf <- sets_rf[sample(1:nrow(sets_rf), 100)]
 # ValidSet2 <- filter_dt_in_dt(ValidSet, filter_dt = sets_rf, return_table = T)
 # 
-# ValidSet2_eonr <- ValidSet2[, P := Yld * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% 
+# ValidSet2_eonr <- ValidSet2[, P := Y_corn * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% 
 #   .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
 # setnames(ValidSet2_eonr, 'N_fert', 'eonr')
 # 
@@ -233,11 +237,11 @@ grid10_region_by_hand <- st_transform(grid10_region_by_hand, crs = st_crs(statio
 
 
 (fields_map_clean <- tm_shape(grid10_tiles_sf6) + tm_borders() +
-    tm_shape(grid10_region_by_hand) + tm_borders(lwd = 4) +
-    tm_shape(stations_sf) + tm_dots(size = 0.3, col = 'black') +
+    tm_shape(grid10_region_by_hand) + tm_borders(lwd = 4, col = 'darkgreen') +
+    tm_shape(stations_sf) + tm_dots(size = 0.2, col = 'blue', shape = 24) +
     tm_shape(regularfields_sf) + tm_dots(size = 0.04) +
     tm_layout(legend.text.size = 0.7,
-              #main.title = 'Final fields map',
+              # main.title = 'Final fields map',
               main.title.position = "center",
               main.title.size = 1))
 
@@ -245,6 +249,7 @@ tmap_save(fields_map_clean, filename = "./n_policy_box/Data/figures/fields_map_a
 
 st_write(stations_sf, "./n_policy_box/Data/shapefiles/stations_sf.shp", delete_dsn = TRUE)
 st_write(regularfields_sf, "./n_policy_box/Data/shapefiles/regularfields_sf.shp", delete_dsn = TRUE)
+
 # st_write(grid10_region, "./n_policy_box/Data/shapefiles/grid10_region.shp", delete_dsn = TRUE)
 
 #======================================================================================
@@ -273,15 +278,15 @@ st_write(regularfields_sf, "./n_policy_box/Data/shapefiles/regularfields_sf.shp"
 # 
 # ValidSet2[,.N, by = .(id_10, mukey,z)][,.N, by = z]
 # 
-# yld_explore_dt <- StationsSet[,.(Yld = mean(Yld)), by = z]
-# yld_explore_dt[,z:= as.numeric(z)]
-# yld_explore_dt <- yld_explore_dt[order(z)]
+# Y_corn_explore_dt <- StationsSet[,.(Y_corn = mean(Y_corn)), by = z]
+# Y_corn_explore_dt[,z:= as.numeric(z)]
+# Y_corn_explore_dt <- Y_corn_explore_dt[order(z)]
 # 
-# ggplot(yld_explore_dt, aes(x = z, y = Yld))+
+# ggplot(Y_corn_explore_dt, aes(x = z, y = Y_corn))+
 #   geom_bar(stat="identity")
 # 
 # TrainSet <- StationsSet[z %in% training_z]
-# z_dry <- TrainSet[,.(Yld = mean(Yld), .N), by = z][Yld < 5000]$z
+# z_dry <- TrainSet[,.(Y_corn = mean(Y_corn), .N), by = z][Y_corn < 5000]$z
 # TrainSet <- TrainSet[!z %in% z_dry]
 # 
 # ValidSet3 <- ValidSet2[!z %in% training_z]
@@ -300,14 +305,14 @@ st_write(regularfields_sf, "./n_policy_box/Data/shapefiles/regularfields_sf.shp"
 # TrainSet <- TrainSet[z %in% training_z]
 # ValidSet3 <- ValidSet[!z %in% training_z]
 # 
-# TrainSet_eonr <- TrainSet[, P := Yld * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
+# TrainSet_eonr <- TrainSet[, P := Y_corn * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
 # setnames(TrainSet_eonr, 'N_fert', 'eonr')
-# ValidSet3_eonr <- ValidSet3[, P := Yld * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
+# ValidSet3_eonr <- ValidSet3[, P := Y_corn * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
 # setnames(ValidSet3_eonr, 'N_fert', 'eonr')
 # # =========================================================================================================================================================
 # 
 # yc_yearly_sample <- yc_yearly_dt3[mukey %in% sample(unique(yc_yearly_dt3$mukey), 100),]
-# yc_yearly_sample[, P := Yld * Pc - N_fert * Pn]
+# yc_yearly_sample[, P := Y_corn * Pc - N_fert * Pn]
 # yc_yearly_sample[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5]
 # 
 # yc_yearly_sample_eonr <- yc_yearly_sample[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
@@ -328,17 +333,17 @@ st_write(regularfields_sf, "./n_policy_box/Data/shapefiles/regularfields_sf.shp"
 # CREATE THE REGIONAL MINIMUM MODEL
 
 #Analysis included only responsive sites (sawyer 2006)
-# TrainSet2[, Yld_response := max(Yld) - min(Yld), by = .(id_10, mukey,z)]
-# TrainSet_RMM <- TrainSet2[Yld_response > 500]
+# TrainSet2[, Y_corn_response := max(Y_corn) - min(Y_corn), by = .(id_10, mukey,z)]
+# TrainSet_RMM <- TrainSet2[Y_corn_response > 500]
 # 
 # #Select a few rates
 # #Alll this comes from https://rcompanion.org/handbook/I_11.html
 # # N_rates_trial <- c(10, 90,170,250, 330)
 # N_rates_trial <- seq(10,330,10)
 # 
-# quadratic_dt <- TrainSet_RMM[,list(intercept=coef(lm(Yld~N_fert + I(N_fert^2)))[1], 
-#                                 coef1=coef(lm(Yld ~ N_fert + I(N_fert^2)))[2],
-#                                 coef2=coef(lm(Yld ~ N_fert + I(N_fert^2)))[3]),by=.(id_10, mukey,z, region)]
+# quadratic_dt <- TrainSet_RMM[,list(intercept=coef(lm(Y_corn~N_fert + I(N_fert^2)))[1], 
+#                                 coef1=coef(lm(Y_corn ~ N_fert + I(N_fert^2)))[2],
+#                                 coef2=coef(lm(Y_corn ~ N_fert + I(N_fert^2)))[3]),by=.(id_10, mukey,z, region)]
 # 
 # # Expand and calculate yield
 # N_rates_int <- seq(min(N_rates_trial),max(N_rates_trial), by = 10)
@@ -347,8 +352,8 @@ st_write(regularfields_sf, "./n_policy_box/Data/shapefiles/regularfields_sf.shp"
 # 
 # 
 # quadratic_dt2[,N_fert := rep(N_rates_int, nrow(quadratic_dt))]
-# quadratic_dt2[,Yld := intercept + coef1 * N_fert + coef2 * (N_fert^2)]
-# quadratic_dt2[,P:= Yld * Pc - N_fert * Pn]
+# quadratic_dt2[,Y_corn := intercept + coef1 * N_fert + coef2 * (N_fert^2)]
+# quadratic_dt2[,P:= Y_corn * Pc - N_fert * Pn]
 # 
 # #Average all curves
 # quadratic_dt3 <- quadratic_dt2[,.(P_avg = mean(P)), by = .(region, N_fert)]
@@ -367,9 +372,9 @@ st_write(regularfields_sf, "./n_policy_box/Data/shapefiles/regularfields_sf.shp"
 # CREATE THE REGIONAL MINIMUM MODEL OK
 
 #Analysis included only responsive sites (sawyer 2006)
-# TrainSet2[, P := Yld * Pc - N_fert * Pn] #update P
-# TrainSet2[, Yld_response := max(Yld) - min(Yld), by = .(id_10, mukey,z)]
-# TrainSet_RMM <- TrainSet2[Yld_response > 500]
+# TrainSet2[, P := Y_corn * Pc - N_fert * Pn] #update P
+# TrainSet2[, Y_corn_response := max(Y_corn) - min(Y_corn), by = .(id_10, mukey,z)]
+# TrainSet_RMM <- TrainSet2[Y_corn_response > 500]
 # 
 # #Select a few rates
 # #Alll this comes from https://rcompanion.org/handbook/I_11.html
