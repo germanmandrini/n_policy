@@ -18,7 +18,7 @@ source('./n_policy_git/Codes/parameters.R')
 
 reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
 names(reg_model_stuff)
-reg_model_stuff[['ratio_6']]
+reg_model_stuff[['ratio_5']]
 
 
 remove_list <- names(reg_model_stuff)[!names(reg_model_stuff) %in% c("full_fields", "stations", "TrainSet","training_z")]
@@ -50,7 +50,10 @@ ss_varb <- c("n_0_60cm_v5","esw_pct_v5", "whc")
 TrainSet2[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5]
 TrainSet2[,L := L1 + L2]
 TrainSet2[, Yld_response := max(Y_corn) - min(Y_corn), by = .(id_10, mukey,z)]
+
+# Limit the trials included in MRTN
 Yld_response_threshold <- 2000 
+
 # =========================================================================================================================================================
 # CREATE THE N RATIO TAX MODEL
 
@@ -59,13 +62,14 @@ set.seed(123)
 
 for(ratio_n in ratio_seq){
   # ratio_n = Pn/Pc
+  # ratio_n = 5
   name_model = paste0('ratio_', ratio_n)
   if(name_model %in% names(reg_model_stuff)){next}
   
   small_model_list <- list()
   Pn_tmp = ratio_n * Pc
   print(Pn_tmp/Pc)
-  TrainSet2[, P := Y_corn * Pc + Y_soy * Ps- N_fert * Pn_tmp]  #update profits
+  TrainSet2[, P := Y_corn * Pc - N_fert * Pn_tmp]  #update profits
 
   # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL
@@ -106,8 +110,7 @@ for(ratio_n in ratio_seq){
   
   # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL - OK
-  
-  TrainSet_RMM <- TrainSet2[Yld_response > Yld_response_threshold]
+  TrainSet_RMM <- TrainSet2[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
   
   TrainSet2[,.N, .(id_10, mukey, z)] %>% nrow() #trials before (all of them)
   TrainSet_RMM[,.N, .(id_10, mukey, z)] %>% nrow()#trials after (whith response > threshold)
@@ -190,7 +193,7 @@ for(fee_n in fee_seq){
   if(name_model %in% names(reg_model_stuff)){next}
   
   small_model_list <- list()
-  TrainSet2[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn - L * fee_n] #update profits
+  TrainSet2[, P := Y_corn * Pc - N_fert * Pn - L * fee_n] #update profits
   
   # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL
@@ -233,6 +236,10 @@ for(fee_n in fee_seq){
   # small_model_list[[name_model]] <- model_minimum_regional
   # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL - OK
+  TrainSet_RMM <- TrainSet2[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
+  
+  TrainSet2[,.N, .(id_10, mukey, z)] %>% nrow() #trials before (all of them)
+  TrainSet_RMM[,.N, .(id_10, mukey, z)] %>% nrow()#trials after (whith response > threshold)
   
   model_minimum_ok  <- aggregate_by_area(data_dt = TrainSet_RMM, variables = c('P'), 
                                          weight = 'area_ha', by_c = c('region', 'N_fert')) %>% 
@@ -294,7 +301,7 @@ set.seed(123)
 
 ## PREPARE THE TRAINING DATA ========
 # Part 1
-TrainSet2[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits
+TrainSet2[, P := Y_corn * Pc - N_fert * Pn] #update profits
 
 baseline_leaching <- merge(TrainSet2, reg_model_stuff$ratio_6$minimum_ok, by = 'region') %>% 
   .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, leach_base = L)]

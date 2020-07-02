@@ -31,20 +31,12 @@ if(FALSE){
   
   perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
   perfomances_dt[,.N, .(id_10, id_field, mukey, policy, NMS)] %>% .[,N] %>% table() #number of z by mukey. SHould be all equal
-  perfomances_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of rows by policy NMS. SHould be all equal
+  perfomances_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of treatments (policy sublevels x NMS). SHould be all equal
   
   summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NMS, tech, z)]$area_ha)
   
-  setnames(perfomances_dt, c('Yld', 'Yld_soy', 'leach_1', 'leach_2', 'leach_n', 'gov' ),
-           c('Y_corn', 'Y_soy', 'L1', 'L2', "L",'G'))
-  # perfomances_dt[,L := L1 + L2] #update leaching adding corn and soy
-  # perfomances_dt[,P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits adding corn and soy
-  perfomances_dt <- perfomances_dt[NMS %in% c('1_ok', '4')]
-  perfomances_dt[NMS == '1_ok', NMS := '1']
-  perfomances_dt[NMS == '4', NMS := '2']
-  
-  test <- perfomances_dt3[NMS == 1 & policy == 'ratio_6', .(Y_corn = mean(Y_corn)), by = z][order(z)]
-  test[,year := as.numeric(z) + 1988]
+  # setnames(perfomances_dt, c('gov' ),c('G'))
+
   #-------------------------------------------------------------------------
   #-------------------------------------------------------------------------
   # AGGREGATE THE DATA TO FIELD X Z LEVEL CONSIDERING THE AREA
@@ -130,18 +122,16 @@ if(FALSE){
   perfomances_dt5[order(-P)]
   
   perfomances_dt5[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
-  perfomances_dt5[,policy_name := lapply(perfomances_dt5$policy, function(x) str_split(x, pattern = '_')[[1]][1])]
+  perfomances_dt5[,policy_name := as.character(lapply(perfomances_dt5$policy, function(x) str_split(x, pattern = '_')[[1]][1]))]
   
   # perfomances_dt5[,E := L * 0.4 * Pe_med]
   perfomances_dt5[,E := L * Pe_total]
 
-  
-  baselevel_L <- perfomances_dt5[policy == 'fee_0' & NMS == '1', L]
-  
+  baselevel_L <- perfomances_dt5[policy == 'ratio_6' & NMS == '1', L]
+  perfomances_dt5[policy %in% c('fee_0', 'ratio_6', 'nred_1') & NMS == '1']
   
   perfomances_dt5[,L_change := round((L / baselevel_L) - 1,3)*100 ]
   
-  perfomances_dt5[,policy_name := as.character(policy_name)]
   
   #---------
   # subsidy_dt <- perfomances_dt5[policy_name == 'nred']
@@ -178,7 +168,7 @@ plot_dt <- perfomances_dt5[policy_name == 'ratio' & NMS %in% c('1','2') & policy
 # Total G collections in IL
 if(FALSE){
   IL_corn_area_ha = 5179976
-  plot_dt[policy == 'ratio_11' & NMS == 1, G] * IL_corn_area_ha / 1000000 #million in IL
+  plot_dt[policy == 'ratio_12.5' & NMS == 1, G] * IL_corn_area_ha / 1000000 #million in IL
 }
 
 # Elasticity of Demand Point-Slope Formula: https://pressbooks.bccampus.ca/uvicecon103/chapter/4-2-elasticity/
@@ -254,7 +244,7 @@ ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)")]
   # scale_linetype_manual(values = c("dashed", "solid"))+
   geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
   geom_text(data = hline_dt, aes(x = 16, y = y_line, label =y_label ))+
-     scale_color_manual(values=c("royalblue2", "tomato3"))+   
+  scale_color_manual(values=c("royalblue2", "tomato3"))+   
   geom_text(data = ann_text[variable %in% unique(plot_dt_long1$variable)], aes(y = value, x = x, label = lab), 
             hjust = 0, size = 8) +
     coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest
@@ -374,7 +364,7 @@ ann_text
     geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, color = NMS)) +
     # scale_linetype_manual(values = c("dashed", "solid"))+
     geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
-    # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
+   geom_text(data = hline_dt, aes(x = 16, y = y_line, label =y_label ))+
     scale_color_manual(values=c("royalblue2", "tomato3"))+   
     geom_text(data = ann_text[variable %in% unique(plot_dt_long1$variable)], aes(y = value, x = x, label = lab),              
               hjust = 0, size = 8) +     
@@ -610,7 +600,7 @@ ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)")]
     geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, color = NMS)) +
     # scale_linetype_manual(values = c("dashed", "solid"))+
     geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
-    # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
+   geom_text(data = hline_dt, aes(x = 16, y = y_line, label =y_label ))+
      scale_color_manual(values=c("royalblue2", "tomato3"))+   
    geom_text(data = ann_text[variable %in% unique(plot_dt_long1$variable)], aes(y = value, x = x, label = lab),              
              hjust = 0, size = 8) +     
