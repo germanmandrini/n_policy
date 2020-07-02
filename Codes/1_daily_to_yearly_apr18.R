@@ -119,11 +119,11 @@ make_yearly_summary <- function(file_n){
                      whc = max(dul_dep) - max(ll15_dep)), by = .(id_10, mukey, z, sim_name, year)]
       
       #Add previous yield
-      prev_yield <- initial_conditions_dt[z == z_n] %>% .[,.(Yld_prev = max(Y, na.rm = T)/0.85), by = .(id_10, mukey, z)]
+      prev_yield <- initial_conditions_dt[z == z_n] %>% .[,.(Yld_prev = max(Y, na.rm = T)/0.87), by = .(id_10, mukey, z)]
       yearly_data <- merge(yearly_data[year == 2010], prev_yield, by = c('id_10', 'mukey','z'))
       
       #Add soy yield
-      soy_yield <- daily_yc_dt2[year == 2011,.(Yld_soy = max(Y, na.rm = T)/0.85), by = .(id_10, mukey, z, sim_name)]
+      soy_yield <- daily_yc_dt2[year == 2011,.(Yld_soy = max(Y, na.rm = T)/0.87), by = .(id_10, mukey, z, sim_name)]
       yearly_data <- merge(yearly_data, soy_yield, by = c('id_10', 'mukey','z', 'sim_name'))
       
       #Add sowing date
