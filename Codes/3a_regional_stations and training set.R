@@ -172,6 +172,8 @@ TrainSet2 <- merge(TrainSet, right_mukey_z_combination, all.x = T)
 TrainSet2 <- TrainSet2[!is.na(right_comb)]
 TrainSet2[ ,right_comb := NULL]
 
+# TrainSet2 <- TrainSet
+
 TrainSet2[,.N, by = .(id_10, mukey, z)]$N %>% table() #of rates by mukey z, has to be 33
 TrainSet2[,.N, by = .(id_10, mukey, z)][,.N, by = .(id_10, mukey)]$N %>% table()#of z by mukey, has to be 5 or 10
 TrainSet2[,.N, by = id_10] %>% nrow() # of stations, has to be 120

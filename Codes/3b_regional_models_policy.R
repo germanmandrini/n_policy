@@ -2,7 +2,7 @@
 # setwd('C:/Users/germanm2/Box Sync/My_Documents') #CPSC
 # setwd("/home/germanm2")
 setwd('~')
-
+rm(list=ls())
 # corchete alt 91 []
 # llave { } alt 123 125 
 source('./Codes_useful/R.libraries.R')
@@ -63,7 +63,8 @@ if(soy_profits){
 # CREATE THE N RATIO TAX MODEL
 
 ratio_seq <- sort(c(seq(2, 20, by = 1), 7.5, 8.5, 11.5,12.5))
-ratio_seq <- sort(c(seq(1, 20, by = 2)))
+# ratio_seq <- sort(c(seq(1, 20, by = 2)))
+ratio_seq <- 5
 set.seed(123)
 
 for(ratio_n in ratio_seq){
@@ -156,10 +157,10 @@ for(ratio_n in ratio_seq){
   
   # --------------------------------------
   # RF Model 2------------------------
-  # mtry <- tuneRF(TrainSet_eonr2[,c(no_cost_varb, ss_varb), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
-  #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
+  mtry <- tuneRF(TrainSet_eonr2[,c(no_cost_varb, ss_varb), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
+                 stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
   # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
-  best.m = 8
+  best.m = 5
   
   rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2[,c('eonr', no_cost_varb, ss_varb), with = FALSE],
                               importance = TRUE , mtry = best.m, ntree=1000, nodesize = 20)
@@ -178,7 +179,7 @@ for(ratio_n in ratio_seq){
 # =========================================================================================================================================================
 # CREATE THE LEACHING FEE MODEL
 source('./n_policy_git/Codes/parameters.R')
-fee_seq <- sort(c(seq(0, 14, by = 2)))
+fee_seq <- sort(c(seq(0, 14, by = 1)))
 length(fee_seq)
 set.seed(123)
 
@@ -323,7 +324,7 @@ TrainSet_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)]
 TrainSet_RMM <- TrainSet_nr[Yld_response > Yld_response_threshold]
 
 red_seq <- sort(unique(c(seq(0.7,0.89, by = 0.05), seq(0.9,1, by = 0.01))))
-red_seq <- seq(0.7,1, by = 0.05)
+# red_seq <- seq(0.7,1, by = 0.05)
 length(red_seq)
 
 for(n_red in red_seq){

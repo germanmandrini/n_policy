@@ -101,7 +101,7 @@ process_field_economics <- function(j){
     
     # Update area and coordinates using field level information
     ic_field_dt <- merge(ic_field_dt, field_soils_dt[,.(id_10, mukey, area_ha, lat, long)], by = c('id_10', 'mukey'))
-    ic_field_dt[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits adding corn and soy
+    
     ic_field_dt[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5]
     # ic_field_dt[,L := L1 + L2] #update leaching adding corn and soy
     
@@ -119,7 +119,7 @@ process_field_economics <- function(j){
       # print(Pn_tmp/Pc)
       ic_field_dt[, P_1 := Y_corn * Pc - N_fert * Pn_tmp]  #update profits
       ic_field_dt[, P_2 := Y_soy * Ps]  #update profits
-      ic_field_dt[, P := P_1 + P_2]  #update profits
+      ic_field_dt[, P := P_1]  #update profits
       ic_field_dt[, G := N_fert * (Pn_tmp - Pn)] #gov collection
       
       #===================================================================================================================
@@ -185,7 +185,7 @@ process_field_economics <- function(j){
       # print(fee_n)
       ic_field_dt[, P_1 := Y_corn * Pc - N_fert * Pn - L1 * fee_n]  #update profits
       ic_field_dt[, P_2 := Y_soy * Ps - L2 * fee_n]  #update profits
-      ic_field_dt[, P := P_1 + P_2]  #update profits
+      ic_field_dt[, P := Y_corn * Pc - N_fert * Pn - L * fee_n]  #update profits
       ic_field_dt[, G := L * fee_n] #gov collectionn
       
       
@@ -257,17 +257,17 @@ process_field_economics <- function(j){
      # N LEACHING REDUCTION MODEL: farmers due to maral understanding decide to adopt a model that reduces N leaching
     ic_field_dt[, P_1 := Y_corn * Pc - N_fert * Pn]  #update profits
     ic_field_dt[, P_2 := Y_soy * Ps]  #update profits
-    ic_field_dt[, P := P_1 + P_2]  #update profits
+    ic_field_dt[, P := P_1]  #update profits
     ic_field_dt[, G := 0] #gov collection
     
     
     #Get the ex-post data for n leaching reduction (used then in NMS 11 and 12)
-    baseline_leaching <- merge(ic_field_dt[!z %in% training_z], reg_model_stuff[['fee_0']]$minimum_ok, by = 'region') %>% .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, leach_base = L)]
-    
-    ic_field_dt_nr <- merge(ic_field_dt[!z %in% training_z], baseline_leaching, by = c('id_10', 'mukey', 'z'))
-    ic_field_dt_nr[,leach_rel := L/leach_base]
-    ic_field_dt_nr[L == 0 & leach_base == 0, leach_rel := 1] #avoid dividing by 0
-    ic_field_dt_nr[L > 0 & leach_base == 0, leach_rel := L/0.001] #avoid dividing by 0
+    # baseline_leaching <- merge(ic_field_dt[!z %in% training_z], reg_model_stuff[['fee_0']]$minimum_ok, by = 'region') %>% .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, leach_base = L)]
+    # 
+    # ic_field_dt_nr <- merge(ic_field_dt[!z %in% training_z], baseline_leaching, by = c('id_10', 'mukey', 'z'))
+    # ic_field_dt_nr[,leach_rel := L/leach_base]
+    # ic_field_dt_nr[L == 0 & leach_base == 0, leach_rel := 1] #avoid dividing by 0
+    # ic_field_dt_nr[L > 0 & leach_base == 0, leach_rel := L/0.001] #avoid dividing by 0
     
     policies_nred <- names(reg_model_stuff)[str_detect(names(reg_model_stuff), pattern = 'nred_')]
     
@@ -345,12 +345,10 @@ process_field_economics <- function(j){
     
     testing_set_dt <- rbindlist(small_list)
     
-    testing_set_dt[,.N, .(mukey, policy, NMS)][N==9] #number of z by mukey. SHould be all equal
-    testing_set_dt[,.N, .(mukey, policy, NMS)] %>% .[,N] %>% table() #number of z by mukey
+    testing_set_dt[,.N, .(mukey, policy, NMS)] %>% .[,N] %>% table() #number of z by mukey. SHould be all equal
     testing_set_dt[,.N, .(mukey)] #number of methods, z and policies by mukey
     
     # testing_set_dt[,NMS := as.numeric(method)]
-    testing_set_dt[z == 11,.N, .(z, NMS, tech)]
     testing_set_dt[NMS == '1', .(Y_corn =  mean(Y_corn),
                       L = mean(L),
                       N_fert = mean(N_fert),

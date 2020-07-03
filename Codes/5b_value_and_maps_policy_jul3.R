@@ -127,11 +127,16 @@ if(FALSE){
   # perfomances_dt5[,E := L * 0.4 * Pe_med]
   # perfomances_dt5[,E := L * Pe_total]
 
+  # ---------
+  # Make leaching relative to baselevel
   baselevel_L <- perfomances_dt5[policy == 'ratio_5' & NMS == '1', L]
   perfomances_dt5[policy %in% c('fee_0', 'ratio_5', 'nred_1') & NMS == '1']
   
   perfomances_dt5[,L_change := round((L / baselevel_L) - 1,3)*100 ]
   
+  # ---------
+  colsToDelete <- c('tech', 'L1', 'L2', 'corn_avg_ha')
+  set(perfomances_dt5,, colsToDelete, NULL)
   
   #---------
   # subsidy_dt <- perfomances_dt5[policy_name == 'nred']
@@ -143,12 +148,23 @@ if(FALSE){
   # perfomances_dt5 <- rbind(perfomances_dt5, subsidy_dt)
   # perfomances_dt5[,W := P + G - E]
   
+  #---------
+  #remove yields modifications of more that 5%
   baselevel_Y_corn <- perfomances_dt5[policy == 'ratio_5' & NMS == '1', Y_corn ]
   perfomances_dt5[,Y_corn_change := Y_corn/baselevel_Y_corn]
   perfomances_dt5 <- perfomances_dt5[Y_corn_change >=0.95 & Y_corn_change <= 1.05] #remove yields modifications of more that 5%
   
-  perfomances_dt5 <- perfomances_dt5[!(policy_name == 'ratio' & policy_val < 5)] #remove ratios that are subsidized
-
+  #---------
+  #remove ratios that are subsidized
+  perfomances_dt5 <- perfomances_dt5[!(policy_name == 'ratio' & policy_val < 5)] 
+  
+  #---------
+  #Calculate the subsidies
+  baselevel_P <- perfomances_dt5[policy == 'ratio_5' & NMS == '1', P ]
+  perfomances_dt5[,S := P - baselevel_P]
+  perfomances_dt5[,GC := round(G + S,2)]
+  # subsidy_dt[,P := P - G]
+  
   
   saveRDS(perfomances_dt5, "./n_policy_box/Data/files_rds/perfomances_dt5.rds")
   
@@ -173,12 +189,12 @@ if(FALSE){
 
 # Elasticity of Demand Point-Slope Formula: https://pressbooks.bccampus.ca/uvicecon103/chapter/4-2-elasticity/
 if(FALSE){
-  elasticity_dt <- plot_dt[NMS == 1 & policy_val %in% c(4,6,8)]
-  d_quantity <- (elasticity_dt[policy_val == 8, N_fert] - elasticity_dt[policy_val == 6, N_fert])/
-                (elasticity_dt[policy_val == 6, N_fert])
+  elasticity_dt <- plot_dt[NMS == 1 & policy_val %in% c(4,5,6)]
+  d_quantity <- (elasticity_dt[policy_val == 6, N_fert] - elasticity_dt[policy_val == 5, N_fert])/
+                (elasticity_dt[policy_val == 5, N_fert])
   
-  d_price <- (Pc*8 -  Pc*6)/
-              (Pc*6)
+  d_price <- (Pc*6 -  Pc*5)/
+              (Pc*5)
   
   d_quantity/d_price
 }
@@ -193,23 +209,21 @@ baselevel_Y_corn <- perfomances_dt5[policy == 'fee_0' & NMS == '1', Y_corn ]
 
 # plot_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
 
-plot_dt[,.SD[W == max(W)], by = NMS] #peak in W
+# plot_dt[,.SD[W == max(W)], by = NMS] #peak in W
 
 ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L_change, color = NMS))
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
-                                                                                 'P', 'G', 'E','W'))
+                                                                                 'P', 'G'))
 
-plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'E','W'),
+plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G'),
                                             labels = c(expression("Fertilizer (N kg " * ha^"-1" *yr^"-1"* ")"), 
                                                        # expression("L ('%'change)"), 
                                                        # "'%'*V",
                                                        expression("L ("*'%'*" change)"),
                                                        expression("Corn Yield (kg N " * ha^"-1" *yr^"-1"* ")"), 
                                                        expression("P ($ " * ha^"-1" * yr^"-1"* ")"),
-                                                       expression("G ($ " * ha^"-1" * yr^"-1"* ")"),
-                                                       expression("E ($ " * ha^"-1" * yr^"-1"* ")"),
-                                                       expression("W ($ " * ha^"-1" * yr^"-1"* ")")))]
+                                                       expression("G ($ " * ha^"-1" * yr^"-1"* ")")))]
 
 # plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
 # plot_dt_long[variable == 'L', plot_name := 'b) L (% change)']
