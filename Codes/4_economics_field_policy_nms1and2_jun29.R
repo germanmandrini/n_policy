@@ -19,13 +19,15 @@ grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
 reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
 grid10_soils_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_soils_sf2.rds')
 
+names(reg_model_stuff)
+reg_model_stuff$ratio_6$minimum_ok
+reg_model_stuff$fee_0$minimum_ok
 # yc_yearly_dt3[,L := L1 + L2] #update leaching adding corn and soy
-yc_yearly_dt3[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits adding corn and soy
+# yc_yearly_dt3[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits adding corn and soy
 
 #Get profits relative to zero Nitrogen Rate
-profits_zero_dt <- yc_yearly_dt3[N_fert == 10, .(id_10, mukey, z, P_zero = P)] %>% unique()
-yc_yearly_dt3 <- merge(yc_yearly_dt3, profits_zero_dt, by = c('id_10', 'mukey', 'z'))
-yc_yearly_dt3[,P:= P-P_zero]
+# data_zero_dt <- yc_yearly_dt3[N_fert == 10, .(id_10, mukey, z, Y_corn_zero = Y_corn, Y_soy_zero = Y_soy, L_zero = L, N_fert_zero = N_fert)] %>% unique()
+# yc_yearly_dt3 <- merge(yc_yearly_dt3, data_zero_dt, by = c('id_10', 'mukey', 'z'))
 
 #======================================================================================
 # GET THE FIELDS THAT CAN BE RUN
@@ -99,7 +101,7 @@ process_field_economics <- function(j){
     
     # Update area and coordinates using field level information
     ic_field_dt <- merge(ic_field_dt, field_soils_dt[,.(id_10, mukey, area_ha, lat, long)], by = c('id_10', 'mukey'))
-    ic_field_dt[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits adding corn and soy
+    
     ic_field_dt[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5]
     # ic_field_dt[,L := L1 + L2] #update leaching adding corn and soy
     
@@ -117,8 +119,9 @@ process_field_economics <- function(j){
       # print(Pn_tmp/Pc)
       ic_field_dt[, P_1 := Y_corn * Pc - N_fert * Pn_tmp]  #update profits
       ic_field_dt[, P_2 := Y_soy * Ps]  #update profits
-      ic_field_dt[, P := P_1 + P_2]  #update profits
-      ic_field_dt[, gov := N_fert * (Pn_tmp - Pn)] #gov collection
+      ic_field_dt[, P := P_1]  #update profits
+      ic_field_dt[, G := N_fert * (Pn_tmp - Pn)] #gov collection
+      
       #===================================================================================================================
       # 1b) MINIMUM OK-
       
@@ -129,7 +132,7 @@ process_field_economics <- function(j){
                            reg_model_stuff[[policy_n]]$minimum_ok, #because I forgot to set the name to eonr_pred
                            by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
         .[N_fert == eonr_pred] %>%
-        .[,c("mukey", "z", "id_10", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'P_1', 'P_2', "gov")]
+        .[,c("mukey", "z", "id_10", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'P_1', 'P_2', "G")]
       
       areas <- testing_set[,.(mukey, area_ha)] %>% unique()
       
@@ -166,7 +169,7 @@ process_field_economics <- function(j){
                              prediction_set_aggregated[,.(z, eonr_pred)], by = c('z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[,eonr_pred := ifelse(eonr_pred <10, 10, ifelse(eonr_pred > 330, 330, eonr_pred))] %>%
       .[N_fert == eonr_pred] %>%
-      .[,c("mukey", "z", "id_10", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov")]
+      .[,c("mukey", "z", "id_10", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "G")]
       
       small_list[[length(small_list)+1]] <- testing_set[,NMS := '2'][,tech := 'UR'][,policy := policy_n]
   
@@ -182,8 +185,8 @@ process_field_economics <- function(j){
       # print(fee_n)
       ic_field_dt[, P_1 := Y_corn * Pc - N_fert * Pn - L1 * fee_n]  #update profits
       ic_field_dt[, P_2 := Y_soy * Ps - L2 * fee_n]  #update profits
-      ic_field_dt[, P := P_1 + P_2]  #update profits
-      ic_field_dt[, gov := L * fee_n] #gov collectionn
+      ic_field_dt[, P := Y_corn * Pc - N_fert * Pn - L * fee_n]  #update profits
+      ic_field_dt[, G := L * fee_n] #gov collectionn
       
       
       # #===================================================================================================================
@@ -195,7 +198,7 @@ process_field_economics <- function(j){
       testing_set <- merge(ic_field_dt[!z %in% training_z],
                            reg_model_stuff[[policy_n]]$minimum_ok, by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
         .[N_fert == eonr_pred] %>%
-        .[,c("mukey", "z", "id_10", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'P_1', 'P_2', "gov")]
+        .[,c("mukey", "z", "id_10", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'P_1', 'P_2', "G")]
       
       areas <- testing_set[,.(mukey, area_ha)] %>% unique()
       
@@ -245,7 +248,7 @@ process_field_economics <- function(j){
                            prediction_set_aggregated[,.(z, eonr_pred)], by = c('z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
         .[,eonr_pred := ifelse(eonr_pred <10, 10, ifelse(eonr_pred > 330, 330, eonr_pred))] %>%
         .[N_fert == eonr_pred] %>%
-        .[,c("mukey", "z", "id_10", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov")]
+        .[,c("mukey", "z", "id_10", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "G")]
       
       small_list[[length(small_list)+1]] <- testing_set[,NMS := '2'][,tech := 'UR'][,policy := policy_n]
       
@@ -254,17 +257,17 @@ process_field_economics <- function(j){
      # N LEACHING REDUCTION MODEL: farmers due to maral understanding decide to adopt a model that reduces N leaching
     ic_field_dt[, P_1 := Y_corn * Pc - N_fert * Pn]  #update profits
     ic_field_dt[, P_2 := Y_soy * Ps]  #update profits
-    ic_field_dt[, P := P_1 + P_2]  #update profits
-    ic_field_dt[, gov := 0] #gov collection
+    ic_field_dt[, P := P_1]  #update profits
+    ic_field_dt[, G := 0] #gov collection
     
     
     #Get the ex-post data for n leaching reduction (used then in NMS 11 and 12)
-    baseline_leaching <- merge(ic_field_dt[!z %in% training_z], reg_model_stuff[['fee_0']]$minimum_ok, by = 'region') %>% .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, leach_base = L)]
-    
-    ic_field_dt_nr <- merge(ic_field_dt[!z %in% training_z], baseline_leaching, by = c('id_10', 'mukey', 'z'))
-    ic_field_dt_nr[,leach_rel := L/leach_base]
-    ic_field_dt_nr[L == 0 & leach_base == 0, leach_rel := 1] #avoid dividing by 0
-    ic_field_dt_nr[L > 0 & leach_base == 0, leach_rel := L/0.001] #avoid dividing by 0
+    # baseline_leaching <- merge(ic_field_dt[!z %in% training_z], reg_model_stuff[['fee_0']]$minimum_ok, by = 'region') %>% .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, leach_base = L)]
+    # 
+    # ic_field_dt_nr <- merge(ic_field_dt[!z %in% training_z], baseline_leaching, by = c('id_10', 'mukey', 'z'))
+    # ic_field_dt_nr[,leach_rel := L/leach_base]
+    # ic_field_dt_nr[L == 0 & leach_base == 0, leach_rel := 1] #avoid dividing by 0
+    # ic_field_dt_nr[L > 0 & leach_base == 0, leach_rel := L/0.001] #avoid dividing by 0
     
     policies_nred <- names(reg_model_stuff)[str_detect(names(reg_model_stuff), pattern = 'nred_')]
     
@@ -281,7 +284,7 @@ process_field_economics <- function(j){
       testing_set <- merge(ic_field_dt[!z %in% training_z],
                            reg_model_stuff[[policy_n]]$minimum_ok, by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
         .[N_fert == eonr_pred] %>%
-        .[,c("mukey", "z", "id_10", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'P_1', 'P_2', "gov")]
+        .[,c("mukey", "z", "id_10", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'P_1', 'P_2', "G")]
       
       areas <- testing_set[,.(mukey, area_ha)] %>% unique()
       
@@ -330,7 +333,7 @@ process_field_economics <- function(j){
                            prediction_set_aggregated[,.(z, eonr_pred)], by = c('z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
         .[,eonr_pred := ifelse(eonr_pred <10, 10, ifelse(eonr_pred > 330, 330, eonr_pred))] %>%
         .[N_fert == eonr_pred] %>%
-        .[,c("mukey", "z", "id_10", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "gov")]
+        .[,c("mukey", "z", "id_10", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5", "N_fert", 'P', 'P_1', 'P_2', "G")]
       
       small_list[[length(small_list)+1]] <- testing_set[,NMS := '2'][,tech := 'UR'][,policy := policy_n]
       
@@ -342,12 +345,10 @@ process_field_economics <- function(j){
     
     testing_set_dt <- rbindlist(small_list)
     
-    testing_set_dt[,.N, .(mukey, policy, NMS)][N==9] #number of z by mukey. SHould be all equal
-    testing_set_dt[,.N, .(mukey, policy, NMS)] %>% .[,N] %>% table() #number of z by mukey
+    testing_set_dt[,.N, .(mukey, policy, NMS)] %>% .[,N] %>% table() #number of z by mukey. SHould be all equal
     testing_set_dt[,.N, .(mukey)] #number of methods, z and policies by mukey
     
     # testing_set_dt[,NMS := as.numeric(method)]
-    testing_set_dt[z == 11,.N, .(z, NMS, tech)]
     testing_set_dt[NMS == '1', .(Y_corn =  mean(Y_corn),
                       L = mean(L),
                       N_fert = mean(N_fert),
@@ -388,33 +389,6 @@ perfomances_dt[,.N, .(id_10, mukey,id_field, policy, NMS)]$N %>% table() #number
 
 perfomances_dt[,.N, .(id_10, mukey,id_field, policy, NMS)]$N %>% table()
 
-# filter_this <- perfomances_dt[,.N, .(id_10, mukey, z, id_field, method, tech)][1]
-# 
-# filter_dt_in_dt(x_dt = perfomances_dt, filter_dt = filter_this, return_table = T)
-# 
-# perfomances_dt2 <- unique(perfomances_dt)
-
-perfomances_dt2 <- merge(perfomances_dt, 
-                         perfomances_dt[NMS == '12', .(id_10, mukey, z, id_field, policy, N_fert_12 = N_fert)], 
-                         by = c("id_10", "mukey", "z", "id_field", "policy"))
-
-
-# perfomances_dt2[,overpred := ifelse(N_fert > N_fert_12, 1, 0 )]
-# perfomances_dt2[,subpred := ifelse(N_fert < N_fert_12, 1, 0 )]
-# perfomances_dt2[,angulo := ifelse(N_fert == N_fert_12, 1, 0 )]
-
-perfomances_dt2[, .(Y_corn =  mean(Y_corn),
-                    L = mean(L),
-                    N_fert = mean(N_fert),
-                    N_fert_min = min(N_fert),
-                    N_fert_max = max(N_fert),
-                    P = mean(P),
-                    # cor = cor(N_fert_12, N_fert),
-                    RMSE = mlr::measureRMSE(truth = N_fert_12, response = N_fert)),
-                    # overpred = sum(overpred)/.N,
-                    # subpred = sum(subpred)/.N,
-                    # angulo = sum(angulo)/.N), 
-                    by = .( NMS, tech)][order(-P)]
-
 
 saveRDS(perfomances_dt, "./n_policy_box/Data/files_rds/perfomances_dt.rds")
+

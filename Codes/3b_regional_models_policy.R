@@ -2,7 +2,7 @@
 # setwd('C:/Users/germanm2/Box Sync/My_Documents') #CPSC
 # setwd("/home/germanm2")
 setwd('~')
-
+rm(list=ls())
 # corchete alt 91 []
 # llave { } alt 123 125 
 source('./Codes_useful/R.libraries.R')
@@ -18,7 +18,7 @@ source('./n_policy_git/Codes/parameters.R')
 
 reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
 names(reg_model_stuff)
-reg_model_stuff[['ratio_6']]
+reg_model_stuff[['ratio_5']]
 
 
 remove_list <- names(reg_model_stuff)[!names(reg_model_stuff) %in% c("full_fields", "stations", "TrainSet","training_z")]
@@ -50,23 +50,34 @@ ss_varb <- c("n_0_60cm_v5","esw_pct_v5", "whc")
 TrainSet2[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5]
 TrainSet2[,L := L1 + L2]
 TrainSet2[, Yld_response := max(Y_corn) - min(Y_corn), by = .(id_10, mukey,z)]
-Yld_response_threshold <- 2000 
+
+# Limit the trials included in MRTN
+soy_profits <- FALSE
+if(soy_profits){
+  Yld_response_threshold <- 1000 
+}else{
+  Yld_response_threshold <- 2000  
+}
+
 # =========================================================================================================================================================
 # CREATE THE N RATIO TAX MODEL
 
 ratio_seq <- sort(c(seq(2, 20, by = 1), 7.5, 8.5, 11.5,12.5))
+# ratio_seq <- sort(c(seq(1, 20, by = 2)))
+ratio_seq <- 5
 set.seed(123)
 
 for(ratio_n in ratio_seq){
   # ratio_n = Pn/Pc
+  # ratio_n = 6
   name_model = paste0('ratio_', ratio_n)
   if(name_model %in% names(reg_model_stuff)){next}
   
   small_model_list <- list()
   Pn_tmp = ratio_n * Pc
   print(Pn_tmp/Pc)
-  TrainSet2[, P := Y_corn * Pc + Y_soy * Ps- N_fert * Pn_tmp]  #update profits
-
+  # TrainSet2[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn_tmp]  #update profits
+  TrainSet2[, P := Y_corn * Pc - N_fert * Pn_tmp]  #update profits
   # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL
   
@@ -106,8 +117,7 @@ for(ratio_n in ratio_seq){
   
   # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL - OK
-  
-  TrainSet_RMM <- TrainSet2[Yld_response > Yld_response_threshold]
+  TrainSet_RMM <- TrainSet2[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
   
   TrainSet2[,.N, .(id_10, mukey, z)] %>% nrow() #trials before (all of them)
   TrainSet_RMM[,.N, .(id_10, mukey, z)] %>% nrow()#trials after (whith response > threshold)
@@ -147,10 +157,10 @@ for(ratio_n in ratio_seq){
   
   # --------------------------------------
   # RF Model 2------------------------
-  # mtry <- tuneRF(TrainSet_eonr2[,c(no_cost_varb, ss_varb), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
-  #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
+  mtry <- tuneRF(TrainSet_eonr2[,c(no_cost_varb, ss_varb), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
+                 stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
   # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
-  best.m = 8
+  best.m = 5
   
   rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2[,c('eonr', no_cost_varb, ss_varb), with = FALSE],
                               importance = TRUE , mtry = best.m, ntree=1000, nodesize = 20)
@@ -169,7 +179,7 @@ for(ratio_n in ratio_seq){
 # =========================================================================================================================================================
 # CREATE THE LEACHING FEE MODEL
 source('./n_policy_git/Codes/parameters.R')
-fee_seq <- sort(c(seq(0, 16, by = 1)))
+fee_seq <- sort(c(seq(0, 14, by = 1)))
 length(fee_seq)
 set.seed(123)
 
@@ -190,7 +200,7 @@ for(fee_n in fee_seq){
   if(name_model %in% names(reg_model_stuff)){next}
   
   small_model_list <- list()
-  TrainSet2[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn - L * fee_n] #update profits
+  TrainSet2[, P := Y_corn * Pc - N_fert * Pn - L * fee_n] #update profits
   
   # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL
@@ -233,6 +243,10 @@ for(fee_n in fee_seq){
   # small_model_list[[name_model]] <- model_minimum_regional
   # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL - OK
+  TrainSet_RMM <- TrainSet2[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
+  
+  TrainSet2[,.N, .(id_10, mukey, z)] %>% nrow() #trials before (all of them)
+  TrainSet_RMM[,.N, .(id_10, mukey, z)] %>% nrow()#trials after (whith response > threshold)
   
   model_minimum_ok  <- aggregate_by_area(data_dt = TrainSet_RMM, variables = c('P'), 
                                          weight = 'area_ha', by_c = c('region', 'N_fert')) %>% 
@@ -294,9 +308,9 @@ set.seed(123)
 
 ## PREPARE THE TRAINING DATA ========
 # Part 1
-TrainSet2[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits
+TrainSet2[, P := Y_corn * Pc - N_fert * Pn] #update profits
 
-baseline_leaching <- merge(TrainSet2, reg_model_stuff$ratio_6$minimum_ok, by = 'region') %>% 
+baseline_leaching <- merge(TrainSet2, reg_model_stuff$ratio_5$minimum_ok, by = 'region') %>% 
   .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, leach_base = L)]
 
 TrainSet_nr <- merge(TrainSet2, baseline_leaching, by = c('id_10', 'mukey', 'z'))
@@ -309,8 +323,10 @@ TrainSet_nr[L > 0 & leach_base == 0, leach_rel := L/0.0001] #avoid dividing by 0
 TrainSet_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)]
 TrainSet_RMM <- TrainSet_nr[Yld_response > Yld_response_threshold]
 
-red_seq <- sort(unique(c(seq(0.7,0.89, by = 0.02), seq(0.9,1, by = 0.01))))
+red_seq <- sort(unique(c(seq(0.7,0.89, by = 0.05), seq(0.9,1, by = 0.01))))
+# red_seq <- seq(0.7,1, by = 0.05)
 length(red_seq)
+
 for(n_red in red_seq){
   # n_red = 1
   name_model = paste0('nred_', n_red)
@@ -535,5 +551,9 @@ reg_model_stuff[['ss_var']] <-  ss_varb
 # reg_model_stuff_tmp[['rf2_eonr']] <-  rf2_eonr
 # reg_model_stuff_tmp[['rf3_eonr']] <-  rf3_eonr
 # reg_model_stuff_tmp[['reg_lm4']] <-  reg_lm4
+
+reg_model_stuff$ratio_5$minimum_ok
+reg_model_stuff$fee_0$minimum_ok
+reg_model_stuff$nred_1$minimum_ok
 
 saveRDS(reg_model_stuff, "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
