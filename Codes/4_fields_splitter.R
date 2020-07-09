@@ -7,6 +7,8 @@ rm(list=ls())
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
 source('./n_policy_git/Codes/parameters.R')
+source('C:/Users/germanm2/Documents/n_policy_git/Codes/parameters.R')
+
 
 # library(randomForest)
 # library(mlr)
@@ -50,6 +52,7 @@ fields_list_dt <- full_fields_dt2
 # training_z <- reg_model_stuff$training_z
 no_cost_varb <- reg_model_stuff$no_cost_var
 ss_var <- reg_model_stuff$ss_var
+rm(reg_model_stuff)
 # crop_varb <- reg_model_stuff$crop_varb
 
 process_field_economics <- function(j){
@@ -148,6 +151,8 @@ fields_seq <- 1:nrow(fields_list_dt)
 # fields_seq <- sample(1:nrow(fields_list_dt), 50)
 # test_dt <- process_field_economics(20)
 
+#---------------------
+#Get the two sets for each field
 big_list <- list()
 for(j in fields_seq){
   big_list[[length(big_list)+1]] <- process_field_economics(j)
@@ -155,7 +160,8 @@ for(j in fields_seq){
 
 time2 <- Sys.time()
 
-
+#---------------------
+# Split the sets in two list
 testing_set_list <- list()
 prediction_set_aggregated_list <- list()
 

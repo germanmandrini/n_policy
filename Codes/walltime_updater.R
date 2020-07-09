@@ -25,7 +25,8 @@ id_10_walltime_dt[N >4, dur := N *  4]
 id_failed <- c(442, 1124,618,953,319,627,924,126,406,825,98,473,1042,260,825, 1116, 1035)
 id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed, dur := N *  6]
 # 
-# id_failed_timetrack <- c(1267,1223,1229,1242,534,371, 77)
+id_failed <- c(241, 264, 273, 402, 476,  49, 576,  62, 639 ,722)
+id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed]
 # id_failed_timetrack <- c(935,1095,1184,123,263,29,496,500,842,978,221,1189,1246,406,421,363)
 # id_failed_timetrack <- c(879,291, 1437, )
 # id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed_timetrack]
