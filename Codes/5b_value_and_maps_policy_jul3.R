@@ -18,14 +18,14 @@ source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 "~/n_policy_git/Codes/parameters.R"
 
 # source('./Codes_useful/gm_functions.R')
-if(FALSE){
+#if(FALSE){
   grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds") 
   grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
   grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
   # reg_model_stuff <- readRDS("./n_policy_box/Data/files_rds/reg_model_stuff.rds")
   
   perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt.rds")
-  
+  # 
   # perfomances_dt[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
   # perfomances_dt[,policy_name := lapply(perfomances_dt$policy, function(x) str_split(x, pattern = '_')[[1]][1])]
   
@@ -33,7 +33,10 @@ if(FALSE){
   perfomances_dt[,.N, .(id_10, id_field, mukey, policy, NMS)] %>% .[,N] %>% table() #number of z by mukey. SHould be all equal
   perfomances_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of treatments (policy sublevels x NMS). SHould be all equal
   
-  summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NMS, tech, z)]$area_ha)
+  perfomances_dt[,policy_name := as.character(lapply(policy, function(x) str_split(x, pattern = '_')[[1]][1]))]
+  perfomances_dt <- perfomances_dt[policy_name %in% c('ratio', 'fee' , 'nred')]
+  
+  summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NMS, z)]$area_ha)
   
   # setnames(perfomances_dt, c('gov' ),c('G'))
 
@@ -45,7 +48,7 @@ if(FALSE){
   # library(car)
   
   names(perfomances_dt)
-  do_not_aggregate = c("policy",'region','id_10', 'NMS', 'tech', 'z', 'id_field')
+  do_not_aggregate = c("policy",'region','id_10', 'NMS', 'z', 'id_field')
   do_aggregate =  c("Y_corn", 'Y_soy', 'L1', 'L2', "L", "N_fert","P", "G")
   
   if(FALSE){
@@ -76,7 +79,7 @@ if(FALSE){
   #-------------------------------------------------------------------------
   # AGGREGATE THE DATA TO CELL X Z LEVEL CONSIDERING THE AREA
   names(perfomances_dt)
-  do_not_aggregate = c('policy','id_10', 'region','NMS', 'tech', 'z')
+  do_not_aggregate = c('policy','id_10', 'region','NMS', 'z')
   do_aggregate =  c("Y_corn", 'Y_soy', 'L1', 'L2', "L", "N_fert","P", 'G')
   
   if(FALSE){
@@ -99,87 +102,127 @@ if(FALSE){
   
   #-------------------------------------------------------------------------
   # AGGREGATE THE DATA TO CELL 
-  perfomances_dt4 <- perfomances_dt3[, .(Y_corn =  mean(Y_corn),
-                                         L1 = mean(L1),
-                                         L2 = mean(L2),
-                                         L = mean(L),
-                                         leach_ext = max(L), #leaching in the year with max leaching. Most of the time will be after corn. Pushed UP
-                                         N_fert = mean(N_fert),
-                                         P = mean(P), 
-                                         G = mean(G),
-                                         area_ha = mean(area_ha)), by = .(policy,region, id_10, NMS, tech)] #cell (z is out)
+  # perfomances_dt4 <- perfomances_dt3[, .(Y_corn =  mean(Y_corn),
+  #                                        L1 = mean(L1),
+  #                                        L2 = mean(L2),
+  #                                        L = mean(L),
+  #                                        leach_ext = max(L), #leaching in the year with max leaching. Most of the time will be after corn. Pushed UP
+  #                                        N_fert = mean(N_fert),
+  #                                        P = mean(P), 
+  #                                        G = mean(G),
+  #                                        area_ha = mean(area_ha)), by = .(policy,region, id_10, NMS)] #cell (z is out)
   
   #---------------------------------------------------------------------------
   # AGGREGATE AGAIN CONSIDERING THE CORN PRODUCTION OF THE CELL
   grid10_tiles_dt <- data.table(grid10_tiles_sf7)[,.N, .(id_tile,id_10, corn_avg_ha,corn5_tile )][,-'N']
   
   summary(grid10_tiles_dt$corn_avg_ha)
-  perfomances_dt4[,id_10 := as.integer(id_10)]
-  perfomances_dt4 <- merge(perfomances_dt4, grid10_tiles_dt, by = 'id_10')
+  perfomances_dt3[,id_10 := as.integer(id_10)]
+  perfomances_dt3 <- merge(perfomances_dt3, grid10_tiles_dt, by = 'id_10')
   
-  perfomances_dt5 <- aggregate_by_area(data_dt = perfomances_dt4, variables = c("Y_corn", 'L1', 'L2', "L", "leach_ext", "N_fert","P", "G"), 
-                                           weight = 'corn_avg_ha', by_c = c('policy','NMS', 'tech')) #state level, weighted by corn_ha
-  perfomances_dt5[order(-P)]
   
-  perfomances_dt5[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
-  perfomances_dt5[,policy_name := as.character(lapply(perfomances_dt5$policy, function(x) str_split(x, pattern = '_')[[1]][1]))]
-  
-  # perfomances_dt5[,E := L * 0.4 * Pe_med]
-  # perfomances_dt5[,E := L * Pe_total]
-
+  perfomances_dt4 <- aggregate_by_area(data_dt = perfomances_dt3, variables = c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G"), 
+                                       weight = 'corn_avg_ha', by_c = c('policy','NMS')) #state level, weighted by corn_ha
   # ---------
   # Make leaching relative to baselevel
-  baselevel_L <- perfomances_dt5[policy == 'ratio_5' & NMS == '1', L]
-  perfomances_dt5[policy %in% c('fee_0', 'ratio_5', 'nred_1') & NMS == '1']
+  baselevel_L <- perfomances_dt4[policy == 'ratio_5' & NMS == '1', L]
+  perfomances_dt4[policy %in% c('fee_0', 'ratio_5', 'nred_1') & NMS == '1']
   
-  perfomances_dt5[,L_change := round((L / baselevel_L) - 1,3)*100 ]
+  perfomances_dt4[,L_change := round((L / baselevel_L) - 1,3)*100 ]
+  
+  perfomances_dt4[]
+  #---------------------------------------------------------------------------
+  # # WHAT Z IS THE MODEL FAILING
+  # test_dt <- aggregate_by_area(data_dt = perfomances_dt3, variables = c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G"), 
+  #                                          weight = 'corn_avg_ha', by_c = c('policy','NMS', 'z')) #state level, weighted by corn_ha
+  # 
+  # test_dt2 <- test_dt[, .(P_diff = (P[NMS == 2] - P[NMS == 1]),
+  #                         N_fert_2 = mean(N_fert),
+  #                         L_diff = ((L[NMS == 2] - L[NMS == 1])/L[NMS == 1])), by = .(policy, z)][order(policy, P_diff)]
+  # test_dt2[]
+  # test_dt2[, .SD[1:2], policy]
+  # perfomances_dt3[,.(N_fert = mean(N_fert)), .(NMS, z)][NMS==2]
+  # perfomances_dt3[z == 13]
+  # 
+  # hist(perfomances_dt[z == 13 & NMS == 2]$N_fert)
+  # 
+  # ggplot(perfomances_dt[NMS == 2][sample(200)]) + geom_point(aes(x=n_deep_v5, y = N_fert, color = region))
+  # 
+  # # What rates are wrong?
+  # rates_that_fail_dt <- perfomances_dt[z == 13, .(P_diff = (P[NMS == 2] - P[NMS == 1]),
+  #                                          n_deep_v5 = mean(n_deep_v5),
+  #                                          N_fert_2 = mean(N_fert)), by = .(region, id_10, id_field, mukey, z)]
+  # 
+  # rates_that_fail_dt_plot <- rates_that_fail_dt[sample(1:nrow(rates_that_fail_dt), 1000)]
+  # ggplot(rates_that_fail_dt_plot) + geom_point(aes(x=N_fert_2, y = P_diff, color = region))
+  # ggplot(rates_that_fail_dt_plot) + geom_point(aes(x=n_deep_v5, y = P_diff, color = region))
+  # ggplot(rates_that_fail_dt_plot) + geom_point(aes(x=n_deep_v5, y = N_fert_2, color = region))
+  # 
+  # rates_that_fail_dt2 <- rates_that_fail_dt[,.(P_diff = mean(P_diff),
+  #                           n_deep_v5 = mean(n_deep_v5),
+  #                       .N), by = .(region, N_fert_2)]
+  # 
+  # rates_that_fail_dt2[, region := factor(region)]
+  # rates_that_fail_dt2[, N_fert_2 := as.numeric(N_fert_2)]
+  # rates_that_fail_dt2[order(region, N_fert_2)]
+  # 
+  # ggplot(rates_that_fail_dt2) + geom_point(aes(x=N_fert_2, y = P_diff, color = region))
+  # 
+  # ggplot(rates_that_fail_dt2) + geom_point(aes(x=n_deep_v5, y = P_diff, color = region))
+  
+  #---------------------------------------------------------------------------
+  perfomances_dt4[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
+  perfomances_dt4[,policy_name := as.character(lapply(policy, function(x) str_split(x, pattern = '_')[[1]][1]))]
+  
+  # perfomances_dt4[,E := L * 0.4 * Pe_med]
+  # perfomances_dt4[,E := L * Pe_total]
+
+ 
   
   # ---------
-  colsToDelete <- c('tech', 'L1', 'L2', 'corn_avg_ha')
-  set(perfomances_dt5,, colsToDelete, NULL)
+  colsToDelete <- c('L1', 'L2', 'corn_avg_ha')
+  set(perfomances_dt4,, colsToDelete, NULL)
   
   #---------
-  # subsidy_dt <- perfomances_dt5[policy_name == 'nred']
+  # subsidy_dt <- perfomances_dt4[policy_name == 'nred']
   # subsidy_dt[ ,policy_name := 'subs']
   # subsidy_dt[ ,policy := paste0('subs_', policy_val)]
-  # baselevel_P <- perfomances_dt5[policy == 'fee_0' & NMS == '1', P ]
+  # baselevel_P <- perfomances_dt4[policy == 'fee_0' & NMS == '1', P ]
   # subsidy_dt[,G := P - baselevel_P]
   # subsidy_dt[,P := P - G]
-  # perfomances_dt5 <- rbind(perfomances_dt5, subsidy_dt)
-  # perfomances_dt5[,W := P + G - E]
+  # perfomances_dt4 <- rbind(perfomances_dt4, subsidy_dt)
+  # perfomances_dt4[,W := P + G - E]
   
   #---------
   #remove yields modifications of more that 5%
-  baselevel_Y_corn <- perfomances_dt5[policy == 'ratio_5' & NMS == '1', Y_corn ]
-  perfomances_dt5[,Y_corn_change := Y_corn/baselevel_Y_corn]
-  perfomances_dt5 <- perfomances_dt5[Y_corn_change >=0.95 & Y_corn_change <= 1.05] #remove yields modifications of more that 5%
+  baselevel_Y_corn <- perfomances_dt4[policy == 'ratio_5' & NMS == '1', Y_corn ]
+  perfomances_dt4[,Y_corn_change := Y_corn/baselevel_Y_corn]
+  perfomances_dt4 <- perfomances_dt4[Y_corn_change >=0.95 & Y_corn_change <= 1.05] #remove yields modifications of more that 5%
   
   #---------
   #remove ratios that are subsidized
-  perfomances_dt5 <- perfomances_dt5[!(policy_name == 'ratio' & policy_val < 5)] 
+  perfomances_dt4 <- perfomances_dt4[!(policy_name == 'ratio' & policy_val < 5)] 
   
   #---------
   #Calculate the subsidies
-  baselevel_P <- perfomances_dt5[policy == 'ratio_5' & NMS == '1', P ]
-  perfomances_dt5[,S := P - baselevel_P]
-  perfomances_dt5[,GC := round(G + S,2)]
-  # subsidy_dt[,P := P - G]
+  baselevel_P <- perfomances_dt4[policy == 'ratio_5' & NMS == '1', P ]
+  # perfomances_dt4[,S := P - baselevel_P]
+  perfomances_dt4[,ag_cost := P - baselevel_P + G]
   
-  
-  saveRDS(perfomances_dt5, "./n_policy_box/Data/files_rds/perfomances_dt5.rds")
+  saveRDS(perfomances_dt4, "./n_policy_box/Data/files_rds/perfomances_dt4.rds")
   
 }  
 
-perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
-perfomances_dt5[policy %in% c('ratio_5', 'fee_0', 'nred_1')]
+perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
+perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1') & NMS == 1]
 
-W_peak_dt <- perfomances_dt5[,.SD[W == max(W)], by = .(policy_name, NMS)] #peak in W
+W_peak_dt <- perfomances_dt4[,.SD[W == max(W)], by = .(policy_name, NMS)] #peak in W
 saveRDS(W_peak_dt, "./n_policy_box/Data/files_rds/W_peak_dt.rds")
 
 #==========================================================================
 # RATIO CHART 2
 
-plot_dt <- perfomances_dt5[policy_name == 'ratio' & NMS %in% c('1','2') & policy_val <= 20 ] 
+plot_dt <- perfomances_dt4[policy_name == 'ratio' & NMS %in% c('1','2') & policy_val <= 20 ] 
 
 # Total G collections in IL
 if(FALSE){
@@ -199,13 +242,13 @@ if(FALSE){
   d_quantity/d_price
 }
 
-# current_ratio_dt <- perfomances_dt5[policy == 'fee_0' & NMS %in% c('1','2','3','4','5')]
+# current_ratio_dt <- perfomances_dt4[policy == 'fee_0' & NMS %in% c('1','2','3','4','5')]
 # current_ratio_dt[,policy_name := 'ratio']
 # current_ratio_dt[,policy_val := Pn/Pc]
 # current_ratio_dt[,policy := paste('ratio', round(Pn/Pc,1), sep = '_')]   
 # plot_dt <- rbind(plot_dt, current_ratio_dt)
-baselevel_L <- perfomances_dt5[policy == 'fee_0' & NMS == '1', L]
-baselevel_Y_corn <- perfomances_dt5[policy == 'fee_0' & NMS == '1', Y_corn ]
+baselevel_L <- perfomances_dt4[policy == 'ratio_5' & NMS == '1', L]
+baselevel_Y_corn <- perfomances_dt4[policy == 'ratio_5' & NMS == '1', Y_corn ]
 
 # plot_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
 
@@ -214,16 +257,17 @@ baselevel_Y_corn <- perfomances_dt5[policy == 'fee_0' & NMS == '1', Y_corn ]
 ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L_change, color = NMS))
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
-                                                                                 'P', 'G'))
+                                                                                 'P', 'G', 'ag_cost'))
 
-plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G'),
+plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'GC'),
                                             labels = c(expression("Fertilizer (N kg " * ha^"-1" *yr^"-1"* ")"), 
                                                        # expression("L ('%'change)"), 
                                                        # "'%'*V",
                                                        expression("L ("*'%'*" change)"),
                                                        expression("Corn Yield (kg N " * ha^"-1" *yr^"-1"* ")"), 
                                                        expression("P ($ " * ha^"-1" * yr^"-1"* ")"),
-                                                       expression("G ($ " * ha^"-1" * yr^"-1"* ")")))]
+                                                       expression("G ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                       expression("ag_cost ($ " * ha^"-1" * yr^"-1"* ")")))]
 
 # plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
 # plot_dt_long[variable == 'L', plot_name := 'b) L (% change)']
@@ -247,8 +291,8 @@ hline_dt[variable == 'Y_corn', y_label := '95% baselevel']
 ann_text <- plot_dt_long[,.(x = min(policy_val)-5,
                 value = max(value)), by = .(variable, variable_labels)]
 #Sort in the right order
-ann_text <- ann_text[match(c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'E','W'), ann_text$variable),]
-ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)")]
+ann_text <- ann_text[match(c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'ag_cost', 'E','W'), ann_text$variable),]
+ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)", "h)")]
 #----
 
 (plot_1 <- ggplot() +
@@ -317,33 +361,23 @@ plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn')]
 ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
        filename = "./n_policy_box/Data/figures/ratio_all_vars.jpg", width = 979/300*3, height = 1042/300*3,
        units = 'in')
-
-
-
 #==========================================================================
-# LRED CHART
+# LRED VS SHADOW
 
-plot_dt <- perfomances_dt5[policy_name == 'nred' & NMS %in% c('1','2') & policy_val <= 20 ][order(NMS, -policy_val)]
-
-plot_dt[NMS == 2]
-
-compare_dt <- perfomances_dt5[policy == 'ratio_6' | policy == 'nred_1' | policy == 'fee_0' & NMS %in% c('1','2')]
-compare_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
+plot_dt <- perfomances_dt4[policy_name %in% c('nred', 'target') & NMS %in% c('1','2')][order(NMS, -policy_val)]
+plot_dt <- plot_dt[policy != 'target_0.96']
 
 # plot_dt[,L_red := round(1-(L / baselevel_L),2)*100 ]
 # plot_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
-plot_dt[,.SD[W == max(W)], by = NMS] #peak in W
 plot_dt[,policy_val  := (1-policy_val )*100]
-ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
+ggplot(plot_dt) + geom_path(aes(x = -L_change, y = P, color = policy_name, linetype = NMS)) +
+  geom_text(aes(x = -L_change, y = P, label = policy_val, color = policy_name ))
 
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
-                                                                                 'P', 'G', 'E','W')) %>% data.table()
+plot_dt <- plot_dt[NMS == 2]
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_name', 'policy_val'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
+                                                                                 'P', 'G', 'ag_cost')) %>% data.table()
 
-plot_dt_long <- plot_dt_long[policy_val >= 0]
-
-
-
-plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'E','W'),
+plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'GC'),
                                         labels = c(expression("Fertilizer (N kg " * ha^"-1" *yr^"-1"* ")"), 
                                                    # expression("L ('%'change)"), 
                                                    # "'%'*V",
@@ -351,7 +385,17 @@ plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change
                                                    expression("Corn Yield (kg N " * ha^"-1" *yr^"-1"* ")"), 
                                                    expression("P ($ " * ha^"-1" * yr^"-1"* ")"),
                                                    expression("G ($ " * ha^"-1" * yr^"-1"* ")"),
-                                                   expression("E ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("ag_cost ($ " * ha^"-1" * yr^"-1"* ")")))]
+
+plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'ag_cost','W'),
+                                        labels = c(expression("Fertilizer (N kg " * ha^"-1" *yr^"-1"* ")"), 
+                                                   # expression("L ('%'change)"), 
+                                                   # "'%'*V",
+                                                   expression("L ("*'%'*" change)"),
+                                                   expression("Corn Yield (kg N " * ha^"-1" *yr^"-1"* ")"), 
+                                                   expression("P ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("G ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("ag_cost ($ " * ha^"-1" * yr^"-1"* ")"),
                                                    expression("W ($ " * ha^"-1" * yr^"-1"* ")")))]
 
 plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L_change', 'Y_corn')] 
@@ -367,7 +411,121 @@ hline_dt[variable == 'Y_corn', y_label := '95% baselevel']
 ann_text <- plot_dt_long[,.(x = min(policy_val)-5,
                             value = max(value)), by = .(variable, variable_labels)]
 #Sort in the right order
-ann_text <- ann_text[match(c('N_fert', 'L_change', 'Y_corn', 'P', 'E','W'), ann_text$variable),]
+ann_text <- ann_text[match(c('N_fert', 'L_change', 'Y_corn', 'P', 'ag_cost','W'), ann_text$variable),]
+ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)")]
+ann_text
+#----
+
+(plot_1 <- ggplot() +
+   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+   # scale_colour_manual(values = c("black", "brown"))+
+   geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, color = policy_name)) +
+   # scale_linetype_manual(values = c("dashed", "solid"))+
+   geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+   geom_text(data = hline_dt, aes(x = 16, y = y_line, label =y_label ))+
+   scale_color_manual(values=c("royalblue2", "tomato3"))+   
+   geom_text(data = ann_text[variable %in% unique(plot_dt_long1$variable)], aes(y = value, x = x, label = lab),              
+             hjust = 0, size = 8) +     
+   coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest                     
+                   clip = 'off') +   # This keeps the labels from disappearing   
+   facet_wrap(variable_labels~., 
+              ncol = 1,
+              labeller = label_parsed,
+              scales="free",
+              strip.position = "left") +
+   # scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+   xlab('L reduction target (%)')+
+   theme_bw()+
+   theme(panel.grid = element_blank(), 
+         strip.background = element_blank(),
+         strip.placement = "outside",
+         panel.spacing = unit(1.5, "lines"),
+         # axis.title.x=element_blank(),
+         axis.title.y=element_blank(),
+         legend.position = "none",
+         plot.margin =  unit(c(2,1,1,1), "lines"))
+)
+
+plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn', 'G')] 
+(plot_2 <- ggplot() +
+    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+    # scale_colour_manual(values = c("black", "brown"))+
+    geom_line(data = plot_dt_long2, aes(x = policy_val, y =  value, color = policy_name)) +
+    # scale_linetype_manual(values = c("dashed", "solid"))+
+    # geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+    # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
+    scale_color_manual(values=c("royalblue2", "tomato3"))+   
+    geom_text(data = ann_text[variable %in% unique(plot_dt_long2$variable)], aes(y = value, x = x, label = lab),              
+              hjust = 0, size = 8) +     
+    coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest                     
+                    clip = 'off') +   # This keeps the labels from disappearing   
+    facet_wrap(variable_labels~., 
+               ncol = 1,
+               labeller = label_parsed,
+               scales="free",
+               strip.position = "left") +
+    # scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+    xlab('L reduction target (%)')+
+    theme_bw()+
+    theme(panel.grid = element_blank(), 
+          strip.background = element_blank(),
+          strip.placement = "outside",
+          panel.spacing = unit(1.5, "lines"),
+          # axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          plot.margin =  unit(c(2,1,1,1), "lines"))
+)
+grid.arrange(plot_1, plot_2, nrow = 1)
+
+#==========================================================================
+# LRED CHART
+
+plot_dt <- perfomances_dt4[policy_name == 'nred' & NMS %in% c('1','2')][order(NMS, -policy_val)]
+
+# plot_dt[,L_red := round(1-(L / baselevel_L),2)*100 ]
+# plot_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
+plot_dt[,policy_val  := (1-policy_val )*100]
+ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
+
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
+                                                                                 'P', 'G', 'ag_cost')) %>% data.table()
+
+plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'GC'),
+                                        labels = c(expression("Fertilizer (N kg " * ha^"-1" *yr^"-1"* ")"), 
+                                                   # expression("L ('%'change)"), 
+                                                   # "'%'*V",
+                                                   expression("L ("*'%'*" change)"),
+                                                   expression("Corn Yield (kg N " * ha^"-1" *yr^"-1"* ")"), 
+                                                   expression("P ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("G ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("ag_cost ($ " * ha^"-1" * yr^"-1"* ")")))]
+
+plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'ag_cost','W'),
+                                        labels = c(expression("Fertilizer (N kg " * ha^"-1" *yr^"-1"* ")"), 
+                                                   # expression("L ('%'change)"), 
+                                                   # "'%'*V",
+                                                   expression("L ("*'%'*" change)"),
+                                                   expression("Corn Yield (kg N " * ha^"-1" *yr^"-1"* ")"), 
+                                                   expression("P ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("G ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("ag_cost ($ " * ha^"-1" * yr^"-1"* ")"),
+                                                   expression("W ($ " * ha^"-1" * yr^"-1"* ")")))]
+
+plot_dt_long1 <- plot_dt_long[variable %in% c('N_fert', 'L_change', 'Y_corn')] 
+
+
+hline_dt <- data.table(unique(plot_dt_long1[,.(variable, variable_labels)]))
+hline_dt[variable == 'Y_corn', y_line := baselevel_Y_corn*0.95]
+hline_dt[variable == 'Y_corn', y_label := '95% baselevel']
+# hline_dt[variable == 'L_change', y_line  := 0]
+grid.arrange(plot_1, plot_2, nrow = 1)
+
+#----
+# ADD letters outside plot (go down) https://stackoverflow.com/questions/12409960/ggplot2-annotate-outside-of-plot
+ann_text <- plot_dt_long[,.(x = min(policy_val)-5,
+                            value = max(value)), by = .(variable, variable_labels)]
+#Sort in the right order
+ann_text <- ann_text[match(c('N_fert', 'L_change', 'Y_corn', 'P', 'ag_cost','W'), ann_text$variable),]
 ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)")]
 ann_text
 #----
@@ -403,7 +561,6 @@ ann_text
 )
 
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn', 'G')] 
-table(plot_dt_long2$policy_val)
 (plot_2 <- ggplot() +
     # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
     # scale_colour_manual(values = c("black", "brown"))+
@@ -439,7 +596,7 @@ ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1),
 #==========================================================================
 # SUBS CHART
 
-plot_dt <- perfomances_dt5[policy_name == 'subs' & NMS %in% c('1','2') ][order(NMS, -policy_val)]
+plot_dt <- perfomances_dt4[policy_name == 'subs' & NMS %in% c('1','2') ][order(NMS, -policy_val)]
 plot_dt[,policy_val  := (1-policy_val )*100]
 #nms2_default_L <- plot_dt[policy_val == 0 & NMS ==2] $L_change
 #plot_dt[NMS ==2, policy_val := policy_val - nms2_default_L]
@@ -569,7 +726,7 @@ ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1),
 #==========================================================================
 # FEE CHART
 
-plot_dt <- perfomances_dt5[policy_name == 'fee' & NMS %in% c('1','2') ] 
+plot_dt <- perfomances_dt4[policy_name == 'fee' & NMS %in% c('1','2') ] 
 
 plot_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
 
@@ -677,11 +834,11 @@ ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1),
 
 #==========================================================================
 # W MAXIMIZATION
-w_dt <- perfomances_dt5[policy_name != 'subs',.SD[W == max(W)], by = .(policy_name, NMS)][order(-W)] #peak in W
+w_dt <- perfomances_dt4[policy_name != 'subs',.SD[W == max(W)], by = .(policy_name, NMS)][order(-W)] #peak in W
 w_dt[,policy_val := as.numeric(policy_val )]
 w_dt[policy_name == 'nred', policy_val := (1-as.numeric(policy_val ))*100]
 w_dt[policy_name == 'nred', policy_name := 'target']
-baselevel_dt <- perfomances_dt5[policy  == 'ratio_6' & NMS == 1]
+baselevel_dt <- perfomances_dt4[policy  == 'ratio_6' & NMS == 1]
 baselevel_dt[,policy_name := 'base-level']
 baselevel_dt[,policy_val := '-']
 baselevel_dt
@@ -714,12 +871,12 @@ print(latex_table_xt, file = "./n_policy_box/Data/figures/w_maximization.tex", i
 # COMPARE A SAMPLE OF THE DIFFERENT MODELS THAT WOULD GET US TO THE 15% 
 # REDUCTION TARGET FROM CURRENT SITUATION (-15% by 2025, -45% by 2035)
 
-unique(perfomances_dt5$policy)
+unique(perfomances_dt4$policy)
 
 policies_f <- c("fee_0", "ratio_9", "fee_8", 'nred_0.85', 'nred_0.7')
 NMSs_f <- c('1', '2')
 
-table_dt <- perfomances_dt5[policy %in% policies_f & NMS %in% NMSs_f]
+table_dt <- perfomances_dt4[policy %in% policies_f & NMS %in% NMSs_f]
 table_dt[policy == 'fee_0' & NMS == '1', order := 1]
 table_dt[policy == 'fee_0' & NMS == '2', order := 2] #science
 table_dt[policy == 'yr_0.9' & NMS == '1', order := 3] #ecological model
@@ -735,7 +892,7 @@ table_dt <- table_dt[order(order)]
 # BEST OPTION 1: FARMERS FOCUSED. Given a yield restriction of 90%, what is the maximum we could reduce N leaching hurting the less the farmers 
 # and not caring about the externality cost (we are already sending less N, that's it my friends)
 
-table_dt <- perfomances_dt5[ NMS %in% NMSs_f]
+table_dt <- perfomances_dt4[ NMS %in% NMSs_f]
 baselevel_Lleach <- table_dt[policy == 'fee_0' & NMS == 1, L] 
 baselevel_Y_corn <- table_dt[policy == 'fee_0' & NMS == 1, Y_corn ]
 baselevel_nfert <- table_dt[policy == 'fee_0' & NMS == 1, N_fert ]
@@ -756,7 +913,7 @@ table_dt
 #---------------------------------------------------------------------------
 # BEST OPTION 2: considering a cost of the externality, what NMS would maximize the welfare of the society
 NMSs_f <- c('1','2','4')
-table_dt <- perfomances_dt5[ NMS %in% NMSs_f]
+table_dt <- perfomances_dt4[ NMS %in% NMSs_f]
 baselevel_n <- table_dt[policy == 'fee_0' & NMS == 1, L] 
 table_dt[,abatement := baselevel_n - L]
 table_dt[,abat_prop := round((abatement)/ baselevel_n,2)]
@@ -871,30 +1028,30 @@ ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/boxplot_NMS12.jpg"
 #---------------------------------------------------------------------------
 #Value of information 
 # MAKE A MAP OF ECONOMIC VALUE OF INFORMATION SS
-profits_dt <- perfomances_dt5[policy_name == 'ratio'  & NMS %in% c(1,2,4,5)]
+profits_dt <- perfomances_dt4[policy_name == 'ratio'  & NMS %in% c(1,2,4,5)]
 ggplot(profits_dt)+
   geom_line(aes(x = policy_val, y =  P, colour = NMS))
 
 value_long_dt <- data.table()
-value_dt <- perfomances_dt5[policy_name == 'ratio'  & NMS %in% c(1,2)]
+value_dt <- perfomances_dt4[policy_name == 'ratio'  & NMS %in% c(1,2)]
 value_dt[NMS == 1, P := -P]
 value_dt <- value_dt[, .(P = sum(P)), by = .(policy_val)]
 value_dt[, variable := 'val_info']
 value_long_dt <- rbind(value_long_dt, value_dt)
 
-value_dt <- perfomances_dt5[policy_name == 'ratio'  & NMS %in% c(2,4)]
+value_dt <- perfomances_dt4[policy_name == 'ratio'  & NMS %in% c(2,4)]
 value_dt[NMS == 2, P := -P]
 value_dt <- value_dt[, .(P = sum(P)), by = .(policy_val)]
 value_dt[, variable := 'val_ss']
 value_long_dt <- rbind(value_long_dt, value_dt)
 
-value_dt <- perfomances_dt5[policy_name == 'ratio'  & NMS %in% c(2,3)]
+value_dt <- perfomances_dt4[policy_name == 'ratio'  & NMS %in% c(2,3)]
 value_dt[NMS == 2, P := -P]
 value_dt <- value_dt[, .(P = sum(P)), by = .(policy_val)]
 value_dt[, variable := 'val_tech']
 value_long_dt <- rbind(value_long_dt, value_dt)
 
-value_dt <- perfomances_dt5[policy_name == 'ratio'  & NMS %in% c(4,5)]
+value_dt <- perfomances_dt4[policy_name == 'ratio'  & NMS %in% c(4,5)]
 value_dt[NMS == 4, P := -P]
 value_dt <- value_dt[, .(P = sum(P)), by = .(policy_val)]
 value_dt[, variable := 'val_tech_ss']
@@ -918,8 +1075,8 @@ ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/valueISST_by_ratio
 #==========================================================================
 # nred CHART #===============================================================
 #==========================================================================
-unique(perfomances_dt5$policy_name)
-plot_dt <- perfomances_dt5[policy_name == 'nred' & NMS %in% c('1_ok','2','3','4','5')  ] 
+unique(perfomances_dt4$policy_name)
+plot_dt <- perfomances_dt4[policy_name == 'nred' & NMS %in% c('1_ok','2','3','4','5')  ] 
 
 plot_dt[,soc_benefits := P + G]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
@@ -983,7 +1140,7 @@ ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/nred_all_vars_part
 #==========================================================================
 # FEE CHART
 
-plot_dt <- perfomances_dt5[policy_name == 'fee' & NMS == '1'] 
+plot_dt <- perfomances_dt4[policy_name == 'fee' & NMS == '1'] 
 
 plot_dt1 <- melt(plot_dt, id.vars = 'policy_val', measure.vars = c('Y_corn', 'L', 'N_fert', 'P', 'G'))
 plot_dt2 <- melt(plot_dt[policy_val == 6], id.vars = 'policy_val', measure.vars = c('Y_corn', 'L', 'N_fert', 'P', 'G'))
@@ -1011,7 +1168,7 @@ ggplot(plot_dt3) +
 # rmse_dt <- rmse_dt[order(NMS)]
 
 # perfomances_dt4[,NMS := as.integer(NMS)]
-latex_table_dt <- perfomances_dt5[,-'corn_avg_ha']
+latex_table_dt <- perfomances_dt4[,-'corn_avg_ha']
 
 cols_1 <- c('Y_corn', 'L', 'leach_ext', 'N_fert', 'P')
 latex_table_dt[,(cols_1) := round(.SD,1), .SDcols=cols_1]
@@ -1790,9 +1947,9 @@ ggsave(plot_n, filename = "./n_policy_box/Data/figures/leaching_curve_example.jp
 
 #---------------------------------------------------------------------------
 # CALCULATE STATE TOTAL VARIABLES
-perfomances_dt5 <- copy(perfomances_dt4)
+perfomances_dt4 <- copy(perfomances_dt4)
 do_aggregate =  c("Y_corn", "L2", "leach_ext", "N_fert","P")
-perfomances_dt5[,(do_aggregate) := (.SD * corn_avg_ha/1000), .SDcols=do_aggregate]
+perfomances_dt4[,(do_aggregate) := (.SD * corn_avg_ha/1000), .SDcols=do_aggregate]
 
 state_total_production_dt <- perfomances_dt4[, lapply(.SD, function(x) sum(x)), .SDcols= do_aggregate] 
 2.2 * 10^9 * 25.4 /1000 #IL production in tons https://www.nass.usda.G/Statistics_by_State/Illinois/Publications/Current_News_Release/2018/20180112-IL_Annual_Crop_Production.pdf

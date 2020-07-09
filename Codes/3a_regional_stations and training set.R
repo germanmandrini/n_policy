@@ -2,7 +2,7 @@
 # setwd('C:/Users/germanm2/Box Sync/My_Documents') #CPSC
 # setwd("/home/germanm2")
 setwd('~')
-
+rm(list=ls())
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
 
@@ -109,29 +109,42 @@ grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
 
 candidates_dt2 <- candidates_dt[id_10 %in% unique(stations_dt$id_10) & id_field %in% c(1,2)]
 stations_dt <- candidates_dt2
-
+# saveRDS(stations_dt, "./n_policy_box/Data/files_rds/stations_lovely.rds")
 
 # EXPLORE THE DATA-------------------
 Y_corn_explore_dt <- yc_yearly_dt3[,.(Y_corn = mean(Y_corn)), by = z]
 Y_corn_explore_dt[,z:= as.numeric(z)]
-Y_corn_explore_dt <- Y_corn_explore_dt[order(z)]
+Y_corn_explore_dt[order(z)]
 
 eonr_explore_dt <- yc_yearly_dt3[, P := Y_corn * Pc - N_fert * Pn] %>% 
   .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
 setnames(eonr_explore_dt, 'N_fert', 'eonr')
 eonr_explore_dt[,z:= as.numeric(z)]
 eonr_explore_dt[,.(eonr = mean(eonr)), by = z][order(z)]
-ggplot(eonr_explore_dt) +
-  geom_boxplot(aes(x = factor(z), y = eonr))
+ggplot(eonr_explore_dt) + geom_boxplot(aes(x = factor(z), y = eonr))
 
-ggplot(eonr_explore_dt) +
-  geom_boxplot(aes(x = factor(z), y = n_deep_v5))
 
-training_z <- c(1:10)
+
+# training_z <- sort(sample(1:30, 15))
+# training_z <- c(3  5  7 11 12 13 15 16 18 19 21 22 23 24 25)
+training_z <- c(1:14)
+
+# training_z <- sort(sample(1:30, 15))
 
 eonr_explore_dt[,set := ifelse(z %in% training_z, '1training', '2testing')]
 # eonr_explore_dt[z %in% c(5,10), set := 'discard']
 eonr_explore_dt[,.(eonr = mean(eonr)), by = set]
+
+grid.arrange(
+  ggplot(eonr_explore_dt) +
+    geom_boxplot(aes(x = set, y = eonr)),
+  ggplot(eonr_explore_dt) +
+    geom_boxplot(aes(x = set, y = Y_corn)),
+  ggplot(eonr_explore_dt) +
+    geom_boxplot(aes(x = set, y =  n_deep_v5)),
+  ggplot(eonr_explore_dt) +
+    geom_boxplot(aes(x = set, y =  Yld_prev))
+)
 
 ggplot(eonr_explore_dt) +
   geom_boxplot(aes(x = set, y = eonr))
@@ -153,8 +166,8 @@ indx <- filter_dt_in_dt(yc_yearly_dt3, filter_dt = unique(stations_dt[,.(id_10, 
 TrainSet <- yc_yearly_dt3[indx]
 TrainSet <- TrainSet[z %in% training_z]
 
-z_dry <- TrainSet[,.(Y_corn = mean(Y_corn), .N), by = z][Y_corn < 5000]$z
-TrainSet <- TrainSet[!z %in% z_dry]
+# z_dry <- TrainSet[,.(Y_corn = mean(Y_corn), .N), by = z][Y_corn < 5000]$z
+# TrainSet <- TrainSet[!z %in% z_dry]
 
 # Filter the right training z, depending on odd or even fields. Remove some z that are coming from fields 1 and 2 that are not RS
 # Also, add the area to the TrainSet2 to do area weighted average of reponse later
@@ -180,15 +193,46 @@ TrainSet2[,.N, by = id_10] %>% nrow() # of stations, has to be 120
 TrainSet2[,.N, by = .(id_10, mukey)][,.N,by = .(id_10)] # of mukey by station, just exploratory
 
 # Plot a relationship
-TrainSet_eonr <- TrainSet2[, P := Y_corn * Pc - N_fert * Pn] %>% .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% 
-  .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
+TrainSet_eonr <- TrainSet2[, P := Y_corn * Pc - N_fert * Pn] %>% 
+  .[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5] %>% 
+  .[, .SD[ P == max( P)], by = .(id_10, mukey, z)] %>%
+  .[, .SD[ N_fert == min(N_fert)], by = .(id_10, mukey, z)]
 setnames(TrainSet_eonr, 'N_fert', 'eonr')
 
 TrainSet_eonr[id_10 == 438]
 unique(stations_dt[,.(id_10, id_field, mukey)]) %>% .[,.N, by = .(id_10, id_field)] %>% .[,.(N = mean(N))] #mean number of soils in the stations fields
+#---------------
+#Main relationships plots
 
-ggplot(data = TrainSet_eonr, aes(x = n_0_60cm_v5, y = eonr)) + 
+plot_1 <- ggplot(data = TrainSet_eonr, aes(x = n_0_60cm_v5, y = eonr)) + 
   geom_point() + geom_smooth(formula = 'y ~ x', method = lm)
+
+plot_2 <- ggplot(data = TrainSet_eonr, aes(x = t_min_30, y = eonr)) + 
+  geom_point() + geom_smooth(formula = 'y ~ x', method = lm)
+
+plot_3 <- ggplot(data = TrainSet_eonr, aes(x = Yld_prev, y = eonr)) + 
+  geom_point() + geom_smooth(formula = 'y ~ x', method = lm)
+
+plot_4 <- ggplot(data = TrainSet_eonr, aes(x = rain_90, y = eonr)) + 
+  geom_point() + geom_smooth(formula = 'y ~ x', method = lm)
+
+grid.arrange(plot_1, plot_2, plot_3, plot_4)
+
+ggsave(plot = grid.arrange(plot_1, plot_2, plot_3, plot_4), 
+       filename = "./n_policy_box/Data/figures/rf_main_predictors.jpg", width = 979/300*3, height = 1042/300*3,
+       units = 'in')
+
+hist(TrainSet_eonr$eonr)
+
+#---------------
+#Compare soy vs corn yield in mukeys that had the both crops the same year
+soy_dt <- TrainSet_eonr[,.(id_10, mukey, z, Y_soy = Yld_prev)]
+soy_dt[,z := as.numeric(z)-1]
+corn_dt <- TrainSet_eonr[,.(id_10, mukey, z, Y_corn)]
+corn_dt[,z := as.numeric(z)]
+yield_test <- merge(soy_dt, corn_dt, by = c('id_10', 'mukey', 'z'))
+ggplot(yield_test) + geom_point(aes(x=Y_soy, y = Y_corn))
+
 
 # Make a Validation set
 # ValidSet <- yc_yearly_dt3[-indx]
