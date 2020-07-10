@@ -12,21 +12,21 @@ source('C:/Users/germanm2/Documents/n_policy_validation_git/Codes/parameters.R')
 # grid10_tiles_dt6 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf6.rds") %>% data.table()
 yc_yearly_dt3 <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
 # Pn_tmp = Pn * 0.9
-yc_yearly_dt3[, P_1 := Yld * Pc - N_fert * Pn]  #update profits
+yc_yearly_dt3[, P := Y_corn * Pc - N_fert * Pn]  #update profits
 
 # yc_yearly_dt3 <- merge(yc_yearly_dt3, unique(grid10_tiles_dt6[,.(id_10, region)]), by = 'id_10')
 yc_region_dt <- yc_yearly_dt3[region == 2]
 yc_region_dt <- yc_region_dt[mukey %in% sample(unique(yc_region_dt$mukey), 500)]
-yc_region_eonr_dt <- yc_region_dt[, .SD[ P_1 == max( P_1)], by = .(id_10, mukey, z)]
+yc_region_eonr_dt <- yc_region_dt[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
 yc_region_eonr_dt <- yc_region_eonr_dt[, .SD[ N_fert == min( N_fert )], by = .(id_10, mukey, z)]
 setnames(yc_region_eonr_dt, 'N_fert', 'eonr')
-brks <- c(0,30,60,90,120,150,180,210,240,270,300,330)
+brks <- c(0,25,50,75,101,125,150,175,201,231,330)
 yc_region_eonr_dt[,bin:=findInterval(eonr, brks)]
 ggplot(yc_region_eonr_dt, aes(bin     )) + geom_bar()
 
 bins_table <- data.table(bin = 1:(length(brks)-1),
-           eonr_bin = paste(brks[-12], '-' , brks[-1], sep = ''))
-bins_table[bin ==11, eonr_bin := '300+']
+           eonr_bin = paste(brks[-11], '-' , brks[-1], sep = ''))
+bins_table[bin ==10, eonr_bin := '231+']
 yc_region_eonr_dt2 <- merge(yc_region_eonr_dt, bins_table, by = 'bin')
 
 str(yc_region_eonr_dt)
@@ -92,3 +92,4 @@ plot_1 <- ggplot(data = state_agg_dt2[N_fert < 250]) +
         legend.text=element_text(size=8),
         panel.grid = element_blank())+
   annotate("text", x=220, y=12500, label= "a)", size = 10) 
+
