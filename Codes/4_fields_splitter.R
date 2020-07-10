@@ -49,7 +49,7 @@ fields_list_dt <- full_fields_dt2
 # unique(fields_list_dt)
 
 # ----------------
-training_z <- reg_model_stuff$training_z
+# training_z <- reg_model_stuff$training_z
 no_cost_varb <- reg_model_stuff$no_cost_var
 ss_var <- reg_model_stuff$ss_var
 rm(reg_model_stuff)
@@ -97,7 +97,7 @@ process_field_economics <- function(j){
     z_odd = c(1,3,5,7,9,11,13,15,17,19,21,23,25,27,29)
     z_even = z_odd+1
     z_select <- if(field_info$id_field %in% c(1,3)){z_odd} else{z_even}
-    z_select <- z_select[!z_select %in% training_z] #keep only testing z
+    # z_select <- z_select[!z_select %in% training_z] #keep only testing z
     ic_field_dt <- yc_yearly_dt3[id_10 == field_info$id_10 & 
                                    mukey %in% unique(field_soils_dt$mukey) & z %in% z_select]
     
@@ -113,15 +113,14 @@ process_field_economics <- function(j){
     # CHANGE THE RATIO APPROACH
     
       # the NMS is trained with z1-10 and testing is evaluated with z11-25
-      testing_set <- ic_field_dt[!z %in% training_z] %>%
+      testing_set <- ic_field_dt %>%
         .[,c("mukey", "z", "id_10", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert")]
       
 
       #===================================================================================================================
       # # 2) PREDICT WITH REGIONAL RF 1 - UR 
       # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
-      prediction_set <- data.table(unique(ic_field_dt[!z %in% training_z,
-                            c('mukey', 'z','area_ha', no_cost_varb, ss_var), with = FALSE])) #this is unique v5 conditions, doesn't have the different N rates
+      prediction_set <- data.table(unique(ic_field_dt[, c('mukey', 'z','area_ha', no_cost_varb, ss_var), with = FALSE])) #this is unique v5 conditions, doesn't have the different N rates
 
       table(prediction_set$z)
 
