@@ -74,8 +74,11 @@ apsim_create_files <- function(i){
     # planting_start_corn <- c('01-Apr', '05-Apr', '10-Apr')[instructions_tmp$region]
     # planting_end_corn <- c('05-Apr', '10-Apr', '15-Apr')[instructions_tmp$region]
     
-    planting_start_corn <- c('20-Mar', '01-Apr', '05-Apr')[instructions_tmp$region]
-    planting_end_corn <- c('02-Apr', '08-Apr', '15-Apr')[instructions_tmp$region]
+    # planting_start_corn <- c('20-Mar', '27-Mar', '05-Apr')[instructions_tmp$region]
+    # planting_end_corn <- c('02-Apr', '08-Apr', '15-Apr')[instructions_tmp$region]
+    
+    planting_start_corn <- c('01-Apr', '05-Apr', '20-Apr')[instructions_tmp$region]
+    planting_end_corn <- c('05-Apr', '10-Apr', '25-Apr')[instructions_tmp$region]
     
     x <- xml_find_all(base_doc, ".//manager/ui/date1_corn")
     xml_text(x) <- as.character(planting_start_corn)
