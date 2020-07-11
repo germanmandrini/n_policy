@@ -53,10 +53,11 @@ if(FALSE){
 #time_track <- readRDS('./n_policy_box/Data/yc_output/time_track.rds')
 
 # for(id10_n in id_10_seq){
-#id10_n = 172
+# id10_n = 172
 # id10_n = 1024
 # id10_n = 736
 # id10_n = 1504
+# id10_n = 74
 id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
 
 

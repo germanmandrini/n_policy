@@ -49,10 +49,11 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     
     horizons_dt <- horizons_dt[,.(layer, oc, no3, nh4, sw, Finert, Fbiom)]
     
+    horizons_dt[,no3 := no3/2] #reduce initial N by half
+    horizons_dt[,nh4 := nh4/2] #reduce initial N by half
+    
     names(initial_conditions_tmp)[!names(initial_conditions_tmp) %in% variables_layers &
                                     !names(initial_conditions_tmp) %in% variables_layers_unique]
-    horizons_dt[,no3 := 0]
-    horizons_dt[,nh4 := 0]
     
     initial_conditions_tmp[,surfaceom_cn := round(as.numeric(surfaceom_c) / as.numeric(surfaceom_n), 0)]
     
@@ -66,10 +67,11 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     #                  paste0("//Sample/", c("NO3", "NH4", "SW")))
     # 
     # equivalent_colname <- c('oc', 'Fbiom', 'Finert', 'no3', 'nh4', 'sw')
+    edit_childs <- c(paste0("//SoilOrganicMatter/", c("FBiom","FInert")),
+                     paste0("//Sample/", c("NO3", "NH4", "SW")))
+
+    equivalent_colname <- c('Fbiom', 'Finert', 'no3', 'nh4', 'sw')
     
-    edit_childs <- c(paste0("//Sample/", c("NO3", "NH4", "SW")))
-    
-    equivalent_colname <- c('no3', 'nh4', 'sw')
     
     for(var_n in 1:length(edit_childs)){
       # var_n <- 1
