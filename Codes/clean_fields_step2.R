@@ -72,7 +72,8 @@ if(FALSE){
   tm_shape(grid10_tiles_sf6) + tm_polygons('region')
   saveRDS(grid10_tiles_sf6, "./n_policy_box/Data/Grid/grid10_tiles_sf6.rds") 
   regions_dt <- data.table(grid10_tiles_sf6) %>% .[,.N,.(id_10, region)] %>% .[,-'N']
-  grid10_soils_dt4 <- left_join(grid10_soils_dt4[,-'region'], regions_dt[,.(id_10, region)], by = 'id_10')
+  grid10_soils_dt4 <- data.table(left_join(grid10_soils_dt4[,-'region'], regions_dt[,.(id_10, region)], by = 'id_10'))
+  grid10_soils_dt4 <- data.table(grid10_soils_dt4)
   table(grid10_soils_dt4$region)
   saveRDS(grid10_soils_dt4, "./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
 }  

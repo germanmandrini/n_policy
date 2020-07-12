@@ -49,8 +49,9 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     
     horizons_dt <- horizons_dt[,.(layer, oc, no3, nh4, sw, Finert, Fbiom)]
     
-    horizons_dt[,no3 := no3/2] #reduce initial N by half
-    horizons_dt[,nh4 := nh4/2] #reduce initial N by half
+    reducer <- c(0.6, 0.45, 0.5)[instructions_tmp$region]
+    horizons_dt[,no3 := no3*reducer] #reduce initial N by half
+    horizons_dt[,nh4 := nh4*reducer] #reduce initial N by half
     
     names(initial_conditions_tmp)[!names(initial_conditions_tmp) %in% variables_layers &
                                     !names(initial_conditions_tmp) %in% variables_layers_unique]

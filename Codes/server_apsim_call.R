@@ -1,3 +1,5 @@
+rm(list=ls())
+
 library(stringr)
 library(data.table)
 # install.packages('XML','~/Rlibs')"
@@ -25,42 +27,15 @@ if(server){
   test_small <- FALSE #makes a small run 
 }
 
-
-
-# id_10_seq <- unique(grid10_soils_dt4$id_10)
-
-# write.csv(id_10_seq, './n_policy_git/Codes/id_10_out.csv')
-
-# grid10_soils_dt4[,field_area := sum(area_ha), by = .(id_10, id_field)]
-
 #----------------------------------------------------------------------------
-# LIST RUNNED FILES
-
-# id_10_seq <- readRDS("./n_policy_box/Data/files_rds/id_10_walltime_dt.rds")$id_10
-
-if(FALSE){
-	runned <- list.files('./n_policy_box/Data/yc_output/')
-	runned <- unique(sapply(strsplit(as.character(runned), split="_"), "[", 1))
-	runned <- unlist(str_extract_all(runned, pattern = '[0-9]+'))
-     
-	# id_10_seq <- sort(unique(grid10_soils_sf4$id_10))
-	# id_10_seq <- id_10_seq[!id_10_seq %in% id_10_runned] %>% .[!id_10_seq %in% problems]
-	id_10_seq <- id_10_seq[!id_10_seq %in% id_10_runned]
-}  
-# id_10_seq <- sample(id_10_seq)
-# time_track <- data.table()
-
-#time_track <- readRDS('./n_policy_box/Data/yc_output/time_track.rds')
-
-# for(id10_n in id_10_seq){
+id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
 # id10_n = 172
 # id10_n = 1024
 # id10_n = 736
 # id10_n = 1504
 # id10_n = 74
 # id10_n = 987
-id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
-
+# id10_n = 1078
 
 print(id10_n)
 #CREATE ALL STAB FILES
