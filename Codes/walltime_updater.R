@@ -1,3 +1,5 @@
+rm(list=ls())
+
 library(data.table)
 library(dplyr)
 
@@ -5,34 +7,57 @@ library(dplyr)
 setwd('C:/Users/germanm2/Box Sync/My_Documents') #CPSC
 codes_folder <-'C:/Users/germanm2/Documents'
 
+#------------------------
+# Load stations
+reg_model_stuff <- readRDS("./n_policy_box/Data/files_rds/reg_model_stuff.rds")
+stations_dt <- reg_model_stuff[['stations']] 
+rm(reg_model_stuff)
 
-files_all <- list.files('./n_policy_box/Data/yc_output_summary/', recursive = T, pattern = '.rds', full.names = F)
+#------------------------
+
+# files_all <- list.files('./n_policy_box/Data/yc_output_summary/', recursive = T, pattern = '.rds', full.names = F)
 # files_all <- list.files('S:/Bioinformatics Lab/germanm2/n_policy_cluster/yc_output/', recursive = T, pattern = '.rds')
 # files_all <- list.files('S:/Bioinformatics Lab/germanm2/n_policy/yc_output_summary/', recursive = T, pattern = '.rds')
 
-id_10_runned <- unique(sapply(strsplit(as.character(files_all), split="_"), "[", 1) )
+# id_10_runned <- unique(sapply(strsplit(as.character(files_all), split="_"), "[", 1) )
 
 id_10_walltime_dt <- readRDS("./n_policy_box/Data/files_rds/id_10_walltime_dt.rds")
 # id_10_walltime_dt <- readRDS("./n_policy_box/Data/files_rds/time_track_walltime_dt.rds")
 
 #Removed runned
-id_10_walltime_dt <- id_10_walltime_dt[!id_10 %in% id_10_runned]
+# id_10_walltime_dt <- id_10_walltime_dt[!id_10 %in% id_10_runned]
+
+
+#Pick only the failed ones
 id_10_walltime_dt[,dur := N *  6]
 id_10_walltime_dt[N >2, dur := N *  5]
 id_10_walltime_dt[N >4, dur := N *  4]
-
-#Pick only the failed ones
-id_failed <- c(442, 1124,618,953,319,627,924,126,406,825,98,473,1042,260,825, 1116, 1035)
+id_failed <- c(442, 1124,618,953,319,627,924,126,406,825,98,473,1042,260,825, 1116, 1035, 241, 264, 273, 402, 476,  49, 576,  62, 639 ,722)
 id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed, dur := N *  6]
-# 
-id_failed <- c(241, 264, 273, 402, 476,  49, 576,  62, 639 ,722)
-id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed]
+id_10_walltime_dt <- id_10_walltime_dt[order(dur)]
+# id_failed <- c(241, 264, 273, 402, 476,  49, 576,  62, 639 ,722)
+# id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed]
+
+# id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed]
+#------------------------
+# Filter stations random
+if(FALSE){
+  set.seed(123)
+  stations_dt2 <- stations_dt[,.N, by = .(region, id_10)]
+  id_10_stations <- stations_dt2[,.SD[sample(.N, 5)],by = region]$id_10
+  id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_10_stations]
+}
+#------------------------
+# Order stations first all stations
+id_10_stations <- stations_dt[,.N, by = .(region, id_10)]$id_10
+id_10_walltime_dt <- rbind(id_10_walltime_dt[id_10 %in% id_10_stations], 
+                           id_10_walltime_dt[!id_10 %in% id_10_stations])
+#------------------------
 # id_failed_timetrack <- c(935,1095,1184,123,263,29,496,500,842,978,221,1189,1246,406,421,363)
 # id_failed_timetrack <- c(879,291, 1437, )
 # id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed_timetrack]
-id_10_walltime_dt[,dur := N *  6]
+# id_10_walltime_dt[,dur := N *  6]
 
-id_10_walltime_dt <- id_10_walltime_dt[order(dur)][1:950]
 write.table(id_10_walltime_dt[,.(id_10, dur)], paste0(codes_folder,'/n_policy_git/id_10_walltime.txt'), row.names = F, col.names = F)
 
 if(FALSE){ #send again files while still running

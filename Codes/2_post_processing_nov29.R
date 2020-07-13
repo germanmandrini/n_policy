@@ -54,6 +54,9 @@ if(FALSE){
   summary(yc_yearly_dt2a$L1)
   yc_yearly_dt2a[L1 > 500]
   #------------------------------------------------------------------------------------
+  # Remove weird soils, with high OC
+  yc_yearly_dt
+  #------------------------------------------------------------------------------------
   #Remove low yielding mukeys (farmers will not plant here). Use the N that maximizes Yield
   
   yearly_ymax_dt <- copy(yc_yearly_dt2a) %>% 

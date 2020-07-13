@@ -71,8 +71,17 @@ apsim_create_files <- function(i){
     #--------------------------
     # PLANTING DATE BY REGION
     #--------------------------
-    planting_start_corn <- c('01-Apr', '05-Apr', '10-Apr')[instructions_tmp$region]
-    planting_end_corn <- c('05-Apr', '10-Apr', '15-Apr')[instructions_tmp$region]
+    # planting_start_corn <- c('01-Apr', '05-Apr', '10-Apr')[instructions_tmp$region]
+    # planting_end_corn <- c('05-Apr', '10-Apr', '15-Apr')[instructions_tmp$region]
+    
+    # planting_start_corn <- c('20-Mar', '27-Mar', '05-Apr')[instructions_tmp$region]
+    # planting_end_corn <- c('02-Apr', '08-Apr', '15-Apr')[instructions_tmp$region]
+    
+    # planting_start_corn <- c('01-Apr', '05-Apr', '20-Apr')[instructions_tmp$region]
+    # planting_end_corn <- c('05-Apr', '10-Apr', '25-Apr')[instructions_tmp$region]
+    
+    planting_start_corn <- c('01-Apr', '03-Apr', '20-Apr')[instructions_tmp$region]
+    planting_end_corn <- c('08-Apr', '10-Apr', '25-Apr')[instructions_tmp$region]
     
     x <- xml_find_all(base_doc, ".//manager/ui/date1_corn")
     xml_text(x) <- as.character(planting_start_corn)
@@ -80,8 +89,11 @@ apsim_create_files <- function(i){
     x <- xml_find_all(base_doc, ".//manager/ui/date2_corn")
     xml_text(x) <- as.character(planting_end_corn)
     
-    planting_start_soy <- c('15-Apr', '20-Apr', '24-Apr')[instructions_tmp$region]
-    planting_end_soy <- c('20-Apr', '24-Apr', '30-Apr')[instructions_tmp$region]
+    # planting_start_soy <- c('15-Apr', '20-Apr', '24-Apr')[instructions_tmp$region]
+    # planting_end_soy <- c('20-Apr', '24-Apr', '30-Apr')[instructions_tmp$region]
+    
+    planting_start_soy <- c('15-Apr', '25-Apr', '01-May')[instructions_tmp$region]
+    planting_end_soy <- c('30-Apr', '05-May', '15-May')[instructions_tmp$region]
     
     x <- xml_find_all(base_doc, ".//manager/ui/date1_soy")
     xml_text(x) <- as.character(planting_start_soy)
@@ -146,15 +158,22 @@ apsim_create_files <- function(i){
   }
   
   if(instructions_tmp$type == 'yc'){
-    "C:/Users/germanm2/Documents/n_policy_git/Codes/update_ic_nov18.R"
-    source(paste0(codes_folder, '/n_policy_git/Codes/update_ic_nov18.R'))
+    # "C:/Users/germanm2/Documents/n_policy_git/Codes/update_ic_nov18.R"
+    # source(paste0(codes_folder, '/n_policy_git/Codes/update_ic_nov18.R'))
+    "C:/Users/germanm2/Documents/n_policy_git/Codes/update_ic_reduced.R"
+    source(paste0(codes_folder, '/n_policy_git/Codes/update_ic_reduced.R')) #simplified version
     #The initial residue assumes an alternation. Can be improved for account for other types of rotations
     base_doc <- update_ic(base_doc, instructions_tmp, initial_residue = crop_seq[2]) 
   }
   
   #--- Set the rate for the stab period ---#
   x <- xml_find_all(base_doc, ".//manager/ui/fert_amount_stab")
-  xml_text(x) <- "150"
+  xml_text(x) <- "140"
+  
+  #--- Set the starter rate ---#
+  x <- xml_find_all(base_doc, ".//manager/ui/fert_amount_sow")
+  xml_text(x) <- "0"
+  
 
   #--- CREATE A FOLDER TO SAVE FILES ---#
   folder_name <- paste0(directory, '/', sim_name)
@@ -164,7 +183,7 @@ apsim_create_files <- function(i){
   
   #--- Set the rate for the YC period ---#
   if(instructions_tmp$type == 'yc'){
-    N_rates <- c(seq(0, 320, 10), 'n_minus', 'n_rich')
+    N_rates <- seq(0, 320, 10)
     # N_rates <- c('Nminus', 'Nrich')
     # N_rates <- 150
     for(N_n in N_rates){

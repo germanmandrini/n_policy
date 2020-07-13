@@ -1,7 +1,7 @@
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
 # setwd("/home/germanm2")
-setwd('~')
+# setwd('~')
 rm(list=ls())
 
 source('./Codes_useful/R.libraries.R')
@@ -56,7 +56,7 @@ rm(reg_model_stuff)
 # crop_varb <- reg_model_stuff$crop_varb
 
 process_field_economics <- function(j){
-  # j = 2
+  # j = 20
   print(j)
   field_info <- fields_list_dt[j]
   # field_info <- data.table(id_10 = 911, id_field = 3)
@@ -100,7 +100,6 @@ process_field_economics <- function(j){
     # z_select <- z_select[!z_select %in% training_z] #keep only testing z
     ic_field_dt <- yc_yearly_dt3[id_10 == field_info$id_10 & 
                                    mukey %in% unique(field_soils_dt$mukey) & z %in% z_select]
-    ic_field_dt[,.N, by = z]
     
     # Update area and coordinates using field level information
     ic_field_dt <- merge(ic_field_dt, field_soils_dt[,.(id_10, mukey, area_ha, lat, long)], by = c('id_10', 'mukey'))
@@ -109,7 +108,7 @@ process_field_economics <- function(j){
     # ic_field_dt[,L := L1 + L2] #update leaching adding corn and soy
     
     ic_field_dt[,.N, by = .(z, mukey)]
-    
+    ic_field_dt$mukey %>% unique()
     #===================================================================================================================
     # CHANGE THE RATIO APPROACH
     
@@ -148,8 +147,12 @@ process_field_economics <- function(j){
 time1 <- Sys.time()
 
 fields_seq <- 1:nrow(fields_list_dt)
+
+which(fields_list_dt$id_10 == 22 & fields_list_dt$id_field == 1)
+fields_list_dt[20]
 # fields_seq <- sample(1:nrow(fields_list_dt), 50)
 # test_dt <- process_field_economics(20)
+test_dt$testing_set[N_fert == 150 & z == 11]
 
 #---------------------
 #Get the two sets for each field
