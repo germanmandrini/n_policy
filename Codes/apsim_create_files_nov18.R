@@ -80,8 +80,11 @@ apsim_create_files <- function(i){
     # planting_start_corn <- c('01-Apr', '05-Apr', '20-Apr')[instructions_tmp$region]
     # planting_end_corn <- c('05-Apr', '10-Apr', '25-Apr')[instructions_tmp$region]
     
-    planting_start_corn <- c('01-Apr', '03-Apr', '20-Apr')[instructions_tmp$region]
-    planting_end_corn <- c('08-Apr', '10-Apr', '25-Apr')[instructions_tmp$region]
+    # planting_start_corn <- c('01-Apr', '03-Apr', '20-Apr')[instructions_tmp$region]
+    # planting_end_corn <- c('08-Apr', '10-Apr', '25-Apr')[instructions_tmp$region]
+    
+    planting_start_corn <- c('05-Apr', '10-Apr', '20-Apr')[instructions_tmp$region]
+    planting_end_corn <- c('10-Apr', '15-Apr', '25-Apr')[instructions_tmp$region]
     
     x <- xml_find_all(base_doc, ".//manager/ui/date1_corn")
     xml_text(x) <- as.character(planting_start_corn)
@@ -157,11 +160,15 @@ apsim_create_files <- function(i){
     rm(soils_database, soil_temp2,base_doc_soil)
   }
   
+  #--------------------------
+  # UPDATE INITIAL CONDITIONS
+  #--------------------------
+  
   if(instructions_tmp$type == 'yc'){
     # "C:/Users/germanm2/Documents/n_policy_git/Codes/update_ic_nov18.R"
     # source(paste0(codes_folder, '/n_policy_git/Codes/update_ic_nov18.R'))
-    "C:/Users/germanm2/Documents/n_policy_git/Codes/update_ic_reduced.R"
-    source(paste0(codes_folder, '/n_policy_git/Codes/update_ic_reduced.R')) #simplified version
+    "C:/Users/germanm2/Documents/n_policy_git/Codes/update_ic_reduced_jul13.R"
+    source(paste0(codes_folder, '/n_policy_git/Codes/update_ic_reduced_jul13.R')) #simplified version
     #The initial residue assumes an alternation. Can be improved for account for other types of rotations
     base_doc <- update_ic(base_doc, instructions_tmp, initial_residue = crop_seq[2]) 
   }

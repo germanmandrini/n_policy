@@ -3,7 +3,7 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
   # sim_name <- paste(unlist(instructions_tmp[,.(id_10, mukey, type)]), collapse = '_')
   
   
-  file_name <- paste0('./n_policy_box/Data/initial_conditions/', instructions_tmp$id_10,'_', instructions_tmp$mukey,'.rds')
+  file_name <- paste0('./n_policy_box/Data/initial_conditions_', instructions_tmp$batch,'/' , instructions_tmp$id_10,'_', instructions_tmp$mukey,'.rds')
   # file_name <- gsub(pattern = '_yc', replacement = '', file_name)
   # file_name <- gsub(pattern = paste0('_', instructions_tmp$z, '_'), replacement = '_1_', file_name) #only A1 is run as stabilization period
   
@@ -49,31 +49,20 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     
     horizons_dt <- horizons_dt[,.(layer, oc, no3, nh4, sw, Finert, Fbiom)]
     
-    # reducer <- c(0.7, 0.45, 0.5)[instructions_tmp$region]
-    # horizons_dt[,no3 := no3*reducer] #reduce initial N by half
-    # horizons_dt[,nh4 := nh4*reducer] #reduce initial N by half
+    #-------------------------
+    # Correct the n deep
+    n_mean_target <- c(30, 30, 30)[instructions_tmp$region]
     
-    n_deep <- sum(horizons_dt$no3) + sum(horizons_dt$nh4)
+    no3_target <- n_mean_target * (sum(horizons_dt$no3) / (sum(horizons_dt$no3) + sum(horizons_dt$nh4))) 
+    nh4_target <- n_mean_target * (sum(horizons_dt$nh4) / (sum(horizons_dt$no3) + sum(horizons_dt$nh4)))
+    horizons_dt[,n_deep_frac := (no3 + nh4)/sum(no3 + nh4)] 
+    horizons_dt[,no3 := no3_target * n_deep_frac]
+    horizons_dt[,nh4 := nh4_target * n_deep_frac]
+    horizons_dt <- horizons_dt[,-'n_deep_frac']
 
-    n_min <- c(35, 20, 0)[instructions_tmp$region]
-    if(n_deep < n_min){
-      n_extra <- n_min - n_deep
-      horizons_dt[,n_deep_frac := (no3 + nh4)/sum(no3 + nh4)] 
-      horizons_dt[,no3 := no3 + n_deep_frac*n_extra]
-      horizons_dt <- horizons_dt[,-'n_deep_frac']
-    }
-    
-    n_max <- c(100, 100, 100)[instructions_tmp$region]
-    if(n_deep > n_max){
-      n_extra <- n_deep - n_max
-      horizons_dt[,n_deep_frac := (no3 + nh4)/sum(no3 + nh4)] 
-      horizons_dt[,no3 := no3 - n_deep_frac*n_extra]
-      horizons_dt <- horizons_dt[,-'n_deep_frac']
-    }
-    
     horizons_dt[no3 <= 0, no3 := 1 ] # make sure all are positive
     horizons_dt[nh4 <= 0, nh4 := 1 ] # make sure all are positive
-    
+    #-------------------------
     
     names(initial_conditions_tmp)[!names(initial_conditions_tmp) %in% variables_layers &
                                     !names(initial_conditions_tmp) %in% variables_layers_unique]

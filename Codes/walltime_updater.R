@@ -32,11 +32,12 @@ id_10_walltime_dt <- readRDS("./n_policy_box/Data/files_rds/id_10_walltime_dt.rd
 id_10_walltime_dt[,dur := N *  6]
 id_10_walltime_dt[N >2, dur := N *  5]
 id_10_walltime_dt[N >4, dur := N *  4]
-id_failed <- c(442, 1124,618,953,319,627,924,126,406,825,98,473,1042,260,825, 1116, 1035, 241, 264, 273, 402, 476,  49, 576,  62, 639 ,722)
+id_failed <- c(442, 1124,618,953,319,627,924,126,406,825,98,473,1042,260,825, 1116, 
+               1035, 241, 264, 273, 402, 476,  49, 576,  62, 639 ,722, 599)
 id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed, dur := N *  6]
 id_10_walltime_dt <- id_10_walltime_dt[order(dur)]
-# id_failed <- c(241, 264, 273, 402, 476,  49, 576,  62, 639 ,722)
-# id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed]
+id_failed <- c(599)
+id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed]
 
 # id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed]
 #------------------------

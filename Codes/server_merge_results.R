@@ -73,8 +73,8 @@ for(mukey_n in mukey_seq){
   results_collection_ls <- lapply(out_files_tmp, function(out_file_n) apsim_merge_data(out_file_n))
   
   #SAVE THE OUTPUT
-  stab_or_yc <- ifelse(str_detect(basename(out_files_tmp[1]), 'stab'), 'initial_conditions/', 'yc_output/')
-  file_output_name <- paste('./n_policy_box/Data/',stab_or_yc, id10_n,"_",mukey_n, '.rds', sep = '')
+  stab_or_yc <- ifelse(str_detect(basename(out_files_tmp[1]), 'stab'), 'initial_conditions', 'yc_output')
+  file_output_name <- paste('./n_policy_box/Data/',stab_or_yc,'_',batch_n,'/', id10_n,"_",mukey_n, '.rds', sep = '')
   # if(cpsc){file_output_name <- paste('S:/Bioinformatics Lab/germanm2/n_policy/',stab_or_yc, id10_n,"_",mukey_n, '.rds', sep = '')}
   
   if(!file.exists(dirname(file_output_name))){ dir.create(dirname(file_output_name), recursive = TRUE) }

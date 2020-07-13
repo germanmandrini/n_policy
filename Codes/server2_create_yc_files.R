@@ -6,6 +6,7 @@ instructions[,mukey := lapply(strsplit(as.character(basename_f), split="_"), "["
 instructions[,z := lapply(strsplit(as.character(basename_f), split="_"), "[", 3) ]
 instructions[,type := 'yc']
 instructions[,region := instructions_stab$region]
+instructions[,batch := batch_n]
 
 instructions %>% setcolorder(c('region','id_10',  'mukey', 'z', 'type'))
 

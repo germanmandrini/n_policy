@@ -18,11 +18,11 @@ source(paste0(codes_folder, '/n_policy_git/Codes/make_met_files.R'))
 list.files('./n_policy_box/Data/APssurgo_master/')
 
 if(server){
-  directory <- paste('/home/germanm2/apsim_temp/n_policy/cell', id10_n, sep = '')
+  directory <- paste('/home/germanm2/apsim_temp/n_policy/batch_', batch_n, '/cell', id10_n, sep = '')
 }else if(cpsc){
-  directory <- paste('C:/apsim_temp/', Sys.info()["nodename"],'/n_policy/cell', id10_n, sep = '')
+  directory <- paste('C:/apsim_temp/', Sys.info()["nodename"],'/n_policy/batch_', batch_n, '/cell', id10_n, sep = '')
 }else if(cluster){
-  directory <- paste('/projects/aces/germanm2/n_policy/apsim_temp/cell', id10_n, sep = '')
+  directory <- paste('/projects/aces/germanm2/n_policy/batch_', batch_n, '/cell', id10_n, sep = '')
 }
 
 unlink(directory ,recursive=TRUE)

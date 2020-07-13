@@ -47,7 +47,7 @@ if(FALSE){
 
 make_yearly_summary <- function(file_n){
   # file_n =  "S:/Bioinformatics Lab/germanm2/n_policy_cluster/yc_output/324_680866.rds"
-  # file_n <- files_daily[3]
+  # file_n <- files_daily[1]
   # file_n <- "S:/Bioinformatics Lab/germanm2/vr_value_v2_cluster/yc_output_1/1367_159876.rds"
   
   # file_n <- "S:/Bioinformatics Lab/germanm2/n_policy_cluster/yc_output/1060_173466.rds"
@@ -261,8 +261,9 @@ make_yearly_summary <- function(file_n){
   #REAL WORK:if there is no error
   if(!inherits(possibleError, "error")){
     # return(rbindlist(all_summaries, fill = TRUE))
-    if(!dir.exists("./n_policy_box/Data/yc_output_summary")){dir.create("./n_policy_box/Data/yc_output_summary")}
-    saveRDS(rbindlist(all_summaries, fill = TRUE), paste0("./n_policy_box/Data/yc_output_summary/", basename(file_n)))
+    save_dir <- paste0("./n_policy_box/Data/yc_output_summary_", batch_n)
+    if(!dir.exists(save_dir)){dir.create(save_dir)}
+    saveRDS(rbindlist(all_summaries, fill = TRUE), paste0(save_dir,'/', basename(file_n)))
     return(rbindlist(all_summaries, fill = TRUE))
   } else {
     return(c(file_n, possibleError))
