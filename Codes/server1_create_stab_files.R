@@ -6,7 +6,7 @@ library(XML)
 grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
 
 grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/grid10_horizons_v1_dt.rds")
-# grid10_horizons_v1_dt <- grid10_horizons_v1_dt[bottom <=200] #make soils to only 150 cm
+grid10_horizons_v1_dt <- grid10_horizons_v1_dt[bottom <=200] #make soils to only 150 cm
 grid10_fields_sf2 <- readRDS("./n_policy_box/Data/Grid/grid10_fields_sf2.rds")
 
 if(FALSE){ #test if regions are correct
@@ -90,6 +90,6 @@ if(any(one_cell_dt$id_field %in% c(2,4))){
 instructions <- rbind(instructions1, instructions2) %>% setcolorder(c('id_10',  'mukey', 'z', 'type'))
 if(test_small) {instructions <- instructions[1,]}
 print(instructions )
-"C:/Users/germanm2/Documents/n_policy_git/Codes/apsim_create_files_nov18.R"
+"C:/Users/germanm2/Documents/n_policy_git/Codes/apsim_create_files_jul15.R"
 "./n_policy_git/Codes/apsim_create_files_nov18.R"
-source(paste0(codes_folder, '/n_policy_git/Codes/apsim_create_files_nov18.R'))
+source(paste0(codes_folder, '/n_policy_git/Codes/apsim_create_files_jul15.R'))

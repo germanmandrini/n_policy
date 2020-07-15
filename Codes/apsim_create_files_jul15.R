@@ -30,7 +30,7 @@ apsim_create_files <- function(i){
  	
   #--- load the base apsim file ---# 
   if(instructions_tmp$type == 'stab'){
-    base_doc <- xml2::read_xml("./n_policy_box/Data/apsim_files/vr_value_v7.apsim")
+    base_doc <- xml2::read_xml("./n_policy_box/Data/apsim_files/vr_value_v8.apsim")
     }else{
     base_doc <- xml2::read_xml(instructions_tmp$path)
     # unlink(dirname(instructions_tmp$path), recursive = TRUE)

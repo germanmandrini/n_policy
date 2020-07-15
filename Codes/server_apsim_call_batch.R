@@ -78,13 +78,13 @@ source(paste0(codes_folder, '/n_policy_git/Codes/server_merge_results.R'))
 #MAKE YEARLY SUMMARY
 files_daily <- list.files(paste0('./n_policy_box/Data/yc_output_', batch_n), pattern = paste0('^',id10_n, '_'), full.names = T)
 print(files_daily)
-"C:/Users/germanm2/Documents/n_policy_git/Codes/1_daily_to_yearly_apr18.R"
-source(paste0(codes_folder, '/n_policy_git/Codes/1_daily_to_yearly_apr18.R'))
+"C:/Users/germanm2/Documents/n_policy_git/Codes/1_daily_to_yearly_jul15.R"
+source(paste0(codes_folder, '/n_policy_git/Codes/1_daily_to_yearly_jul15.R'))
 
 start7 <- Sys.time()
 
 time_track_tmp <- data.table(id_10 = id10_n,
-                             mukey_n = length(unique(instructions2$mukey)),
+                             mukey_n = length(unique(instructions$mukey)),
                              time = start1,
                              inst1 = instructions1_rows,
                              create1 = as.numeric(difftime(start2, start1, units = "mins")),
@@ -98,6 +98,8 @@ time_track_tmp <- data.table(id_10 = id10_n,
 print(time_track_tmp)
 
 # time_track <- rbind(time_track, time_track_tmp)
-saveRDS(time_track_tmp, paste0('./n_policy_box/Data/time_track/time_track_',id10_n,'.rds'))
+folder_name <- paste0('./n_policy_box/Data/time_track_', batch_n)
+if(!file.exists(folder_name)){dir.create(folder_name, recursive = TRUE)}
+saveRDS(time_track_tmp, paste0(folder_name,'/time_track_',id10_n,'.rds'))
 
 unlink(directory, recursive = TRUE)

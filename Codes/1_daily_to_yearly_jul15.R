@@ -79,8 +79,9 @@ make_yearly_summary <- function(file_n){
       
       #=====================================================================================================#
       # Frozen
+      names(daily_yc_dt2)
       make_it_dt <- daily_yc_dt2[,.(id_10, mukey, z, year,day, sim_name, stage_name, 
-                                   paddock.maize.lai,  LeafNo, paddock.maize.swdef_photo, paddock.maize.swdef_expan)][year== 2010]
+                                   paddock.maize.lai,  LeafNo, paddock.maize.swdef_photo, paddock.maize.swdef_expan, paddock.maize.swdef_pheno)][year== 2010]
       
       make_it_dt[,id_10:= as.integer(id_10)]
       make_it_dt[,z:= as.integer(z)]
@@ -96,6 +97,9 @@ make_yearly_summary <- function(file_n){
       #max lai, stages
       make_it_dt2 <- make_it_dt[, .(LAI_max = max(paddock.maize.lai),
                      stages_cnt = length(unique(stage_name)),
+                     swdef_photo = mean(paddock.maize.swdef_photo),
+                     swdef_expan = mean(paddock.maize.swdef_expan),
+                     swdef_pheno = mean(paddock.maize.swdef_pheno),
                      end_crop = any(stage_name == 'end_crop')),
                  by = sim_name]
       #frozen
@@ -126,10 +130,12 @@ make_yearly_summary <- function(file_n){
       soy_yield <- daily_yc_dt2[year == 2011,.(Yld_soy = max(Y, na.rm = T)/0.87), by = .(id_10, mukey, z, sim_name)]
       yearly_data <- merge(yearly_data, soy_yield, by = c('id_10', 'mukey','z', 'sim_name'))
       
-      #Add sowing date
+      #Add sowing date and 10 days mean temperature
       sowing_day <- daily_yc_dt2[year == 2010 & stage_name == 'sowing', .(sim_name, day)]
       setnames(sowing_day, 'day', 'day_sow')
+      sowing_day[, soilt10d := mean(daily_yc_dt2[year == 2010 & (day <= sowing_day$day_sow) & (day >= (sowing_day$day_sow-9))]$st_2)]
       yearly_data <- merge(yearly_data, sowing_day, by = c('sim_name'))
+      
       #=====================================================================================================#
       # LEACHING April to April
       daily_yc_dt2[year == 2010 & day > 100 ,leach_period := 1]
@@ -200,6 +206,7 @@ make_yearly_summary <- function(file_n){
       
       horizons_cell_dt <- grid10_horizons_v2_dt[mukey == unique(daily_yc_dt2$mukey)]
       horizons_cell_dt2 <- horizons_cell_dt[bottom <= 40, .(sand_40cm = mean(sand),
+                                                            om_40cm = mean(om),
                                                            clay_40cm = mean(clay))]
       
       #=====================================================================================================#
@@ -226,9 +233,7 @@ make_yearly_summary <- function(file_n){
       #             "paddock.maize.lai", "oc_20cm", "oc_40cm", "n_20cm", "n_40cm", "n_60cm","n_deep","esw_pct")
       
       cols_v5 <- unique(c("sim_name","day", "sw_dep", "paddock.maize.biomass",
-                   "paddock.maize.lai", "oc_20cm", "oc_40cm", "n_20cm", "n_40cm", "n_60cm","n_deep","esw_pct",
-                   "paddock.maize.biomass_n", "paddock.maize.green_biomass_n", "paddock.maize.greenn",
-                   "paddock.maize.leafgreennconc", "paddock.maize.leafgreenn"))
+                   "paddock.maize.lai", "oc_20cm", "oc_40cm", "n_20cm", "n_40cm", "n_60cm","n_deep","esw_pct"))
       
       v5_data <- v5_data[,cols_v5, with = F]
       
