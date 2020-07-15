@@ -21,7 +21,7 @@ grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds")
 # PROCESS PERFORMANCE DATA
 
 #Summarize performances to county level
-validation_dt <- perfomances_dt3[policy == 'ratio_6' & NMS ==1]
+validation_dt <- perfomances_dt3[policy == 'ratio_5' & NMS ==1]
 validation_dt[,year := as.numeric(z)+1988]
 validation_dt1 <- validation_dt[,.(id_10, year,   Y_corn)]
 validation_dt2 <- validation_dt[,.(id_10, year,   Y_soy)] %>% .[,year := year +1] #shift soy yield to next year
@@ -74,10 +74,25 @@ nass_county_yied_dt[, county_name := gsub("\\'", "", county_name)]
 ##=========================================================================================================###
 # Combine files
 unique(validation_dt5$county_name) %in% unique(nass_county_yied_dt$county_name) 
-unique(nass_county_yied_dt$county_name)[!unique(nass_county_yied_dt$county_name) %in% unique(validation_dt5$county_name)]
+unique(nass_county_yied_dt$county_name)[!unique(nass_county_yied_dt$county_name) %in% unique(validation_dt5$county_name)] #some counties were not simulated
 
 validation_nass_dt <- merge(validation_dt5, nass_county_yied_dt, by = c('year', 'county_name'))
+##=========================================================================================================###
+# County level boxplots
 
+validation_nass_dt
+validation_nass_dt2 <- melt(validation_nass_dt, id.vars = c('year', 'county_name'), measure.vars = c('Y_corn', 'Y_soy', 'Y_corn_nass', 'Y_soy_nass'))
+validation_nass_dt2[variable %in% c('Y_corn_nass', 'Y_soy_nass'), source := 'NASS']
+validation_nass_dt2[variable %in% c('Y_corn', 'Y_soy'), source := 'Simulated']
+validation_nass_dt2[variable %in% c('Y_corn','Y_corn_nass'), crop := 'corn']
+validation_nass_dt2[variable %in% c('Y_soy','Y_soy_nass'), crop := 'soy']
+
+ggplot(data = validation_nass_dt2) +
+  geom_boxplot(aes(y = value, x = source))+
+  facet_wrap(crop~.) 
+
+##=========================================================================================================###
+# Obs vs simulated approach
 reg <- lm(data = validation_nass_dt, formula = 'Y_corn_nass~Y_corn')
 reg_sum <- summary(reg)
 r_sq_num <- round(reg_sum$r.squared,2)
