@@ -21,8 +21,8 @@ yc_region_dt <- testing_set_dt[region == 2]
 # yc_yearly_dt3 <- merge(yc_yearly_dt3, unique(grid10_tiles_dt6[,.(id_10, region)]), by = 'id_10')
 
 
-yc_region_eonr_dt <- yc_region_dt[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
-yc_region_eonr_dt <- yc_region_eonr_dt[, .SD[ N_fert == min( N_fert )], by = .(id_10, mukey, z)]
+yc_region_eonr_dt <- yc_region_dt[, .SD[ P == max( P)], by = .(id_10, mukey, z)] %>% 
+  .[, .SD[ N_fert == min( N_fert )], by = .(id_10, mukey, z)]
 setnames(yc_region_eonr_dt, 'N_fert', 'eonr')
 #Add 5 to half of the rates to avoid being right in the limit
 yc_region_eonr_dt[, eonr2 := as.numeric(lapply(eonr, function(eonr) eonr+sample(5:10,1)))]
