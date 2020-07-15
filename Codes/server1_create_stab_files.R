@@ -6,8 +6,20 @@ library(XML)
 grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
 
 grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/grid10_horizons_v1_dt.rds")
-grid10_horizons_v1_dt <- grid10_horizons_v1_dt[bottom <=150] #make soils to only 150 cm
+# grid10_horizons_v1_dt <- grid10_horizons_v1_dt[bottom <=200] #make soils to only 150 cm
 grid10_fields_sf2 <- readRDS("./n_policy_box/Data/Grid/grid10_fields_sf2.rds")
+
+if(FALSE){ #test if regions are correct
+  regions1 <- unique(grid10_soils_dt4[,.(id_10, region)])
+  regions2 <- data.table(grid10_fields_sf2) %>% .[,.(id_10, region)] %>% unique()
+  comp_dt <- merge(regions1, regions2, by = 'id_10')
+  comp_dt[region.x != region.y]
+  grid10_tiles_sf6 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf6.rds")
+  tm_shape(grid10_tiles_sf6)+ tm_polygons('region')
+  regions3 <- data.table(grid10_tiles_sf6) %>% .[,.(id_10, region)] %>% unique()
+  comp_dt <- merge(comp_dt, regions3, by = 'id_10')
+  comp_dt[region.x != region]
+}
 
 source('./n_policy_box/Data/APssurgo_master/R/calc_apsim_variables_onesoil.R')
 source('./n_policy_box/Data/APssurgo_master/R/make_apsoils_toolbox.R')
@@ -30,7 +42,6 @@ unlink(directory ,recursive=TRUE)
 one_cell_dt <- grid10_soils_dt4[id_10 == id10_n,]
 
 cell_coords <- data.table(grid10_fields_sf2[grid10_fields_sf2$id_10 == id10_n,]) %>% .[,.(X = mean(long), Y = mean(lat))]
-
 
 #----------------------------------------------------------------------------
 # WEATHER FILES

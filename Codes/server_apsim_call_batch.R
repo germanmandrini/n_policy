@@ -36,8 +36,10 @@ id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
 # id10_n = 74
 # id10_n = 987
 # id10_n = 1078
-
+id10_n = 79
+batch_n = 18
 print(id10_n)
+
 #CREATE ALL STAB FILES
 start1 <- Sys.time()
 "C:/Users/germanm2/Documents/n_policy_git/Codes/server1_create_stab_files.R"
@@ -74,7 +76,7 @@ start6 <- Sys.time()
 source(paste0(codes_folder, '/n_policy_git/Codes/server_merge_results.R'))
  
 #MAKE YEARLY SUMMARY
-files_daily <- list.files('./n_policy_box/Data/yc_output', pattern = paste0('^',id10_n, '_'), full.names = T)
+files_daily <- list.files(paste0('./n_policy_box/Data/yc_output_', batch_n), pattern = paste0('^',id10_n, '_'), full.names = T)
 print(files_daily)
 "C:/Users/germanm2/Documents/n_policy_git/Codes/1_daily_to_yearly_apr18.R"
 source(paste0(codes_folder, '/n_policy_git/Codes/1_daily_to_yearly_apr18.R'))

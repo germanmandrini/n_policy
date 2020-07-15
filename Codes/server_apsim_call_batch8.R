@@ -37,8 +37,9 @@ id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
 # id10_n = 987
 # id10_n = 1078
 id10_n = 79
-batch_n = 8
+batch_n = 18
 print(id10_n)
+
 #CREATE ALL STAB FILES
 start1 <- Sys.time()
 "C:/Users/germanm2/Documents/n_policy_git/Codes/server1_create_stab_files.R"

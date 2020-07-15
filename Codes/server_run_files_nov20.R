@@ -37,7 +37,7 @@ if(server){
   
   flist = list.files(directory, full.names = TRUE, recursive = TRUE, pattern = '.apsim')
   if(any(str_detect(string = flist, pattern = '_yc_'))) {
-    flist <- flist[str_detect(string = flist, pattern = '_yc_150|Nminus|Nrich')] #OJO!!!!
+    flist <- flist[str_detect(string = flist, pattern = '_yc_160|Nminus|Nrich')] #OJO!!!!
   }
   
   result <- parLapply(cl, flist, function(x) system2( 'C:/Program Files (x86)/APSIM710-r4158/Model/Apsim.exe',  x ))  

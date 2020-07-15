@@ -175,7 +175,7 @@ apsim_create_files <- function(i){
   
   #--- Set the rate for the stab period ---#
   x <- xml_find_all(base_doc, ".//manager/ui/fert_amount_stab")
-  xml_text(x) <- "140"
+  xml_text(x) <- "150"
   
   #--- Set the starter rate ---#
   x <- xml_find_all(base_doc, ".//manager/ui/fert_amount_sow")
@@ -191,6 +191,7 @@ apsim_create_files <- function(i){
   #--- Set the rate for the YC period ---#
   if(instructions_tmp$type == 'yc'){
     N_rates <- seq(0, 320, 10)
+    N_rates <- seq(0, 260, 20)
     # N_rates <- c('Nminus', 'Nrich')
     # N_rates <- 150
     for(N_n in N_rates){
