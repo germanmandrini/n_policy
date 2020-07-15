@@ -81,6 +81,7 @@ length(unique(grid10_soils_dt3$mukey)) #total soils to download
 source('./vr_value_v2/Data/APssurgo_master/R/get_horizons_parallel.R')
 grid10_horizons_v1_dt <- readRDS("./vr_value_v2/Data/Grid/grid10_horizons_v1_dt.rds")
 
+
 # Clean the soils not available in SSURGO
 source('./vr_value_v2/Codes/clean_fields_step2.R')
 grid10_soils_dt4 <- readRDS("./vr_value_v2/Data/Grid/grid10_soils_dt4.rds")
@@ -96,6 +97,13 @@ grid10_fields_sf2 <- readRDS("./vr_value_v2/Data/Grid/grid10_fields_sf2.rds")
 # setcolorder(grid10_horizons_v2_dt, c('id_tile','mukey', 'X', 'Y'))
 # saveRDS(grid10_horizons_v2_dt, "./vr_value_v2/Data/Grid/grid10_horizons_v2_dt.rds")
 # grid10_horizons_v2_dt <- readRDS("./vr_value_v2/Data/Grid/grid10_horizons_v2_dt.rds")
+#---------------------------------------------------------------
+# Create one main soil for each region
+regions_dt <- grid10_soils_dt4[,.(region, mukey)] %>%unique() %>% data.table()
+grid10_horizons_v1_dt <- merge(grid10_horizons_v1_dt, regions_dt, by = 'mukey')
+
+regions_horizons_dt <- grid10_horizons_v1_dt[, lapply(.SD, mean, na.rm=TRUE), by= .(region, top, bottom, thick, center)]
+saveRDS(regions_horizons_dt, "./n_policy_box/Data/Grid/regions_horizons_dt.rds")
 
 #---------------------------------------------------------------
 grid10_soils_dt4 <- readRDS("./vr_value_v2/Data/Grid/grid10_soils_dt4.rds")

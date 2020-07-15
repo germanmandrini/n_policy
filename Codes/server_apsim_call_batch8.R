@@ -36,6 +36,7 @@ id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
 # id10_n = 74
 # id10_n = 987
 # id10_n = 1078
+id10_n = 79
 batch_n = 8
 print(id10_n)
 #CREATE ALL STAB FILES
