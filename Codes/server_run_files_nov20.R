@@ -56,7 +56,7 @@ if(server){
   if(any(str_detect(string = flist, pattern = '_yc_'))) {
     flist <- flist[str_detect(string = flist, pattern = '_yc_')] #OJO!!!!
     if(test_small) {
-      flist <- flist[str_detect(string = flist, pattern = '_yc_150')] #OJO!!!!
+      flist <- flist[str_detect(string = flist, pattern = '_yc_160')] #OJO!!!!
     }
   }
   

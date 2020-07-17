@@ -83,8 +83,13 @@ apsim_create_files <- function(i){
     # planting_start_corn <- c('01-Apr', '03-Apr', '20-Apr')[instructions_tmp$region]
     # planting_end_corn <- c('08-Apr', '10-Apr', '25-Apr')[instructions_tmp$region]
     
-    planting_start_corn <- c('05-Apr', '10-Apr', '20-Apr')[instructions_tmp$region]
-    planting_end_corn <- c('10-Apr', '15-Apr', '25-Apr')[instructions_tmp$region]
+    #batch 20 
+    # planting_start_corn <- c('05-Apr', '10-Apr', '15-Apr')[instructions_tmp$region]
+    # planting_end_corn <- c('10-Apr', '15-Apr', '20-Apr')[instructions_tmp$region] 
+    
+    #batch 21 
+    planting_start_corn <- c('05-Apr', '05-Apr', '15-Apr')[instructions_tmp$region]
+    planting_end_corn <- c('10-Apr', '10-Apr', '20-Apr')[instructions_tmp$region]
     
     x <- xml_find_all(base_doc, ".//manager/ui/date1_corn")
     xml_text(x) <- as.character(planting_start_corn)
@@ -107,7 +112,7 @@ apsim_create_files <- function(i){
     #--------------------------
     # CULTIVAR BY REGION
     #--------------------------
-    cultivar_corn <- c('B_115_gm', 'B_110_gm', 'B_105_gm')[instructions_tmp$region]
+    cultivar_corn <- c('B_115', 'B_110_gm', 'B_105_gm')[instructions_tmp$region]
     x <- xml_find_all(base_doc, ".//manager/ui/cultivar_corn")
     xml_text(x) <- as.character(cultivar_corn)
     
@@ -115,8 +120,28 @@ apsim_create_files <- function(i){
     x <- xml_find_all(base_doc, ".//manager/ui/cultivar_soy")
     xml_text(x) <- as.character(cultivar_soy)
     
+  }#else if(instructions_tmp$type == 'yc' & instructions_tmp$batch == 19 ){
+
+    #--------------------------
+    # PLANTING DATE BY SOIL TEMPERATURE
+    #--------------------------
+    # plant_dates_dt2 <- readRDS("./n_policy_box/Data/files_rds/plant_dates_dt.rds") %>% .[region == instructions_tmp$region & z == instructions_tmp$z]
+    # planting_start_corn <- plant_dates_dt2$Date
+    # planting_end_corn <- plant_dates_dt2$Date
+    # 
+    # x <- xml_find_all(base_doc, ".//manager/ui/date1_corn")
+    # xml_text(x) <- as.character(planting_start_corn)
+    # 
+    # x <- xml_find_all(base_doc, ".//manager/ui/date2_corn")
+    # xml_text(x) <- as.character(planting_end_corn)
+    # 
+    # }
+  if(instructions_tmp$batch > 36 ){
+    plant_population <- c('8', '8', '8')[instructions_tmp$region]
+    x <- xml_find_all(base_doc, ".//manager/ui/density_corn")
+    xml_text(x) <- as.character(plant_population)
+    
     }
-  
   #--------------------------
   # CLOCK
   #--------------------------
@@ -163,11 +188,12 @@ apsim_create_files <- function(i){
   #--------------------------
   # UPDATE INITIAL CONDITIONS
   #--------------------------
-  
   if(instructions_tmp$type == 'yc'){
+    
     # "C:/Users/germanm2/Documents/n_policy_git/Codes/update_ic_nov18.R"
     # source(paste0(codes_folder, '/n_policy_git/Codes/update_ic_nov18.R'))
     "C:/Users/germanm2/Documents/n_policy_git/Codes/update_ic_reduced_jul13.R"
+    "./n_policy_git/Codes/update_ic_reduced_jul13.R"
     source(paste0(codes_folder, '/n_policy_git/Codes/update_ic_reduced_jul13.R')) #simplified version
     #The initial residue assumes an alternation. Can be improved for account for other types of rotations
     base_doc <- update_ic(base_doc, instructions_tmp, initial_residue = crop_seq[2]) 
@@ -190,8 +216,9 @@ apsim_create_files <- function(i){
   
   #--- Set the rate for the YC period ---#
   if(instructions_tmp$type == 'yc'){
-    N_rates <- seq(0, 320, 10)
-    N_rates <- seq(0, 260, 20)
+    # N_rates <- seq(0, 320, 10)
+    N_rates <- seq(0, 300, 25)
+    # N_rates <- c(0,260)
     # N_rates <- c('Nminus', 'Nrich')
     # N_rates <- 150
     for(N_n in N_rates){

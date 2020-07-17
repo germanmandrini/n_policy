@@ -12,6 +12,7 @@ instructions %>% setcolorder(c('region','id_10',  'mukey', 'z', 'type'))
 
 
 #CREATE ALL APSIM FILES
-"C:/Users/germanm2/Documents/n_policy_git/Codes/apsim_create_files_nov18.R"
-source(paste0(codes_folder, '/n_policy_git/Codes/apsim_create_files_nov18.R'))
+"C:/Users/germanm2/Documents/n_policy_git/Codes/apsim_create_files_jul15.R"
+"./n_policy_git/Codes/apsim_create_files_jul15.R"
+source(paste0(codes_folder, '/n_policy_git/Codes/apsim_create_files_jul15.R'))
 

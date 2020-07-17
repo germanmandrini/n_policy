@@ -21,6 +21,8 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     
   #variables_layers <- names(initial_conditions_tmp)[str_detect(names(initial_conditions_tmp), 'oc_[0-9]+$|biom_c_[0-9]+$|hum_c_[0-9]+$|inert_c_[0-9]+$|no3_[0-9]+$|nh4_[0-9]+$|sw_[0-9]+$')]
   
+  #==============================================================================
+  #Work with variables that are layers
   
   variables_layers <- names(initial_conditions_tmp)[grepl('_[0-9]+$', names(initial_conditions_tmp))]
   variables_layers <- variables_layers[!variables_layers == 'id_10']
@@ -40,9 +42,14 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     } #end var_n loop
     
     horizons_dt[,names(horizons_dt):= lapply(.SD, as.numeric), .SDcols = names(horizons_dt)]
-    sapply(horizons_dt,class)
-    
+
     horizons_dt[,Finert := round(inert_c/(hum_c + biom_c),4)]
+    #------------------------------------------------------------------------------------
+    # Decrease FInert in South region (lower EONR while not changing Yr_zero)
+    if(instructions_tmp$region == 1 & instructions_tmp$batch == 24){
+      horizons_dt[,Finert := round(Finert*0.9,4)]
+    }
+    #------------------------------------------------------------------------------------
     horizons_dt[,Fbiom := round(biom_c/(hum_c-inert_c),4)]
     horizons_dt[,Finert := ifelse(oc == 0 & Finert == 0, 1, Finert)]  #correction for deep layers
     horizons_dt[,Fbiom := ifelse(Fbiom > 1 | Finert == 1, 0, Fbiom)]  #correction for deep layers
@@ -51,7 +58,20 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     
     #-------------------------
     # Correct the n deep
-    n_mean_target <- c(30, 30, 30)[instructions_tmp$region]
+    # n_mean_target <- c(30, 30, 30)[instructions_tmp$region]
+    
+    #batch 21
+    # n_mean_target <- c(50, 20, 30)[instructions_tmp$region]
+    
+    #batch 22 to 24
+    # n_mean_target <- c(30, 20, 30)[instructions_tmp$region]
+    
+    #batch 25 to 30
+    # n_mean_target <- c(20, 20, 30)[instructions_tmp$region]
+    #batch 31
+    # n_mean_target <- c(60, 20, 40)[instructions_tmp$region]
+    #batch 37
+    n_mean_target <- c(40, 20, 40)[instructions_tmp$region]
     
     no3_target <- n_mean_target * (sum(horizons_dt$no3) / (sum(horizons_dt$no3) + sum(horizons_dt$nh4))) 
     nh4_target <- n_mean_target * (sum(horizons_dt$nh4) / (sum(horizons_dt$no3) + sum(horizons_dt$nh4)))
@@ -62,17 +82,22 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
 
     horizons_dt[no3 <= 0, no3 := 1 ] # make sure all are positive
     horizons_dt[nh4 <= 0, nh4 := 1 ] # make sure all are positive
+    
     #-------------------------
+    # Correct the sw to be less than DUL
     
-    names(initial_conditions_tmp)[!names(initial_conditions_tmp) %in% variables_layers &
-                                    !names(initial_conditions_tmp) %in% variables_layers_unique]
+    sub_node <- xml_find_all(base_doc,'//Water/DUL')
     
-    initial_conditions_tmp[,surfaceom_cn := round(as.numeric(surfaceom_c) / as.numeric(surfaceom_n), 0)]
-    
-    variables_one_value_names <- c("z","mukey", 'surfaceom_cn', "surfaceom_wt", "root_wt","root_cn")
-    
-    variables_one_value_table <- initial_conditions_tmp[,variables_one_value_names, with = FALSE]
-    
+    horizons_dt$DUL <- "0"
+    counter = 1
+    for(node_layer in xml_children(sub_node)){
+      # node_layer = 1
+      horizons_dt$DUL[counter] <- xml_text(node_layer)
+      counter = counter + 1
+    }
+    horizons_dt[,sw := ifelse(sw > DUL, DUL, sw)]
+    horizons_dt <- horizons_dt[,-'DUL']
+
     #----------------------------------------------------------------------------------------------------
     # UPDATE THE BASE FILE
     # edit_childs <- c(paste0("//SoilOrganicMatter/", c("OC","FBiom","FInert")),
@@ -84,9 +109,10 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
 
     equivalent_colname <- c('Fbiom', 'Finert', 'no3', 'nh4', 'sw')
     
-    
+    # if(instructions_tmp$batch %in% c(31, 32, 33)){
+      
     for(var_n in 1:length(edit_childs)){
-      # var_n <- 1
+      # var_n <- 5
       child_n <- edit_childs[var_n]
       equivalent_colname_n <- equivalent_colname[var_n]
       sub_node <- xml_find_all(base_doc,child_n)
@@ -97,9 +123,56 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
         # node_layer = 1
         xml_text(node_layer) <- vector[counter]
         counter = counter + 1
-      }
+      }# end node_layer
       
+    }# end var_n
+    # }
+    #==============================================================================
+    #Work with variables that are one value
+    
+    names(initial_conditions_tmp)[!names(initial_conditions_tmp) %in% variables_layers &
+                                    !names(initial_conditions_tmp) %in% variables_layers_unique]
+    
+    initial_conditions_tmp[,surfaceom_cn := round(as.numeric(surfaceom_c) / as.numeric(surfaceom_n), 0)]
+    
+    variables_one_value_names <- c("z","mukey", 'surfaceom_cn', "surfaceom_wt", "root_wt","root_cn")
+    
+    variables_one_value_table <- initial_conditions_tmp[,variables_one_value_names, with = FALSE]
+    
+    #------------------------------------------------------------------------------------
+    # Increase residue and root in South region (lower EONR while not changing Yr_zero)
+    if(instructions_tmp$region == 1 & instructions_tmp$batch == 22){
+      variables_one_value_table[,surfaceom_wt := surfaceom_wt*1.1]
+      variables_one_value_table[,root_wt := root_wt*1.1]
     }
+    
+    if(instructions_tmp$region == 1 & instructions_tmp$batch == 23){
+      variables_one_value_table[,surfaceom_wt := surfaceom_wt*1.3]
+      variables_one_value_table[,root_wt := root_wt*1.3]
+    }
+    
+    if(instructions_tmp$region == 1 & instructions_tmp$batch == 24){
+      variables_one_value_table[,surfaceom_wt := surfaceom_wt*1.3]
+      variables_one_value_table[,root_wt := root_wt*1.4]
+    }
+    
+    if(instructions_tmp$region == 1 & instructions_tmp$batch == 25){
+      variables_one_value_table[,surfaceom_wt := surfaceom_wt*1.4]
+      variables_one_value_table[,root_wt := root_wt*1.4]
+    }
+    
+    if(instructions_tmp$region == 1 & instructions_tmp$batch == 26){
+      variables_one_value_table[,surfaceom_wt := surfaceom_wt*2]
+      variables_one_value_table[,root_wt := root_wt*2]
+    }
+    
+    if(instructions_tmp$region == 1 & instructions_tmp$batch == 27){
+      variables_one_value_table[,surfaceom_wt := surfaceom_wt*1]
+      variables_one_value_table[,root_wt := root_wt*2]
+    }
+    
+    #------------------------------------------------------------------------------------
+    if(instructions_tmp$batch == 32){
     #Residue weight
     node <- xml_find_all(base_doc, '//surfaceom/mass')
     xml_text(node) <- as.character(variables_one_value_table$surfaceom_wt)
@@ -119,6 +192,7 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     
     node <- xml_find_all(base_doc,'//SoilOrganicMatter/RootCN')
     xml_text(node) <- as.character(variables_one_value_table$root_cn)
+    }
     
     return(base_doc)
     }

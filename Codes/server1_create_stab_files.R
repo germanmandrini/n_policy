@@ -23,9 +23,9 @@ if(FALSE){ #test if regions are correct
 
 source('./n_policy_box/Data/APssurgo_master/R/calc_apsim_variables_onesoil.R')
 source('./n_policy_box/Data/APssurgo_master/R/make_apsoils_toolbox.R')
-source(paste0(codes_folder, '/n_policy_git/Codes/make_met_files.R'))
+source(paste0(codes_folder, '/n_policy_git/Codes/make_met_files_foreach.R'))
 "C:/Users/germanm2/Documents/n_policy_git/Codes/make_met_files.R"
-
+"./n_policy_git/Codes/make_met_files.R"
 
 list.files('./n_policy_box/Data/APssurgo_master/')
 
@@ -40,6 +40,14 @@ if(server){
 unlink(directory ,recursive=TRUE)
 
 one_cell_dt <- grid10_soils_dt4[id_10 == id10_n,]
+
+#----------------------------------------------------------------------------
+#OJO!!!
+#Select largest mukey by field
+if(server){
+  one_cell_dt <- one_cell_dt[,.SD[prop_area == max(prop_area)], by = id_field]
+}
+#----------------------------------------------------------------------------
 
 cell_coords <- data.table(grid10_fields_sf2[grid10_fields_sf2$id_10 == id10_n,]) %>% .[,.(X = mean(long), Y = mean(lat))]
 
@@ -88,8 +96,9 @@ if(any(one_cell_dt$id_field %in% c(2,4))){
 }else{instructions2 <- data.table()}
 
 instructions <- rbind(instructions1, instructions2) %>% setcolorder(c('id_10',  'mukey', 'z', 'type'))
+instructions[,batch := batch_n]
 if(test_small) {instructions <- instructions[1,]}
 print(instructions )
 "C:/Users/germanm2/Documents/n_policy_git/Codes/apsim_create_files_jul15.R"
-"./n_policy_git/Codes/apsim_create_files_nov18.R"
+"./n_policy_git/Codes/apsim_create_files_jul15.R"
 source(paste0(codes_folder, '/n_policy_git/Codes/apsim_create_files_jul15.R'))
