@@ -5,6 +5,8 @@ library(XML)
 
 grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
 
+# sample(grid10_soils_dt4[region == 3]$id_10, 2)
+
 grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/grid10_horizons_v1_dt.rds")
 grid10_horizons_v1_dt <- grid10_horizons_v1_dt[bottom <=200] #make soils to only 150 cm
 grid10_fields_sf2 <- readRDS("./n_policy_box/Data/Grid/grid10_fields_sf2.rds")
@@ -23,7 +25,7 @@ if(FALSE){ #test if regions are correct
 
 source('./n_policy_box/Data/APssurgo_master/R/calc_apsim_variables_onesoil.R')
 source('./n_policy_box/Data/APssurgo_master/R/make_apsoils_toolbox.R')
-source(paste0(codes_folder, '/n_policy_git/Codes/make_met_files_foreach.R'))
+source(paste0(codes_folder, '/n_policy_git/Codes/make_met_files.R'))
 "C:/Users/germanm2/Documents/n_policy_git/Codes/make_met_files.R"
 "./n_policy_git/Codes/make_met_files.R"
 

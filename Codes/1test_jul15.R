@@ -15,7 +15,7 @@ source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 #Merge all files
 # batch_n = 19
 yc_yearly_batches_dt  <- data.table()
-for(batch_n in c( 37)){
+for(batch_n in c( 42)){
   print(batch_n)
   multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n), full.names = T)
   length(multiple_files)
@@ -84,7 +84,7 @@ state_agg_dt[,batch := factor(batch)]
   theme_bw())
 
 
-(plot_1 <- ggplot(data = state_agg_dt) + 
+(plot_2 <- ggplot(data = state_agg_dt) + 
     geom_line(aes(x = N_fert, y = Y_corn, color = region, linetype = batch)) +
     # geom_line(aes(x = N_fert, y = L1_rel, linetype = "N Leaching", color = region)) +
     #geom_hline(yintercept = baselevel_yld, linetype = 'dashed', color = 'grey', size = 1)+
@@ -95,6 +95,10 @@ state_agg_dt[,batch := factor(batch)]
     # scale_y_continuous(sec.axis = sec_axis(~./200, name = "Corn N leaching (kg/ha)", breaks = seq(30,80,5), labels = seq(30,80,5))) +
     # scale_linetype_manual(values = c("dashed", "solid"))+
     theme_bw())
+
+ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
+       filename = paste0("./n_policy_box/Data/batches_tests/", batch_n, "_yield_plot.jpg"), width = 979/300*3, height = 1042/300*3,
+       units = 'in')
 
 #======================================================================================
 #EONR frecuency
@@ -120,7 +124,7 @@ str(yc_region_eonr_dt)
 
 yc_region_eonr_dt2$eonr_bin <- factor(yc_region_eonr_dt2$eonr_bin, levels = bins_table$eonr_bin)
 
-ggplot(yc_region_eonr_dt2, aes(eonr_bin     )) + geom_bar(aes(y = (..count..)/sum(..count..)))+
+(plot_1 <- ggplot(yc_region_eonr_dt2, aes(eonr_bin     )) + geom_bar(aes(y = (..count..)/sum(..count..)))+
   labs(x= 'N fert (kg/ha)', y = "relative frequencies")+
   theme_bw()+
   theme(legend.title =  element_blank(),
@@ -128,7 +132,11 @@ ggplot(yc_region_eonr_dt2, aes(eonr_bin     )) + geom_bar(aes(y = (..count..)/su
   facet_wrap(region~batch, 
              ncol = 1,
              #scales="free",
-             strip.position = "left")
+             strip.position = "left"))
+
+ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
+       filename = paste0("./n_policy_box/Data/batches_tests/", batch_n, "_eonr_plot.jpg"), width = 5, height = 5,
+       units = 'in')
 
 yc_region_eonr_dt2[,z := as.numeric(z)]  
 ggplot(yc_region_eonr_dt2) + geom_boxplot(aes(x = factor(z), y = eonr))

@@ -137,7 +137,7 @@ apsim_create_files <- function(i){
     # 
     # }
   if(instructions_tmp$batch > 36 ){
-    plant_population <- c('8', '8', '8')[instructions_tmp$region]
+    plant_population <- c('8', '7.5', '9')[instructions_tmp$region]
     x <- xml_find_all(base_doc, ".//manager/ui/density_corn")
     xml_text(x) <- as.character(plant_population)
     

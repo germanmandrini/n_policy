@@ -71,7 +71,11 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     #batch 31
     # n_mean_target <- c(60, 20, 40)[instructions_tmp$region]
     #batch 37
-    n_mean_target <- c(40, 20, 40)[instructions_tmp$region]
+    # n_mean_target <- c(40, 20, 40)[instructions_tmp$region]
+    #batch 40
+    # n_mean_target <- c(40, 30, 50)[instructions_tmp$region]
+    #batch 10
+    n_mean_target <- c(1, 5, 25)[instructions_tmp$region]
     
     no3_target <- n_mean_target * (sum(horizons_dt$no3) / (sum(horizons_dt$no3) + sum(horizons_dt$nh4))) 
     nh4_target <- n_mean_target * (sum(horizons_dt$nh4) / (sum(horizons_dt$no3) + sum(horizons_dt$nh4)))
@@ -172,7 +176,7 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     }
     
     #------------------------------------------------------------------------------------
-    if(instructions_tmp$batch == 32){
+    
     #Residue weight
     node <- xml_find_all(base_doc, '//surfaceom/mass')
     xml_text(node) <- as.character(variables_one_value_table$surfaceom_wt)
@@ -184,6 +188,7 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     #Residue name
     node <- xml_find_all(base_doc, '//surfaceom/PoolName')
     xml_text(node) <- as.character(initial_residue) 
+    
     node <- xml_find_all(base_doc, '//surfaceom/type')
     xml_text(node) <- as.character(initial_residue) 
     
@@ -192,7 +197,7 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     
     node <- xml_find_all(base_doc,'//SoilOrganicMatter/RootCN')
     xml_text(node) <- as.character(variables_one_value_table$root_cn)
-    }
+    
     
     return(base_doc)
     }
