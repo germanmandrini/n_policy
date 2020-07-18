@@ -75,7 +75,7 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     #batch 40
     # n_mean_target <- c(40, 30, 50)[instructions_tmp$region]
     #batch 10
-    n_mean_target <- c(1, 5, 25)[instructions_tmp$region]
+    n_mean_target <- c(1, 5, 20)[instructions_tmp$region]
     
     no3_target <- n_mean_target * (sum(horizons_dt$no3) / (sum(horizons_dt$no3) + sum(horizons_dt$nh4))) 
     nh4_target <- n_mean_target * (sum(horizons_dt$nh4) / (sum(horizons_dt$no3) + sum(horizons_dt$nh4)))

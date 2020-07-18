@@ -15,19 +15,16 @@ if(FALSE){ #test if regions are correct
   regions1 <- unique(grid10_soils_dt4[,.(id_10, region)])
   regions2 <- data.table(grid10_fields_sf2) %>% .[,.(id_10, region)] %>% unique()
   comp_dt <- merge(regions1, regions2, by = 'id_10')
-  comp_dt[region.x != region.y]
+  comp_dt[region.x != region.y] # has to be empty
   grid10_tiles_sf6 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf6.rds")
   tm_shape(grid10_tiles_sf6)+ tm_polygons('region')
   regions3 <- data.table(grid10_tiles_sf6) %>% .[,.(id_10, region)] %>% unique()
   comp_dt <- merge(comp_dt, regions3, by = 'id_10')
-  comp_dt[region.x != region]
+  comp_dt[region.x != region]# has to be empty
 }
 
 source('./n_policy_box/Data/APssurgo_master/R/calc_apsim_variables_onesoil.R')
 source('./n_policy_box/Data/APssurgo_master/R/make_apsoils_toolbox.R')
-source(paste0(codes_folder, '/n_policy_git/Codes/make_met_files.R'))
-"C:/Users/germanm2/Documents/n_policy_git/Codes/make_met_files.R"
-"./n_policy_git/Codes/make_met_files.R"
 
 list.files('./n_policy_box/Data/APssurgo_master/')
 
@@ -55,10 +52,9 @@ cell_coords <- data.table(grid10_fields_sf2[grid10_fields_sf2$id_10 == id10_n,])
 
 #----------------------------------------------------------------------------
 # WEATHER FILES
-weather_file <- paste('./n_policy_box/Data/met_files/weather_z_cell', id10_n, '_dt.rds', sep = '')
-weather_cell.dt <- readRDS(weather_file)
-
-make_met_files_paralell(weather_cell.dt, directory)
+source(paste0(codes_folder, '/n_policy_git/Codes/make_z_and_met_files.R'))
+"C:/Users/germanm2/Documents/n_policy_git/Codes/make_met_files.R"
+"./n_policy_git/Codes/make_met_files.R"
 
 #----------------------------------------------------------------------------
 # INITIAL SOIL FILES (WE WILL UPDATE THEM AFTER STABILIZATION)

@@ -37,12 +37,12 @@ id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
 # id10_n = 987
 # id10_n = 1078
 id10_n = 1212
-batch_n = 34
+batch_n = 43
 print(id10_n)
-# id10_seq <- c(1426, 1212, 180, 29, 652, 765)
+id10_seq <- c(1426, 1212, 180, 29, 652, 765)
 # id10_seq <- c(1322,  984, 699, 403, 152,  69)
-id10_seq <- c(1181, 1063, 938, 496, 258, 301)
-for(batch_n in c(42)){
+# id10_seq <- c(1181, 1063, 938, 496, 258, 301)
+for(batch_n in c(43)){
   # id10_seq <- c(180, 29)
   for(id10_n in id10_seq){
     # CREATE ALL STAB FILES
