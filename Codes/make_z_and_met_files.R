@@ -6,7 +6,8 @@ create_z <- function(id10_n, weather_historic_dt){
   # id10_n = 730
   print(id10_n)
   years_seq_long <- c(1980:2019,2010)
-  packages_need <- c('APSIM', 'daymetr','dplyr', 'data.table', 'sf')
+  # packages_need <- c('APSIM', 'daymetr','dplyr', 'data.table', 'sf')
+  packages_need <- c('dplyr', 'data.table')
   lapply(packages_need, require, character.only = TRUE)
   
   
@@ -75,7 +76,12 @@ create_z <- function(id10_n, weather_historic_dt){
 
 
 weather_cell.dt <- create_z(id10_n, weather_historic_dt)
-
+rm(weather_historic_dt)
+#--------------
+# Save the weather file data.table. We need it for yearly summary
+folder_name <- paste(directory, '/met_files',sep = '')
+if(!file.exists(folder_name)){dir.create(folder_name, recursive = TRUE)}
+saveRDS(weather_cell.dt, paste(folder_name, '/weather_z_cell', id10_n, '_dt.rds', sep = '')) #save each id, it gets to heavy if all together
 
 #=====================================================================================================
 # STEP 2: Create the met files and save them in the simulation folder

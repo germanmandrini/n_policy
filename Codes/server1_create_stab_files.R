@@ -43,9 +43,9 @@ one_cell_dt <- grid10_soils_dt4[id_10 == id10_n,]
 #----------------------------------------------------------------------------
 #OJO!!!
 #Select largest mukey by field
-if(server){
-  one_cell_dt <- one_cell_dt[,.SD[prop_area == max(prop_area)], by = id_field]
-}
+# if(server){
+#   one_cell_dt <- one_cell_dt[,.SD[prop_area == max(prop_area)], by = id_field]
+# }
 #----------------------------------------------------------------------------
 
 cell_coords <- data.table(grid10_fields_sf2[grid10_fields_sf2$id_10 == id10_n,]) %>% .[,.(X = mean(long), Y = mean(lat))]
@@ -53,8 +53,8 @@ cell_coords <- data.table(grid10_fields_sf2[grid10_fields_sf2$id_10 == id10_n,])
 #----------------------------------------------------------------------------
 # WEATHER FILES
 source(paste0(codes_folder, '/n_policy_git/Codes/make_z_and_met_files.R'))
-"C:/Users/germanm2/Documents/n_policy_git/Codes/make_met_files.R"
-"./n_policy_git/Codes/make_met_files.R"
+"C:/Users/germanm2/Documents/n_policy_git/Codes/make_z_and_met_files.R"
+"./n_policy_git/Codes/make_z_and_met_files.R"
 
 #----------------------------------------------------------------------------
 # INITIAL SOIL FILES (WE WILL UPDATE THEM AFTER STABILIZATION)

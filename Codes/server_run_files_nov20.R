@@ -5,7 +5,13 @@ if(server){
   apsim_exe <- '/opt/apsim_dev/trunk/Model/ApsimRun.sh'
   
   flist = list.files(directory, full.names = TRUE, recursive = TRUE, pattern = '.apsim')
-  
+  if(any(str_detect(string = flist, pattern = '_yc_'))) {
+    flist <- flist[str_detect(string = flist, pattern = '_yc_')] #OJO!!!!
+    if(test_small) {
+      flist <- flist[str_detect(string = flist, pattern = '_yc_160|_yc_175')] #OJO!!!!
+    }
+  }
+  print(flist)
   apsim_file = file.path(directory, 'apsim.txt')
   write.table(flist, apsim_file, row.names = FALSE, col.names = FALSE, quote = FALSE)
   
@@ -56,10 +62,10 @@ if(server){
   if(any(str_detect(string = flist, pattern = '_yc_'))) {
     flist <- flist[str_detect(string = flist, pattern = '_yc_')] #OJO!!!!
     if(test_small) {
-      flist <- flist[str_detect(string = flist, pattern = '_yc_160')] #OJO!!!!
+      flist <- flist[str_detect(string = flist, pattern = '_yc_160|_yc_175')] #OJO!!!!
     }
   }
-  
+  print(flist)
   file_name = file.path(directory, 'files_to_run.txt')
   write.table(flist, file_name, row.names = FALSE, col.names = FALSE, quote = FALSE)
   

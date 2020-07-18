@@ -216,8 +216,8 @@ apsim_create_files <- function(i){
   
   #--- Set the rate for the YC period ---#
   if(instructions_tmp$type == 'yc'){
-    # N_rates <- seq(0, 320, 10)
-    N_rates <- seq(0, 300, 25)
+    N_rates <- seq(0, 320, 10)
+    # N_rates <- seq(0, 300, 25)
     # N_rates <- c(0,260)
     # N_rates <- c('Nminus', 'Nrich')
     # N_rates <- 150

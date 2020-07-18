@@ -63,7 +63,7 @@ make_yearly_summary <- function(file_n){
     daily_yc_dt <- readRDS(file_n) 
     daily_yc_dt <- daily_yc_dt[!str_detect(daily_yc_dt$sim_name, pattern = 'n_rich|n_minus' )] #remove sensor's treatments
     
-    weather_cell_dt <- readRDS(paste('./n_policy_box/Data/met_files/weather_z_cell', unique(daily_yc_dt$id_10), '_dt.rds', sep = '')) %>%
+    weather_cell_dt <- readRDS(paste(directory, '/met_files/weather_z_cell', unique(daily_yc_dt$id_10), '_dt.rds', sep = '')) %>%
       .[year == 2010]
     
     initial_conditions_dt <- readRDS(str_replace(file_n, pattern = 'yc_output', replacement = 'initial_conditions')) %>%
