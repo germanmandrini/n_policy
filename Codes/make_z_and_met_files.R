@@ -147,7 +147,7 @@ make_met_files <- function(z_n, weather_cell.dt, directory = directory){
   # unlink(folder ,recursive=TRUE)
   folder_name <- paste(directory, '/met_files',sep = '')
   
-  if(!file.exists(folder_name)){dir.create(folder_name, recursive = TRUE)}
+  # if(!file.exists(folder_name)){dir.create(folder_name, recursive = TRUE)}
   
   fileName_tmp <- paste(folder_name,'/z_', z_n, '.met', sep='')
   

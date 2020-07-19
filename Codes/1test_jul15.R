@@ -15,7 +15,7 @@ source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 #Merge all files
 # batch_n = 19
 yc_yearly_batches_dt  <- data.table()
-for(batch_n in c( 42)){
+for(batch_n in c( 43)){
   print(batch_n)
   multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n), full.names = T)
   length(multiple_files)
@@ -51,7 +51,6 @@ for(batch_n in c( 42)){
   saveRDS(yc_yearly_dt, paste0("./n_policy_box/Data/files_rds/yc_yearly_dt_batch", batch_n, ".rds"))
   yc_yearly_batches_dt <- rbind(yc_yearly_batches_dt, yc_yearly_dt)
 }
-yc_yearly_batches_dt <- yc_yearly_batches_dt[id_10 %in% c(1212, 1426)]
 batch_n = 18
 yc_yearly_dt <- readRDS( paste0("./n_policy_box/Data/files_rds/yc_yearly_dt_batch", batch_n, ".rds"))
 #======================================================================================
@@ -123,8 +122,10 @@ yc_region_eonr_dt2 <- merge(yc_region_eonr_dt, bins_table, by = 'bin')
 str(yc_region_eonr_dt)
 
 yc_region_eonr_dt2$eonr_bin <- factor(yc_region_eonr_dt2$eonr_bin, levels = bins_table$eonr_bin)
+yc_region_eonr_dt2[,region := factor(region)]
 
-(plot_1 <- ggplot(yc_region_eonr_dt2, aes(eonr_bin     )) + geom_bar(aes(y = (..count..)/sum(..count..)))+
+(plot_1 <- ggplot(yc_region_eonr_dt2, aes(eonr_bin , fill = region    )) + #geom_bar(aes(y = (..count..)/sum(..count..)))+
+    geom_bar(aes( y=..count../tapply(..count.., ..fill.. ,sum)[..fill..]))+
   labs(x= 'N fert (kg/ha)', y = "relative frequencies")+
   theme_bw()+
   theme(legend.title =  element_blank(),

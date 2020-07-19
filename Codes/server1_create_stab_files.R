@@ -33,7 +33,8 @@ if(server){
 }else if(cpsc){
   directory <- paste('C:/apsim_temp/', Sys.info()["nodename"],'/n_policy/batch_', batch_n, '/cell', id10_n, sep = '')
 }else if(cluster){
-  directory <- paste('/projects/aces/germanm2/n_policy/batch_', batch_n, '/cell', id10_n, sep = '')
+  # directory <- paste('/projects/aces/germanm2/n_policy/batch_', batch_n, '/cell', id10_n, sep = '')
+  directory <- paste('/home/germanm2/scratch/n_policy/batch_', batch_n, '/cell', id10_n, sep = '')
 }
 
 unlink(directory ,recursive=TRUE)
@@ -42,10 +43,10 @@ one_cell_dt <- grid10_soils_dt4[id_10 == id10_n,]
 
 #----------------------------------------------------------------------------
 #OJO!!!
-#Select largest mukey by field
-# if(server){
-#   one_cell_dt <- one_cell_dt[,.SD[prop_area == max(prop_area)], by = id_field]
-# }
+# Select largest mukey by field
+if(server){
+  one_cell_dt <- one_cell_dt[,.SD[prop_area == max(prop_area)], by = id_field]
+}
 #----------------------------------------------------------------------------
 
 cell_coords <- data.table(grid10_fields_sf2[grid10_fields_sf2$id_10 == id10_n,]) %>% .[,.(X = mean(long), Y = mean(lat))]
