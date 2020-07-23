@@ -9,9 +9,9 @@ codes_folder <-'C:/Users/germanm2/Documents'
 
 #------------------------
 # Load stations
-reg_model_stuff <- readRDS("./n_policy_box/Data/files_rds/reg_model_stuff.rds")
-stations_dt <- reg_model_stuff[['stations']] 
-rm(reg_model_stuff)
+# reg_model_stuff <- readRDS("./n_policy_box/Data/files_rds/reg_model_stuff.rds")
+# stations_dt <- reg_model_stuff[['stations']] 
+# rm(reg_model_stuff)
 
 #------------------------
 
@@ -36,10 +36,10 @@ id_failed <- c(442, 1124,618,953,319,627,924,126,406,825,98,473,1042,260,825, 11
                1035, 241, 264, 273, 402, 476,  49, 576,  62, 639 ,722, 599)
 id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed, dur := N *  6]
 id_10_walltime_dt <- id_10_walltime_dt[order(dur)]
-id_failed <- c(599)
-id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed]
 
-# id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed]
+id10_seq <- c(1426, 1212, 180, 29, 652, 765, 1322,  984, 699, 403, 152,  69, 1181, 1063, 938, 496, 258, 301)
+
+id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id10_seq]
 #------------------------
 # Filter stations random
 if(FALSE){

@@ -71,23 +71,6 @@ apsim_create_files <- function(i){
     #--------------------------
     # PLANTING DATE BY REGION
     #--------------------------
-    # planting_start_corn <- c('01-Apr', '05-Apr', '10-Apr')[instructions_tmp$region]
-    # planting_end_corn <- c('05-Apr', '10-Apr', '15-Apr')[instructions_tmp$region]
-    
-    # planting_start_corn <- c('20-Mar', '27-Mar', '05-Apr')[instructions_tmp$region]
-    # planting_end_corn <- c('02-Apr', '08-Apr', '15-Apr')[instructions_tmp$region]
-    
-    # planting_start_corn <- c('01-Apr', '05-Apr', '20-Apr')[instructions_tmp$region]
-    # planting_end_corn <- c('05-Apr', '10-Apr', '25-Apr')[instructions_tmp$region]
-    
-    # planting_start_corn <- c('01-Apr', '03-Apr', '20-Apr')[instructions_tmp$region]
-    # planting_end_corn <- c('08-Apr', '10-Apr', '25-Apr')[instructions_tmp$region]
-    
-    #batch 20 
-    # planting_start_corn <- c('05-Apr', '10-Apr', '15-Apr')[instructions_tmp$region]
-    # planting_end_corn <- c('10-Apr', '15-Apr', '20-Apr')[instructions_tmp$region] 
-    
-    #batch 21 
     planting_start_corn <- c('05-Apr', '05-Apr', '15-Apr')[instructions_tmp$region]
     planting_end_corn <- c('10-Apr', '10-Apr', '20-Apr')[instructions_tmp$region]
     
@@ -112,7 +95,28 @@ apsim_create_files <- function(i){
     #--------------------------
     # CULTIVAR BY REGION
     #--------------------------
-    cultivar_corn <- c('B_115', 'B_110_gm', 'B_105_gm')[instructions_tmp$region]
+    #Batch 43
+    # cultivar_corn <- c('B_115', 'B_110_gm', 'B_105_gm')[instructions_tmp$region]
+    # Batch 45
+    # cultivar_corn <- c('B_115_gm', 'B_110_gm', 'B_105_gm')[instructions_tmp$region]
+    # Batch 47
+    # cultivar_corn <- c('B_115_47', 'B_110_47', 'B_105_47')[instructions_tmp$region]
+    #}else 
+    #if(instructions_tmp$batch == 48 ){
+    #  cultivar_corn <- c('B_115_48', 'B_110_48', 'B_105_48')[instructions_tmp$region]
+    #}
+    #if(instructions_tmp$batch == 49 ){
+    #  cultivar_corn <- c('B_115_49', 'B_110_49', 'B_105_49')[instructions_tmp$region]
+    #}
+    #if(instructions_tmp$batch >= 50 ){
+    #  cultivar_corn <- c('B_115_50', 'B_110_50', 'B_105_50')[instructions_tmp$region]
+    #}
+    if(instructions_tmp$batch >= 53 ){
+      cultivar_corn <- c('B_115_53', 'B_110_53', 'B_105_53')[instructions_tmp$region]
+    }
+
+
+
     x <- xml_find_all(base_doc, ".//manager/ui/cultivar_corn")
     xml_text(x) <- as.character(cultivar_corn)
     
@@ -120,28 +124,35 @@ apsim_create_files <- function(i){
     x <- xml_find_all(base_doc, ".//manager/ui/cultivar_soy")
     xml_text(x) <- as.character(cultivar_soy)
     
-  }#else if(instructions_tmp$type == 'yc' & instructions_tmp$batch == 19 ){
-
+  
     #--------------------------
-    # PLANTING DATE BY SOIL TEMPERATURE
+    # PLANT POPULATION
     #--------------------------
-    # plant_dates_dt2 <- readRDS("./n_policy_box/Data/files_rds/plant_dates_dt.rds") %>% .[region == instructions_tmp$region & z == instructions_tmp$z]
-    # planting_start_corn <- plant_dates_dt2$Date
-    # planting_end_corn <- plant_dates_dt2$Date
-    # 
-    # x <- xml_find_all(base_doc, ".//manager/ui/date1_corn")
-    # xml_text(x) <- as.character(planting_start_corn)
-    # 
-    # x <- xml_find_all(base_doc, ".//manager/ui/date2_corn")
-    # xml_text(x) <- as.character(planting_end_corn)
-    # 
+    # if(instructions_tmp$batch == 46 ){
+    #  plant_population <- c('6.5', '7.5', '8')[instructions_tmp$region]
     # }
-  if(instructions_tmp$batch > 36 ){
-    plant_population <- c('8.5', '7.5', '9')[instructions_tmp$region]
+    # if(instructions_tmp$batch == 47 ){
+    #  plant_population <- c('7', '7.5', '8')[instructions_tmp$region]
+    # }
+    #if(instructions_tmp$batch == 48 ){
+    #  plant_population <- c('7.5', '8', '9')[instructions_tmp$region]
+    #}
+    #if(instructions_tmp$batch >= 49 ){
+    #  plant_population <- c('7', '7.5', '8')[instructions_tmp$region]
+    #}
+    #if(instructions_tmp$batch == 53 ){
+    #  plant_population <- c('6.5', '8', '9')[instructions_tmp$region]
+    #}
+    if(instructions_tmp$batch >= 54 ){
+      plant_population <- c('7', '8.5', '9')[instructions_tmp$region]
+    }
+
+
+
     x <- xml_find_all(base_doc, ".//manager/ui/density_corn")
     xml_text(x) <- as.character(plant_population)
-    
-    }
+  }#end of if stab period (line 52)
+
   #--------------------------
   # CLOCK
   #--------------------------
@@ -161,7 +172,7 @@ apsim_create_files <- function(i){
        crop_seq <- c('soybean', 'maize', 'soybean', 'maize', 'soybean', 'maize', 'soybean', 'maize', 'soybean', 'maize', 'soybean')
   }else{
       crop_seq <- c('maize', 'soybean', 'nil', 'nil', 'nil', 'nil', 'nil', 'nil', 'nil',  'nil',  'nil')
-    } 
+  } 
     
   for(crop_n in 1:11){
    # crop_n = 1
