@@ -15,7 +15,7 @@ print(Sys.info()["nodename"])
 if(server){
   setwd('~')
   codes_folder <- getwd()
-  test_small <- T
+  test_small <- F
 }else if(cpsc){
   setwd('C:/Users/germanm2/Box Sync/My_Documents')
   codes_folder <-'C:/Users/germanm2/Documents'
@@ -35,6 +35,9 @@ id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
 # batch_n = 55
 batch_n = as.numeric(commandArgs(trailingOnly=TRUE)[2])
 
+batch_n = 56
+id10_seq <- c(1426, 1212, 938, 765, 29, 69)
+  
 print(id10_n)
 print(batch_n)
 

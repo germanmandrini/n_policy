@@ -228,6 +228,7 @@ apsim_create_files <- function(i){
   #--- Set the rate for the YC period ---#
   if(instructions_tmp$type == 'yc'){
     N_rates <- seq(0, 320, 10)
+    if(server){N_rates <- seq(0, 300, 25)}
     # N_rates <- seq(0, 300, 25)
     # N_rates <- c(0,260)
     # N_rates <- c('Nminus', 'Nrich')
@@ -305,7 +306,7 @@ apsim_create_files <- function(i){
 }
 
 
-keep <- c('keep', 'apsim_create_files', 'instructions', 'directory', 'codes_folder')
+keep <- c('keep', 'apsim_create_files', 'instructions', 'directory', 'codes_folder', 'server')
 # if(unique(instructions$type) == 'YC'){ keep <- append(keep, 'initial_conditions' )}
 # # #rm(list = ls()[!ls() %in% keep])
 

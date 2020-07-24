@@ -8,7 +8,10 @@ grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
 # sample(grid10_soils_dt4[region == 3]$id_10, 2)
 
 grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/grid10_horizons_v1_dt.rds")
-grid10_horizons_v1_dt <- grid10_horizons_v1_dt[bottom <=200] #make soils to only 150 cm
+grid10_horizons_v1_dt <- grid10_horizons_v1_dt[bottom <= 200] #make soils to only 150 cm
+if(batch_n==57){
+  grid10_horizons_v1_dt <- grid10_horizons_v1_dt[bottom <= 100] #make soils to only 150 cm
+}
 grid10_fields_sf2 <- readRDS("./n_policy_box/Data/Grid/grid10_fields_sf2.rds")
 
 if(FALSE){ #test if regions are correct
@@ -45,9 +48,9 @@ one_cell_dt <- grid10_soils_dt4[id_10 == id10_n,]
 #----------------------------------------------------------------------------
 #OJO!!!
 # Select largest mukey by field
-#if(server){
-# one_cell_dt <- one_cell_dt[,.SD[prop_area == max(prop_area)], by = id_field]
-#}
+if(server){
+  one_cell_dt <- one_cell_dt[,.SD[prop_area == max(prop_area)], by = id_field]
+}
 #----------------------------------------------------------------------------
 
 cell_coords <- data.table(grid10_fields_sf2[grid10_fields_sf2$id_10 == id10_n,]) %>% .[,.(X = mean(long), Y = mean(lat))]
@@ -110,3 +113,4 @@ print(instructions )
 "C:/Users/germanm2/Documents/n_policy_git/Codes/apsim_create_files_jul15.R"
 "./n_policy_git/Codes/apsim_create_files_jul15.R"
 source(paste0(codes_folder, '/n_policy_git/Codes/apsim_create_files_jul15.R'))
+
