@@ -35,6 +35,7 @@ if(server){
 }else if(cluster){
   # directory <- paste('/projects/aces/germanm2/n_policy/batch_', batch_n, '/cell', id10_n, sep = '')
   directory <- paste('/home/germanm2/scratch/n_policy/batch_', batch_n, '/cell', id10_n, sep = '')
+  # directory <- paste('/projects/aces/germanm2/scratch/batch_', batch_n, '/cell', id10_n, sep = '')
 }
 
 unlink(directory ,recursive=TRUE)
@@ -44,9 +45,9 @@ one_cell_dt <- grid10_soils_dt4[id_10 == id10_n,]
 #----------------------------------------------------------------------------
 #OJO!!!
 # Select largest mukey by field
-if(server){
-  one_cell_dt <- one_cell_dt[,.SD[prop_area == max(prop_area)], by = id_field]
-}
+#if(server){
+# one_cell_dt <- one_cell_dt[,.SD[prop_area == max(prop_area)], by = id_field]
+#}
 #----------------------------------------------------------------------------
 
 cell_coords <- data.table(grid10_fields_sf2[grid10_fields_sf2$id_10 == id10_n,]) %>% .[,.(X = mean(long), Y = mean(lat))]
@@ -56,6 +57,15 @@ cell_coords <- data.table(grid10_fields_sf2[grid10_fields_sf2$id_10 == id10_n,])
 source(paste0(codes_folder, '/n_policy_git/Codes/make_z_and_met_files.R'))
 "C:/Users/germanm2/Documents/n_policy_git/Codes/make_z_and_met_files.R"
 "./n_policy_git/Codes/make_z_and_met_files.R"
+#----------------------------------------------------------------------------
+# Make the regional soils
+if(FALSE){
+  one_cell_dt <- one_cell_dt[1,]
+  one_cell_dt[,mukey := region]
+  grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/average_regions_soils_dt.rds")
+  grid10_horizons_v1_dt <- grid10_horizons_v1_dt[bottom <=200] #make soils to only 150 cm
+  
+}
 
 #----------------------------------------------------------------------------
 # INITIAL SOIL FILES (WE WILL UPDATE THEM AFTER STABILIZATION)
@@ -63,7 +73,6 @@ horizons_cell_dt <- grid10_horizons_v1_dt[mukey %in% one_cell_dt$mukey,]
 horizons_cell_dt[is.na(ph), ph := 6] #a few soils didn't have ph and apsim doesn't use it
 horizons_cell2_dt <- calc_apsim_variables(horizons_cell_dt)
 horizons_cell2_dt <- cbind(horizons_cell2_dt,cell_coords)
-
 make_apsoils_toolbox(data_soils = horizons_cell2_dt, badge_name = 'soils_vr_value', path = directory, crops = tolower(c("Maize","Soybean")))
 
 #----------------------------------------------------------------------------
@@ -96,7 +105,7 @@ if(any(one_cell_dt$id_field %in% c(2,4))){
 
 instructions <- rbind(instructions1, instructions2) %>% setcolorder(c('id_10',  'mukey', 'z', 'type'))
 instructions[,batch := batch_n]
-if(test_small) {instructions <- instructions[1,]}
+if(test_small) {instructions <- instructions[1,][,z :=10]}
 print(instructions )
 "C:/Users/germanm2/Documents/n_policy_git/Codes/apsim_create_files_jul15.R"
 "./n_policy_git/Codes/apsim_create_files_jul15.R"

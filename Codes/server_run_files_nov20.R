@@ -65,7 +65,7 @@ if(server){
       flist <- flist[str_detect(string = flist, pattern = '_yc_160|_yc_175')] #OJO!!!!
     }
   }
-  print(flist)
+  
   file_name = file.path(directory, 'files_to_run.txt')
   write.table(flist, file_name, row.names = FALSE, col.names = FALSE, quote = FALSE)
   

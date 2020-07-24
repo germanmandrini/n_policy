@@ -57,26 +57,16 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     horizons_dt <- horizons_dt[,.(layer, oc, no3, nh4, sw, Finert, Fbiom)]
     
     #-------------------------
-    # Correct the n deep
-    # n_mean_target <- c(30, 30, 30)[instructions_tmp$region]
-    
-    #batch 21
-    # n_mean_target <- c(50, 20, 30)[instructions_tmp$region]
-    
-    #batch 22 to 24
-    # n_mean_target <- c(30, 20, 30)[instructions_tmp$region]
-    
-    #batch 25 to 30
-    # n_mean_target <- c(20, 20, 30)[instructions_tmp$region]
-    #batch 31
-    # n_mean_target <- c(60, 20, 40)[instructions_tmp$region]
-    #batch 37
-    # n_mean_target <- c(40, 20, 40)[instructions_tmp$region]
-    #batch 40
-    # n_mean_target <- c(40, 30, 50)[instructions_tmp$region]
-    #batch 10
-    n_mean_target <- c(1, 5, 20)[instructions_tmp$region]
-    
+    # Correct the n deep    
+    #batch 52
+    # n_mean_target <- c(1, 30, 70)[instructions_tmp$region]
+    #batch 53
+    # if(instructions_tmp$batch >= 53){n_mean_target <- c(5, 30, 30)[instructions_tmp$region]}
+    #batch 54
+    #n_mean_target <- c(5, 45, 60)[instructions_tmp$region]
+    #batch 55
+    n_mean_target <- c(5, 45, 100)[instructions_tmp$region]
+
     no3_target <- n_mean_target * (sum(horizons_dt$no3) / (sum(horizons_dt$no3) + sum(horizons_dt$nh4))) 
     nh4_target <- n_mean_target * (sum(horizons_dt$nh4) / (sum(horizons_dt$no3) + sum(horizons_dt$nh4)))
     horizons_dt[,n_deep_frac := (no3 + nh4)/sum(no3 + nh4)] 
