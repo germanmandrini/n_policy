@@ -17,7 +17,7 @@ instructions <- merge(instructions, instructions_stab[,.(mukey,  z, rows)], by =
 # instructions <- instructions[rows == max(rows)]
 
 #CREATE ALL APSIM FILES
-"C:/Users/germanm2/Documents/n_management_git/Codes/simD_apsim_create_files_swim.R"
-"./n_management_git/Codes/simD_apsim_create_files_swim.R"
-source(paste0(codes_folder, '/n_management_git/Codes/simD_apsim_create_files_swim.R'))
+"C:/Users/germanm2/Documents/n_policy_git/Codes/simD_apsim_create_files_swim.R"
+"./n_policy_git/Codes/simD_apsim_create_files_swim.R"
+source(paste0(codes_folder, '/n_policy_git/Codes/simD_apsim_create_files_swim.R'))
 

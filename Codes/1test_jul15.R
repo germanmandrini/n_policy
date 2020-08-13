@@ -11,7 +11,7 @@ library("doParallel")
 
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
-source(paste0(codes_folder, '/n_management_git/Codes/parameters.R'))
+source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 
 regional_test <- T
 #======================================================================================
@@ -21,7 +21,7 @@ two_batches_yc_dt  <- data.table()
 for(batch_n in c(87,88)){
   # batch_n = 87
   # print(batch_n)
-  multiple_files <- list.files(paste0("./n_management_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
+  multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
   print(length(multiple_files))
 
   # registerDoParallel(36) # register the cluster
@@ -50,11 +50,11 @@ for(batch_n in c(87,88)){
   
   #Add regions and areas
   if(regional_test){
-    grid10_soils_dt4 <- readRDS("./n_management_box/Data/Grid/grid10_soils_dt4.rds")
+    grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
     regions_dt <- grid10_soils_dt4[,.N, by = .(region, id_10)][,-'N']
     one_batch_dt <- merge(one_batch_dt, regions_dt, by = c('id_10'))
   }else{  
-    grid10_soils_dt4 <- readRDS("./n_management_box/Data/Grid/grid10_soils_dt4.rds")
+    grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
     areas_dt <- data.table(grid10_soils_dt4) %>% .[,.(area_ha = sum(area_ha)), by = .(id_10, mukey, region)]
     
     one_batch_dt <- merge(one_batch_dt, areas_dt, by = c('id_10', 'mukey'))
@@ -68,23 +68,23 @@ for(batch_n in c(87,88)){
   one_batch_dt[,region_lab := NULL]
   one_batch_dt[,batch := batch_n]
   
-  saveRDS(one_batch_dt, paste0("./n_management_box/Data/files_rds/one_batch_dt_batch", batch_n, ".rds"))
+  saveRDS(one_batch_dt, paste0("./n_policy_box/Data/files_rds/one_batch_dt_batch", batch_n, ".rds"))
   two_batches_yc_dt <- rbind(two_batches_yc_dt, one_batch_dt, fill = T)
 }
 
 
 # two_batches_yc_dt <- two_batches_yc_dt[id_10 %in% unique(one_batch_dt$id_10)]
 # batch_n = 18
-# yc_yearly_dt <- readRDS( paste0("./n_management_box/Data/files_rds/yc_yearly_dt_batch", batch_n, ".rds"))
+# yc_yearly_dt <- readRDS( paste0("./n_policy_box/Data/files_rds/yc_yearly_dt_batch", batch_n, ".rds"))
 
-# yc_yearly_dt <-readRDS("./n_management_box/Data/files_rds/yc_yearly_dt3.rds")
+# yc_yearly_dt <-readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
 # areas_dt[,region := factor(region)]
 # yc_yearly_dt <- merge(yc_yearly_dt, areas_dt, by = c('region','id_10', 'mukey'))
 # yc_yearly_dt[,batch := 43]
 #======================================================================================
 #Relative yield plot
 # batch_n = 61
-# yc_yearly_batches_dt <- readRDS(paste0("./n_management_box/Data/files_rds/yc_yearly_dt_batch", batch_n, ".rds"))
+# yc_yearly_batches_dt <- readRDS(paste0("./n_policy_box/Data/files_rds/yc_yearly_dt_batch", batch_n, ".rds"))
 # yc_yearly_dt <- yc_yearly_batches_dt
 if(regional_test){
   two_batches_state_dt  <- two_batches_yc_dt[,.(Y_corn = mean(Y_corn),
@@ -131,7 +131,7 @@ two_batches_state_dt[,batch := factor(batch)]
     theme_bw())
 
 # ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
-#        filename = paste0("./n_management_box/Data/batches_tests/", batch_n, "_yield_plot.jpg"), width = 979/300*3, height = 1042/300*3,
+#        filename = paste0("./n_policy_box/Data/batches_tests/", batch_n, "_yield_plot.jpg"), width = 979/300*3, height = 1042/300*3,
 #        units = 'in')
 
 #======================================================================================
@@ -171,7 +171,7 @@ two_batches_eonr_dt[,region := factor(region)]
 ggplot(two_batches_eonr_dt) + geom_boxplot(aes(x = factor(batch), y = eonr))
 
 # ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
-#        filename = paste0("./n_management_box/Data/batches_tests/", batch_n, "_eonr_plot.jpg"), width = 5, height = 5,
+#        filename = paste0("./n_policy_box/Data/batches_tests/", batch_n, "_eonr_plot.jpg"), width = 5, height = 5,
 #        units = 'in')
 #======================================================================================
 # Explore
@@ -218,7 +218,7 @@ ggplot(last_batch_eonr_dt, aes(lai_v5 , fill = region    )) + #geom_bar(aes(y = 
 
 # =========================================================================================================================================================
 # YIELD BOXPLOTS
-mrtn_dt <- readRDS("./n_management_box/Data/files_rds/mrtn_yields_from_graphs.rds")
+mrtn_dt <- readRDS("./n_policy_box/Data/files_rds/mrtn_yields_from_graphs.rds")
 
 last_batch_eonr_dt <- two_batches_eonr_dt[batch == max(batch)]
 two_batches_eonr_dt[,source := paste0('sim_', batch)]
@@ -253,7 +253,7 @@ yc_yearly_dt_eonr_dt[Y_corn == 0][,.N, region]
 
 # ----------------------------------------------------
 # More about platning dates
-tmp_dt <- readRDS("./n_management_box/Data/initial_conditions_19/1212_1528968.rds")
+tmp_dt <- readRDS("./n_policy_box/Data/initial_conditions_19/1212_1528968.rds")
 dates_dt <- unique(tmp_dt[year == 2010,.(Date, day_sow = day)])
 yc_yearly_dt_eonr_dt2 <- merge(yc_yearly_dt_eonr_dt, dates_dt, by = 'day_sow')
 
@@ -268,8 +268,8 @@ grid.arrange(plot_1, plot_2 ,nrow=1)
 
 
 # ----------------------------------------------------
-# grid10_soils_dt4 <- readRDS("./n_management_box/Data/Grid/grid10_soils_dt4.rds")
-# grid10_soils_dt4 <- readRDS("./n_management_box/Data/Grid/grid10_soils_dt4.rds")
+# grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
+# grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
 # 
 # regions_dt4 <- data.table(grid10_soils_dt4) %>% .[,.(id_10, region_dt4 = region)] %>% unique()
 # regions_dt5 <- data.table(grid10_soils_dt4) %>% .[,.(id_10, region_dt5 = region)] %>% unique()
@@ -277,7 +277,7 @@ grid.arrange(plot_1, plot_2 ,nrow=1)
 # regions_comp[region_dt4 != region_dt5]
 # 
 # wrong_region_ids <- regions_comp[region_dt4 != region_dt5]$id_10
-# saveRDS(wrong_region_ids, "./n_management_box/Data/files_rds/wrong_region_ids.rds")
+# saveRDS(wrong_region_ids, "./n_policy_box/Data/files_rds/wrong_region_ids.rds")
 
 # =========================================================================================================================================================
 # CREATE THE REGIONAL MINIMUM MODEL - OK
@@ -302,8 +302,8 @@ model_minimum_ok[]
 # =========================================================================================================================================================
 # INITIAL CONDITIONS 
 #MERGE FILES
-multiple_files <- list.files("./n_management_box/Data/initial_conditions_74_swat", full.names = T)
-# multiple_files <- list.files('S:/Bioinformatics Lab/germanm2/n_management_box_58/Data/initial_conditions_58', full.names = T)
+multiple_files <- list.files("./n_policy_box/Data/initial_conditions_74_swat", full.names = T)
+# multiple_files <- list.files('S:/Bioinformatics Lab/germanm2/n_policy_box_58/Data/initial_conditions_58', full.names = T)
 # multiple_files <- multiple_files[sample(x = 1:7735,size = 300, replace = F)]
 length(multiple_files)
 
@@ -324,7 +324,7 @@ stopImplicitCluster()
 initial_conditions_dt <- rbindlist(output_list)
 
 #Add regions
-grid10_soils_dt4 <- readRDS("./n_management_box/Data/Grid/grid10_soils_dt4.rds")
+grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
 regions_dt <- data.table(grid10_soils_dt4) %>% .[,.N,.(id_10, region)] %>% .[,-'N']
 regions_dt[region == 1,region_lab := '1-South']
 regions_dt[region == 2,region_lab := '2-Central']
@@ -406,7 +406,7 @@ yc_region_eonr_dt3[,.(n_deep_ini = mean(n_deep_ini)), by = region]
 # =========================================================================================================================================================
 # YC OUTPUT EVALUATION
 #MERGE FILES
-multiple_files <- list.files("./n_management_box/Data/yc_output_86_swat", full.names = T)
+multiple_files <- list.files("./n_policy_box/Data/yc_output_86_swat", full.names = T)
 
 length(multiple_files)
 
@@ -433,7 +433,7 @@ stopImplicitCluster()
   
 yc_output_dt <- rbindlist(output_list)
 #Add regions
-grid10_soils_dt4 <- readRDS("./n_management_box/Data/Grid/grid10_soils_dt4.rds")
+grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
 regions_dt <- data.table(grid10_soils_dt4) %>% .[,.N,.(id_10, region)] %>% .[,-'N']
 regions_dt[region == 1,region_lab := '1-South']
 regions_dt[region == 2,region_lab := '2-Central']
@@ -460,7 +460,7 @@ yc_output_dt2[,region := factor(region)]
 ggplot(yc_output_dt2) +
   geom_density(aes(x = n_deep, color = region))
 
-grid10_horizons_v1_dt <- readRDS("./n_management_box/Data/Grid/average_regions_soils_dt.rds")
+grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/average_regions_soils_dt.rds")
 
 
 # =========================================================================================================================================================
@@ -470,8 +470,8 @@ grid10_horizons_v1_dt <- readRDS("./n_management_box/Data/Grid/average_regions_s
 # second_batch_dt <- yc_yearly_dt2
 
 
-first_batch_dt <- readRDS("./n_management_box/Data/files_rds/yc_yearly_dt_batch6.rds")
-second_batch_dt <- readRDS("./n_management_box/Data/files_rds/yc_yearly_dt_batch7.rds")
+first_batch_dt <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt_batch6.rds")
+second_batch_dt <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt_batch7.rds")
 first_batch_dt <- first_batch_dt[id_10 %in% second_batch_dt$id_10]
 second_batch_dt <- second_batch_dt[id_10 %in% first_batch_dt$id_10]
 
@@ -528,22 +528,22 @@ batch_comp_dt[,.(n_deep_v5_1 = mean(n_deep_v5_1, na.rm = T),
 # =========================================================================================================================================================
 # Time tracked
 
-multiple_files <- list.files("./n_management_box/Data/time_track_50", full.names = T)
+multiple_files <- list.files("./n_policy_box/Data/time_track_50", full.names = T)
 print(length(multiple_files))
 
 time_track_dt <- rbindlist(lapply(multiple_files, function(file_n) readRDS(file_n)))
 time_track_dt[,cell := ceiling(cell)+3]
 time_track_dt <- time_track_dt[order(cell)][,.(id_10, dur=cell)]
 
-write.table(time_track_dt, './n_management_git/id_10_walltime_test.txt', row.names = F, col.names = F)
+write.table(time_track_dt, './n_policy_git/id_10_walltime_test.txt', row.names = F, col.names = F)
 
 # =========================================================================================================================================================
 #Missing files
-multiple_files <- list.files(paste0("./n_management_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = F)
+multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = F)
 multiple_files_dt <- data.table(file_name = gsub(pattern = '.rds', replacement = '', x = multiple_files), run = '1')
 
 
-grid10_soils_dt4 <- readRDS("./n_management_box/Data/Grid/grid10_soils_dt4.rds")
+grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
 files_correct_dt <- grid10_soils_dt4[,.N, by = .(id_10, mukey)] %>% .[,file_name := paste0(id_10, '_', mukey)]
 files_correct_dt <- merge(files_correct_dt, multiple_files_dt, by = 'file_name', all.x=T)
 files_correct_dt[is.na(run),run := 0]

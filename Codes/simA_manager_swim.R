@@ -61,48 +61,48 @@ for(id10_n in id10_seq){
 
   # CREATE ALL STAB FILES
   start1 <- Sys.time()
-  "C:/Users/germanm2/Documents/n_management_git/Codes/simB_create_stab_files_swim.R"
-  "./n_management_git/Codes/simB_create_stab_files_swim.R"
-  source(paste0(codes_folder, '/n_management_git/Codes/simB_create_stab_files_swim.R'))
+  "C:/Users/germanm2/Documents/n_policy_git/Codes/simB_create_stab_files_swim.R"
+  "./n_policy_git/Codes/simB_create_stab_files_swim.R"
+  source(paste0(codes_folder, '/n_policy_git/Codes/simB_create_stab_files_swim.R'))
   instructions1_rows <- nrow(instructions)
   
   #RUN ALL APSIM FILES
   start2 <- Sys.time()
-  "C:/Users/germanm2/Documents/n_management_git/Codes/simE_run_files.R"
-  "./n_management_git/Codes/simE_run_files.R"
-  source(paste0(codes_folder, '/n_management_git/Codes/simE_run_files.R'))
+  "C:/Users/germanm2/Documents/n_policy_git/Codes/simE_run_files.R"
+  "./n_policy_git/Codes/simE_run_files.R"
+  source(paste0(codes_folder, '/n_policy_git/Codes/simE_run_files.R'))
   
   #MERGE ALL THE OUTPUT
   start3 <- Sys.time()
-  "C:/Users/germanm2/Documents/n_management_git/Codes/simF_merge_results.R"
-  "./n_management_git/Codes/simF_merge_results.R"
-  source(paste0(codes_folder, '/n_management_git/Codes/simF_merge_results.R'))
+  "C:/Users/germanm2/Documents/n_policy_git/Codes/simF_merge_results.R"
+  "./n_policy_git/Codes/simF_merge_results.R"
+  source(paste0(codes_folder, '/n_policy_git/Codes/simF_merge_results.R'))
   
   #CREATE ALL YC FILES
   start4 <- Sys.time()
-  "C:/Users/germanm2/Documents/n_management_git/Codes/simG_create_yc_files_swim.R"
-  "./n_management_git/Codes/simG_create_yc_files_swim.R"
-  source(paste0(codes_folder, '/n_management_git/Codes/simG_create_yc_files_swim.R'))
+  "C:/Users/germanm2/Documents/n_policy_git/Codes/simG_create_yc_files_swim.R"
+  "./n_policy_git/Codes/simG_create_yc_files_swim.R"
+  source(paste0(codes_folder, '/n_policy_git/Codes/simG_create_yc_files_swim.R'))
   instructions2_rows <- nrow(instructions)
   
   #RUN ALL APSIM FILES
   start5 <- Sys.time()
-  "C:/Users/germanm2/Documents/n_management_git/Codes/simE_run_files.R"
-  "./n_management_git/Codes/simE_run_files.R"
-  source(paste0(codes_folder, '/n_management_git/Codes/simE_run_files.R'))
+  "C:/Users/germanm2/Documents/n_policy_git/Codes/simE_run_files.R"
+  "./n_policy_git/Codes/simE_run_files.R"
+  source(paste0(codes_folder, '/n_policy_git/Codes/simE_run_files.R'))
   
   #MERGE ALL THE OUTPUT
   start6 <- Sys.time()
-  "C:/Users/germanm2/Documents/n_management_git/Codes/simF_merge_results.R"
-  './n_management_git/Codes/simF_merge_results.R'
-  source(paste0(codes_folder, '/n_management_git/Codes/simF_merge_results.R'))
+  "C:/Users/germanm2/Documents/n_policy_git/Codes/simF_merge_results.R"
+  './n_policy_git/Codes/simF_merge_results.R'
+  source(paste0(codes_folder, '/n_policy_git/Codes/simF_merge_results.R'))
   
   #MAKE YEARLY SUMMARY
-  files_daily <- list.files(paste0('./n_management_box/Data/yc_output_', batch_n, '_', water_n), pattern = paste0('^',id10_n, '_'), full.names = T)
+  files_daily <- list.files(paste0('./n_policy_box/Data/yc_output_', batch_n, '_', water_n), pattern = paste0('^',id10_n, '_'), full.names = T)
   print(files_daily)
-  "C:/Users/germanm2/Documents/n_management_git/Codes/simI_daily_to_yearly_swim.R"
-  './n_management_git/Codes/simI_daily_to_yearly_swim.R'
-  source(paste0(codes_folder, '/n_management_git/Codes/simI_daily_to_yearly_swim.R'))
+  "C:/Users/germanm2/Documents/n_policy_git/Codes/simI_daily_to_yearly_swim.R"
+  './n_policy_git/Codes/simI_daily_to_yearly_swim.R'
+  source(paste0(codes_folder, '/n_policy_git/Codes/simI_daily_to_yearly_swim.R'))
   
   start7 <- Sys.time()
   
@@ -120,7 +120,7 @@ for(id10_n in id10_seq){
                                cell = as.numeric(difftime(start7, start1, units = "mins")))
   print(time_track_tmp)
   
-  folder_name <- paste0('./n_management_box/Data/time_track_', batch_n)
+  folder_name <- paste0('./n_policy_box/Data/time_track_', batch_n)
   if(!file.exists(folder_name)){dir.create(folder_name, recursive = TRUE)}
   saveRDS(time_track_tmp, paste0(folder_name,'/time_track_',id10_n,'.rds'))
   

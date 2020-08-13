@@ -3,7 +3,7 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
   # sim_name <- paste(unlist(instructions_tmp[,.(id_10, mukey, type)]), collapse = '_')
   
   
-  file_name <- paste0('./n_management_box/Data/initial_conditions_', 
+  file_name <- paste0('./n_policy_box/Data/initial_conditions_', 
                       instructions_tmp$batch, '_', instructions_tmp$water, '/' ,
                       instructions_tmp$id_10,'_', instructions_tmp$mukey,'.rds')
   # file_name <- gsub(pattern = '_yc', replacement = '', file_name)

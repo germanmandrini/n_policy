@@ -3,10 +3,10 @@ library(dplyr)
 library(parallel)
 library(XML)
 
-grid10_soils_dt4 <- readRDS("./n_management_box/Data/Grid/grid10_soils_dt4.rds")
+grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
 
 # sample(grid10_soils_dt4[region == 3]$id_10,5)
-grid10_horizons_v1_dt <- readRDS("./n_management_box/Data/Grid/grid10_horizons_v1_dt.rds")
+grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/grid10_horizons_v1_dt.rds")
 grid10_horizons_v1_dt <- grid10_horizons_v1_dt[bottom <= 200] #make soils to only 150 cm
 
 #---------------------------------------------------------
@@ -27,24 +27,24 @@ if(FALSE){
   grid10_horizons_v1_dt2[restriction<200, .N, by = region]
   # hist(grid10_horizons_v1_dt$watertable)
 }
-grid10_fields_sf2 <- readRDS("./n_management_box/Data/Grid/grid10_fields_sf2.rds")
+grid10_fields_sf2 <- readRDS("./n_policy_box/Data/Grid/grid10_fields_sf2.rds")
 
 if(FALSE){ #test if regions are correct
   regions1 <- unique(grid10_soils_dt4[,.(id_10, region)])
   regions2 <- data.table(grid10_fields_sf2) %>% .[,.(id_10, region)] %>% unique()
   comp_dt <- merge(regions1, regions2, by = 'id_10')
   comp_dt[region.x != region.y] # has to be empty
-  grid10_tiles_sf6 <- readRDS("./n_management_box/Data/Grid/grid10_tiles_sf6.rds")
+  grid10_tiles_sf6 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf6.rds")
   tm_shape(grid10_tiles_sf6)+ tm_polygons('region')
   regions3 <- data.table(grid10_tiles_sf6) %>% .[,.(id_10, region)] %>% unique()
   comp_dt <- merge(comp_dt, regions3, by = 'id_10')
   comp_dt[region.x != region]# has to be empty
 }
 
-source('./n_management_box/Data/APssurgo_master/R/calc_apsim_variables_onesoil.R')
-source('./n_management_box/Data/APssurgo_master/R/make_apsoils_toolbox.R')
+source('./n_policy_box/Data/APssurgo_master/R/calc_apsim_variables_onesoil.R')
+source('./n_policy_box/Data/APssurgo_master/R/make_apsoils_toolbox.R')
 
-list.files('./n_management_box/Data/APssurgo_master/')
+list.files('./n_policy_box/Data/APssurgo_master/')
 
 if(server){
   directory <- paste('/home/germanm2/apsim_temp/n_management/batch_', batch_n, '/cell', id10_n, sep = '')
@@ -79,9 +79,9 @@ cell_coords <- data.table(grid10_fields_sf2[grid10_fields_sf2$id_10 == id10_n,])
 
 #----------------------------------------------------------------------------
 # WEATHER FILES
-source(paste0(codes_folder, '/n_management_git/Codes/simC_make_z_and_met_files.R'))
-"C:/Users/germanm2/Documents/n_management_git/Codes/simC_make_z_and_met_files.R"
-"./n_management_git/Codes/simC_make_z_and_met_files.R"
+source(paste0(codes_folder, '/n_policy_git/Codes/simC_make_z_and_met_files.R'))
+"C:/Users/germanm2/Documents/n_policy_git/Codes/simC_make_z_and_met_files.R"
+"./n_policy_git/Codes/simC_make_z_and_met_files.R"
 
 #----------------------------------------------------------------------------
 # Get the regional soils
@@ -89,7 +89,7 @@ if(regional_soils){
   one_cell_dt <- one_cell_dt[c(1,1),]
   one_cell_dt[,id_field := c(1,2)]
   one_cell_dt[,mukey := region]
-  grid10_horizons_v1_dt <- readRDS("./n_management_box/Data/Grid/average_regions_soils_dt.rds")
+  grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/average_regions_soils_dt.rds")
   grid10_horizons_v1_dt <- grid10_horizons_v1_dt[bottom <=200] #make soils to only 150 cm
 }
 
@@ -143,7 +143,7 @@ instructions[,water := water_n]
 # if(regional_test) {instructions <- instructions[z %in% c(2,3,6,7,13,14,15,16,24,25,28,29)]}
 if(test_small) {instructions <- instructions[1,]}
 print(instructions )
-"C:/Users/germanm2/Documents/n_management_git/Codes/simD_apsim_create_files_swim.R"
-"./n_management_git/Codes/simD_apsim_create_files_swim.R"
-source(paste0(codes_folder, '/n_management_git/Codes/simD_apsim_create_files_swim.R'))
+"C:/Users/germanm2/Documents/n_policy_git/Codes/simD_apsim_create_files_swim.R"
+"./n_policy_git/Codes/simD_apsim_create_files_swim.R"
+source(paste0(codes_folder, '/n_policy_git/Codes/simD_apsim_create_files_swim.R'))
 
