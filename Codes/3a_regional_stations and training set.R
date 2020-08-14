@@ -119,11 +119,10 @@ Y_corn_explore_dt[order(z)]
 eonr_explore_dt <- yc_yearly_dt3[, P := Y_corn * Pc - N_fert * Pn] %>% 
   .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
 setnames(eonr_explore_dt, 'N_fert', 'eonr')
+
 eonr_explore_dt[,z:= as.numeric(z)]
 eonr_explore_dt[,.(eonr = mean(eonr)), by = z][order(z)]
 ggplot(eonr_explore_dt) + geom_boxplot(aes(x = factor(z), y = eonr))
-
-
 
 # training_z <- sort(sample(1:30, 15))
 # training_z <- c(3  5  7 11 12 13 15 16 18 19 21 22 23 24 25)
@@ -143,7 +142,7 @@ grid.arrange(
   ggplot(eonr_explore_dt) +
     geom_boxplot(aes(x = set, y =  n_deep_v5)),
   ggplot(eonr_explore_dt) +
-    geom_boxplot(aes(x = set, y =  Yld_prev))
+    geom_boxplot(aes(x = set, y =  Y_prev))
 )
 
 ggplot(eonr_explore_dt) +
@@ -178,8 +177,6 @@ TrainSet[,z_type := ifelse(z %in% z_odd, 'odd', 'even')]
 right_mukey_z_combination <- stations_dt[,.(area_ha = mean(area_ha)),.(id_10, mukey, z_type)][, right_comb := 1]
 
 right_mukey_z_combination[,.N, by = id_10]
-right_mukey_z_combination[id_10 == 438]
-stations_dt[id_10 == 438]
 
 TrainSet2 <- merge(TrainSet, right_mukey_z_combination, all.x = T)
 TrainSet2 <- TrainSet2[!is.na(right_comb)]
@@ -188,7 +185,7 @@ TrainSet2[ ,right_comb := NULL]
 # TrainSet2 <- TrainSet
 
 TrainSet2[,.N, by = .(id_10, mukey, z)]$N %>% table() #of rates by mukey z, has to be 33
-TrainSet2[,.N, by = .(id_10, mukey, z)][,.N, by = .(id_10, mukey)]$N %>% table()#of z by mukey, has to be 5 or 10
+TrainSet2[,.N, by = .(id_10, mukey, z)][,.N, by = .(id_10, mukey)]$N %>% table() #of z by mukey, has to be 5 or 10
 TrainSet2[,.N, by = id_10] %>% nrow() # of stations, has to be 120
 TrainSet2[,.N, by = .(id_10, mukey)][,.N,by = .(id_10)] # of mukey by station, just exploratory
 
@@ -199,7 +196,6 @@ TrainSet_eonr <- TrainSet2[, P := Y_corn * Pc - N_fert * Pn] %>%
   .[, .SD[ N_fert == min(N_fert)], by = .(id_10, mukey, z)]
 setnames(TrainSet_eonr, 'N_fert', 'eonr')
 
-TrainSet_eonr[id_10 == 438]
 unique(stations_dt[,.(id_10, id_field, mukey)]) %>% .[,.N, by = .(id_10, id_field)] %>% .[,.(N = mean(N))] #mean number of soils in the stations fields
 #---------------
 #Main relationships plots
@@ -210,7 +206,7 @@ plot_1 <- ggplot(data = TrainSet_eonr, aes(x = n_0_60cm_v5, y = eonr)) +
 plot_2 <- ggplot(data = TrainSet_eonr, aes(x = t_min_30, y = eonr)) + 
   geom_point() + geom_smooth(formula = 'y ~ x', method = lm)
 
-plot_3 <- ggplot(data = TrainSet_eonr, aes(x = Yld_prev, y = eonr)) + 
+plot_3 <- ggplot(data = TrainSet_eonr, aes(x = Y_prev, y = eonr)) + 
   geom_point() + geom_smooth(formula = 'y ~ x', method = lm)
 
 plot_4 <- ggplot(data = TrainSet_eonr, aes(x = rain_90, y = eonr)) + 
@@ -226,12 +222,14 @@ hist(TrainSet_eonr$eonr)
 
 #---------------
 #Compare soy vs corn yield in mukeys that had the both crops the same year
-soy_dt <- TrainSet_eonr[,.(id_10, mukey, z, Y_soy = Yld_prev)]
+soy_dt <- TrainSet_eonr[,.(id_10, mukey, z, Y_soy = Y_prev)]
 soy_dt[,z := as.numeric(z)-1]
 corn_dt <- TrainSet_eonr[,.(id_10, mukey, z, Y_corn)]
 corn_dt[,z := as.numeric(z)]
 yield_test <- merge(soy_dt, corn_dt, by = c('id_10', 'mukey', 'z'))
-ggplot(yield_test) + geom_point(aes(x=Y_soy, y = Y_corn))
+ggplot(yield_test, aes(x=Y_soy, y = Y_corn)) + 
+  geom_point()+
+  geom_smooth()
 
 
 # Make a Validation set
@@ -260,44 +258,41 @@ full_fields_dt[,rf := 1]
 stations_dt[,rs := 1]
 
 regularfields_sf <- dplyr::left_join(grid10_fields_sf2, full_fields_dt[,.(id_10, id_field, rf)], 
-                                     by = c('id_10', 'id_field')) %>% dplyr::filter(!is.na(rf)) %>%
-  dplyr::select(-rf)
+                                     by = c('id_10', 'id_field')) %>% dplyr::filter(!is.na(rf)) #%>%dplyr::select(-rf)
 
 stations_sf <- dplyr::left_join(grid10_fields_sf2, stations_dt[,.(id_10, id_field, rs)], 
-                                     by = c('id_10', 'id_field')) %>% dplyr::filter(!is.na(rs)) %>%
-  dplyr::select(-rs)
+                                by = c('id_10', 'id_field')) %>% dplyr::filter(!is.na(rs)) #%>% dplyr::select(-rs)
 
 stations_sf %>% data.table() %>% .[,.N, by = .(id_10, id_field)] %>% nrow() == stations_by_region * 6
+
+stations_single_sf <- stations_sf %>% group_by(id_tile, id_10, state_name, county_name) %>% summarise(corn_avg_ha = mean(corn_avg_ha))
 
 # grid10_tiles_sf2 <- grid10_tiles_sf7 %>% mutate(corn_ha_cell = corn5_cell*30*30/10000/11)
 # grid10_tiles_sf2$region <- as.character(grid10_tiles_sf2$region)
 
-grid10_region <- grid10_tiles_sf6 %>% group_by(region) %>% summarize()
+grid10_region <- grid10_tiles_sf6 %>% group_by(region) %>% summarise()
 
 # #install.packages('smoothr')
-# library(smoothr)
-# area_thresh <- units::set_units(10*10+10, km^2)
-# grid10_region2 <- fill_holes(grid10_region, threshold = area_thresh)
-grid10_region_by_hand <- sf::read_sf('./n_policy_box/Data/shapefiles/grid10_region_by_hand.shp')
-grid10_region_by_hand <- st_transform(grid10_region_by_hand, crs = st_crs(stations_sf))
+library(smoothr)
+area_thresh <- units::set_units(10*10+10, km^2)
+grid10_region2 <- fill_holes(grid10_region, threshold = area_thresh)
+# grid10_region_by_hand <- sf::read_sf('./n_management_box/Data/shapefiles/grid10_region_by_hand.shp')
+# grid10_region_by_hand <- st_transform(grid10_region_by_hand, crs = st_crs(stations_sf))
 
 
 (fields_map_clean <- tm_shape(grid10_tiles_sf6) + tm_borders() +
-    tm_shape(grid10_region_by_hand) + tm_borders(lwd = 4, col = 'darkgreen') +
-    tm_shape(stations_sf) + tm_dots(size = 0.2, col = 'blue', shape = 24) +
+    tm_shape(grid10_region2) + tm_borders(lwd = 4, col = 'darkgreen') +
+    tm_shape(stations_single_sf) + tm_dots(size = 0.3, col = 'blue', shape = 24) +
     tm_shape(regularfields_sf) + tm_dots(size = 0.04) +
     tm_layout(legend.text.size = 0.7,
               # main.title = 'Final fields map',
               main.title.position = "center",
               main.title.size = 1))
 
-tmap_save(fields_map_clean, filename = "./n_policy_box/Data/figures/fields_map_and_stations.jpg", height = 8, width = 6)  
+tmap_save(fields_map_clean, filename = "./n_management_box/Data/figures/fields_map_and_stations.pdf", height = 8, width = 6)  
 
 st_write(stations_sf, "./n_policy_box/Data/shapefiles/stations_sf.shp", delete_dsn = TRUE)
 st_write(regularfields_sf, "./n_policy_box/Data/shapefiles/regularfields_sf.shp", delete_dsn = TRUE)
-
-# st_write(grid10_region, "./n_policy_box/Data/shapefiles/grid10_region.shp", delete_dsn = TRUE)
-
 #======================================================================================
 # SPLIT THE DATA (TRAINING, VALIDATION)
 # training_z <- 1:10

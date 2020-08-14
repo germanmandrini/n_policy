@@ -6,7 +6,7 @@ setwd('~')
 
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
-# source('./n_policy/Codes/parameters.R')
+source('./n_policy_git/Codes/parameters.R')
 # source('./Codes_useful/gm_functions.R')
 
 
@@ -51,10 +51,6 @@ if(FALSE){
   yc_yearly_dt[,.N, by = .(id_10, mukey, z)]$N %>% table() #of rates by mukey z, has to be 33
   yc_yearly_dt[,.N, by = .(id_10, mukey, z)][,.N, by = .(id_10, mukey)]$N %>% table()#of z by mukey, has to be 30 or 15
 
-  setnames(yc_yearly_dt, 
-           c('Yld', 'Yld_soy', 'leach_1', 'leach_2' ),
-           c('Y_corn', 'Y_soy', 'L1', 'L2'))
-  
   yc_yearly_dt[,L := L1 + L2]
   
   saveRDS(yc_yearly_dt, './n_policy_box/Data/files_rds/yc_yearly_dt.rds')
@@ -91,12 +87,12 @@ if(FALSE){
     geom_point()
   
   yc_yearly_dt2a <- yc_yearly_dt[lai_v5 >= yc_yearly_dt[Y_corn > 0, min(lai_v5)]] #lai thereshold = lowest lai where Y_corn was positive
-  
   # Assumption: if the lai is too low, the farmer will not apply the rate and will plant soybean
   yc_yearly_dt2a[id_10 == 259 & mukey == 942156 & N_fert==160] #very high leaching
   hist(yc_yearly_dt2a$L1)
   summary(yc_yearly_dt2a$L1)
   yc_yearly_dt2a[L1 > 500]
+  
   #------------------------------------------------------------------------------------
   # Remove weird soils, with high OC or NA n_deep_v5
   ggplot(yc_yearly_dt[oc_20cm_v5 >10], aes(oc_20cm_v5 , fill = region    )) + #geom_bar(aes(y = (..count..)/sum(..count..)))+
@@ -130,61 +126,57 @@ if(FALSE){
   yc_yearly_dt2c[is.na(om_40cm)] %>% nrow() == 0
   
   #------------------------------------------------------------------------------------
-  #Remove low yielding mukeys (farmers will not plant here). Use the N that maximizes Yield
+  #Remove low yielding mukeys (farmers will not plant here). Use the N that maximizes P (yield can be too high)
   
-  yearly_ymax_dt <- copy(yc_yearly_dt2c) %>% 
-    .[,Y_corn_max_mky := max(Y_corn), by = .(id_10, mukey, z)] %>% 
-    .[Y_corn == Y_corn_max_mky] %>% 
-    .[, .SD[ N_fert  == min(N_fert )], by = .(id_10, mukey, z)] #filter the rate that maximized yield
+  yearly_eonr_dt <- copy(yc_yearly_dt2c) %>% 
+    .[, P := Y_corn * Pc - N_fert * Pn] %>% 
+    .[, .SD[ P == max( P)], by = .(id_10, mukey, z)]#filter the rate that maximized profits
   
-  yearly_ymax_dt[Y_corn == 0]
-  summary(yearly_ymax_dt)
-  
-  # yearly_ymax_dt[,L := L1 + L2]
-  yearly_ymax_dt2 <- yearly_ymax_dt[,.(Y_corn = mean(Y_corn), 
+  yearly_eonr_dt2 <- yearly_eonr_dt[,.(Y_corn = mean(Y_corn), 
                                        L = mean(L),
                                        N_fert = mean(N_fert),
-                                       Yld_prev = mean(Yld_prev),
+                                       Y_prev = mean(Y_prev),
                                        Y_soy = mean(Y_soy),
                                  n_deep_v5 = mean(n_deep_v5),
                                  n_deep_v5_max = max(n_deep_v5)), by = .(id_10, mukey)] #z is out
   
-  summary(yearly_ymax_dt2$Y_corn)
-  summary(yearly_ymax_dt2$L)
-  summary(yearly_ymax_dt2$N_fert)
-  summary(yearly_ymax_dt2$Yld_prev)
-  summary(yearly_ymax_dt2$Y_soy)
-  summary(yearly_ymax_dt2$n_deep_v5)
-  summary(yearly_ymax_dt2$n_deep_v5_max)
+  summary(yearly_eonr_dt2$Y_corn)
+  summary(yearly_eonr_dt2$L)
+  summary(yearly_eonr_dt2$N_fert)
+  summary(yearly_eonr_dt2$Y_prev)
+  summary(yearly_eonr_dt2$Y_soy)
+  summary(yearly_eonr_dt2$n_deep_v5)
+  summary(yearly_eonr_dt2$n_deep_v5_max)
   
-  hist(yearly_ymax_dt2$Y_corn)
-  hist(yearly_ymax_dt2$n_deep_v5)
-  hist(yearly_ymax_dt2$N_fert)
-  summary(yearly_ymax_dt2$N_fert)
-  summary(yearly_ymax_dt2$n_deep_v5)
-  summary(yearly_ymax_dt2$n_deep_v5_max)
-  hist(yearly_ymax_dt2[n_deep_v5 > 300]$n_deep_v5)
-  hist(yearly_ymax_dt2[N_fert < 100]$N_fert)
-  yearly_ymax_dt2[N_fert < 40]
+  hist(yearly_eonr_dt2$Y_corn)
+  hist(yearly_eonr_dt2$n_deep_v5)
+  hist(yearly_eonr_dt2$N_fert)
+  
+  hist(yearly_eonr_dt2[n_deep_v5 > 300]$n_deep_v5)
+  hist(yearly_eonr_dt2[N_fert < 100]$N_fert)
+  yearly_eonr_dt2[N_fert < 40]
   
   #Remove mukeys that have low yield (farmers would not plant or APSIM is not simulating well)
-  qc_control <- yearly_ymax_dt2[Y_corn < 5000 | L > 200 | N_fert < 50 | Yld_prev < 1500]
+  qc_control <- yearly_eonr_dt2[Y_corn < 7000 | L > 200 | N_fert < 60 | Y_prev < 2000]
   
   remove_this <- filter_dt_in_dt(yc_yearly_dt2c, filter_dt = qc_control[,.(id_10, mukey)])
   yc_yearly_dt2d <- yc_yearly_dt2c[-remove_this]
-  length(unique(yc_yearly_dt2b$id_10))
+  length(unique(yc_yearly_dt2d$id_10))
+  yc_yearly_dt2d[,.N, by = .(id_10, mukey, z)][,.N, by = .(id_10, mukey)]$N %>% table() #of z by mukey, has to be 5 or 10
+  
   #------------------------------------------------------------------------------------
   # REMOVE MUKEYS THAT DID NOT HAVE ALL THE RUNS (ROTATIONS OR Z ARE MISSING)
   missing_ids_dt <- yc_yearly_dt2d[,.N, by = .(id_10, mukey, z)][N > 25] #at least x rates
   missing_ids_dt2 <- missing_ids_dt[,.N, by = .(id_10, mukey)][N >= 14][,ok := 1] #at least x z
-  missing_ids_dt[,.N, by = .(id_10, mukey)][N < 15]
+  missing_ids_dt[,.N, by = .(id_10, mukey)][N < 14]
   # missing_ids_dt3 <- missing_ids_dt2[,.N, by = .(id_10, mukey)][N ==2][,-'N'][,ok := 1] #both prev_crop
   
-  length(unique(missing_ids_dt2$id_10))
+  length(unique(missing_ids_dt$id_10))
   
   yc_yearly_dt3 <- merge(yc_yearly_dt2d, missing_ids_dt2, by =c('id_10', 'mukey'), all.x = T) %>% 
     .[!is.na(ok)] %>% .[,-'ok']
   length(unique(yc_yearly_dt3$id_10))
+  yc_yearly_dt3[,.N, by = .(id_10, mukey, z)][,.N, by = .(id_10, mukey)]$N %>% table() #of z by mukey, has to be 5 or 10
   
   #------------------------------------------------------------------------------------
   # CHECK FIELDS AREAS AFTER CLEANING 

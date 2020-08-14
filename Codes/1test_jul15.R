@@ -73,10 +73,10 @@ for(batch_n in c(88)){
 }
 
 
-# two_batches_yc_dt <- two_batches_yc_dt[id_10 %in% unique(one_batch_dt$id_10)]
-# batch_n = 18
-# yc_yearly_dt <- readRDS( paste0("./n_policy_box/Data/files_rds/yc_yearly_dt_batch", batch_n, ".rds"))
-
+if(FALSE){
+  batch_n = 88
+  two_batches_yc_dt <- readRDS( paste0("./n_policy_box/Data/files_rds/one_batch_dt_batch", batch_n, ".rds"))
+}
 # yc_yearly_dt <-readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
 # areas_dt[,region := factor(region)]
 # yc_yearly_dt <- merge(yc_yearly_dt, areas_dt, by = c('region','id_10', 'mukey'))
