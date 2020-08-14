@@ -14,11 +14,11 @@ source('./Codes_useful/gm_functions.R')
 #DATA CLEANING & QUALITY CONTROL
 if(FALSE){
   # batch_n = 56
-  batch_n = 58
+  batch_n = 88
   library("foreach")
   library("doParallel")
   print(batch_n)
-  multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n), full.names = T)
+  multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
   length(multiple_files)
   #--------------------------------------------------------------------------------------------
   # multiple_files_names <- list.files(paste0("./n_policy_box/Data/yc_output_", batch_n), full.names = T)

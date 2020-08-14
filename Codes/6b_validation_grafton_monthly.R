@@ -1,6 +1,6 @@
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+codes_folder <-'C:/Users/germanm2/Documents'#CPSC
 # setwd("/home/germanm2")
 
 setwd('~')#Server
@@ -15,19 +15,43 @@ source('./Codes_useful/gm_functions.R')
 grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds") 
 grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
 
-if(TRUE){
-  multiple_files <- list.files("./n_policy_box/Data/yc_output_summary_calendar", full.names = T)
-  length(multiple_files)
 
-  yc_yearly_list <- list()
-  for(file_n in multiple_files){
-    yc_yearly_list[[length(yc_yearly_list)+1]] <- readRDS(file_n)
-  }
-  # yc_yearly_list[[4207]] <- yc_yearly_list[[4207]][,-'NA'] #for some reason this came with one column called NA
-  validation_dt <- rbindlist(yc_yearly_list)
+
+#-----------------------------------------------------------------------------------------------------------
+# Open the files and save the base-level rates
+if(FALSE){
+  reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
+  minimum_ok <- reg_model_stuff$minimum_ok
+  rm(reg_model_stuff)
+  
+  library("foreach")
+  library("doParallel")
+ 
+  multiple_files <- list.files('S:/Bioinformatics Lab/germanm2/n_policy_box_58/Data/yc_output_58', full.names = T)
+  
+  length(multiple_files)
+  regions_dt <- data.table(grid10_tiles_sf7) %>% .[,.N,.(id_10, region)] %>% .[,-'N']
+  
+  registerDoParallel(4) # register the cluster
+  # registerDoParallel(cores = 10)
+  output_list = foreach(file_n = multiple_files, .combine = "c", .packages = c("data.table")) %dopar% {
+    # file_n <- multiple_files[43]
+    tmp_dt <- readRDS(file_n)
+    N_fert_baselevel <- minimum_ok[region == regions_dt[id_10 == unique(tmp_dt$id_10)]$region]$eonr_pred
+    tmp_dt[,N_fert := sapply(strsplit(as.character(sim_name), split="_"), "[", 5) ]
+    tmp_dt <- tmp_dt[N_fert == N_fert_baselevel & year < 2012]
+    tmp_dt <- tmp_dt[, .(leach_no3 = sum(leach_no3)), by = .(id_10, mukey, z, year, month)]
+    
+    list(tmp_dt)
+  }#end of dopar loop
+  
+  stopImplicitCluster()
+  validation_dt <- rbindlist(output_list)
   validation_dt[,id_10 := as.integer(id_10)]
-  ggplot(validation_dt) + geom_boxplot(aes(y = leach_no3, x = z))
+  
+  saveRDS(validation_dt, './n_policy_box/Data/files_rds/validation_monthly_leaching.rds')
 }
+validation_dt <- readRDS('./n_policy_box/Data/files_rds/validation_monthly_leaching.rds')
 validation_dt[,.N, by = z]
 #Sepparate soy and corn
 corn <- validation_dt[year == 2010, .(id_10, mukey, z, year, month, leach_no3)] %>% setnames('leach_no3', 'L1')
@@ -90,6 +114,8 @@ library(gdata)
 graffton_waterquality <- read.xls('./n_policy_box/Data/validation/graffton_waterquality.xlsx', 
                                   sheet = 'qual_vol_3', header = TRUE, stringsAsFactors=FALSE) %>% data.table()
 
+graffton_waterquality <- read.csv('./n_policy_box/Data/validation/graffton_waterquality.csv', header = T)%>% data.table()
+
 setnames(graffton_waterquality, c('year_nu', 'month_nu'), c('year', 'month'))
 
 validation_dt4 <- merge(validation_dt4, graffton_waterquality[,.(year, month, NO3.kg.sec)], by = c('year', 'month'))
@@ -105,20 +131,21 @@ validation_dt4_monthly <- validation_dt4[, .(L = mean(L),
                    NO3.kg.sec = mean(NO3.kg.sec)), by = month]
 
 (plot_1 <- ggplot(data = validation_dt4_monthly) + 
-  geom_line(aes(x = month, y = L, col = 'L State'))+
-  geom_line(aes(x = month, y = NO3.kg.sec, col = 'Grafton N'))+
-  labs(y=expression(paste("State L (kg ha"^"-1", "year"^"-1",") or N-", NO[3],"(kg sec"^"-1",")",sep="")))+
+  geom_line(aes(x = month, y = L, col = 'Simulated N leaching'), size = 1)+
+  geom_line(aes(x = month, y = NO3.kg.sec, col = 'Mississippi River N flow'), size = 1)+
+  labs(y=expression(paste("N-leaching (kg ha"^"-1", "year"^"-1",") or N-flow (N-", NO[3],"kg sec"^"-1",")",sep="")))+
   scale_x_continuous(breaks = 1:12, labels = 1:12) +
   theme_bw()+
   theme(legend.title =  element_blank(),
-      legend.position = c(0.87, 0.85),
-      legend.text=element_text(size=8),
-      panel.grid = element_blank())+
-  annotate("text", x=1, y=22, label= "a)", size = 8) )
+        legend.text.align = 0,
+        axis.text.x = element_text(size = 14),
+      legend.position = c(0.80, 0.85),
+      legend.text=element_text(size=12),
+      panel.grid = element_blank()))#+   annotate("text", x=1, y=22, label= "a)", size = 8) )
 
-# ggsave(plot = plot_1, 
-#        filename = "./n_policy_box/Data/figures/validation_grafton_time.jpg", width = 493/300*3, height = 390/300*3,
-#        units = 'in')
+ggsave(plot = plot_1,
+       filename = "./n_policy_box/Data/figures/validation_grafton_time.pdf", width = 758/300*3, height= 586/300*3, units = 'in')
+       #units = 'in') #, width = 758/300*3, height = 586/300*3
 
 #---------------------------------------------------------------------------
 #Monthly obs vs predicted
@@ -163,6 +190,8 @@ lm(data = validation_dt4_season, formula = 'L~NO3.kg.sec')
     annotate("text", x=17, y=30, label= "y=1.773x + 35.597", size = 4)+
     theme_bw()+
     theme(panel.grid = element_blank()))
+
+
 
 #---------------------------------------------------------------------------
 # Shifted

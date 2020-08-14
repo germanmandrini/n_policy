@@ -1,7 +1,7 @@
 rm(list=ls())
 
-setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
 
 setwd('~')#Server
 codes_folder <-'~' #Server
@@ -18,7 +18,7 @@ regional_test <- T
 #Merge all files
 # batch_n = 19Y
 two_batches_yc_dt  <- data.table()
-for(batch_n in c(87,88)){
+for(batch_n in c(88)){
   # batch_n = 87
   # print(batch_n)
   multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
@@ -92,9 +92,9 @@ if(regional_test){
 }else{
   two_batches_state_dt  <- two_batches_yc_dt(data_dt = yc_yearly_dt, variables = c('Y_corn', 'Y_soy', 'L1','L2'), 
                                       weight = 'area_ha', by_c = c('N_fert', 'region', 'batch'))# %>% .[,-'area_ha']
-  }
-# yc_yearly_dt <- yc_yearly_batches_dt[batch %in% c(13,17)]
+}
 
+# yc_yearly_dt <- yc_yearly_batches_dt[batch %in% c(13,17)]
 
 # state_agg_dt <- state_agg_dt[N_fert < 251]
 two_batches_state_dt[,Y_max := max(Y_corn), by = .(region, batch)]
