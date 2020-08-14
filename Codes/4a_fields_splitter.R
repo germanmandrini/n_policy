@@ -10,6 +10,8 @@ source('./n_policy_git/Codes/parameters.R')
 source('C:/Users/germanm2/Documents/n_policy_git/Codes/parameters.R')
 
 
+library("foreach")
+library("doParallel")
 # library(randomForest)
 # library(mlr)
 # eonr_mukey_dt3 <- readRDS("./n_policy_box/Data/files_rds/eonr_mukey_dt3.rds")
@@ -50,8 +52,16 @@ fields_list_dt <- full_fields_dt2
 
 # ----------------
 # training_z <- reg_model_stuff$training_z
-no_cost_varb <- reg_model_stuff$no_cost_var
-ss_var <- reg_model_stuff$ss_var
+low_var <- reg_model_stuff$no_cost_var
+high_var <- reg_model_stuff$high_var
+
+low_var <- c("rain_30", "rain_60", "rain_90",
+             "t_max_30", "t_max_60", "t_max_90", "t_min_30", "t_min_60",
+             "t_min_90", "Y_prev", 'Y_corn_lt_avg', "day_sow", "day_v5", "lai_v5")#'Y_corn_lt_min', 'Y_corn_lt_max', 
+
+high_var <- c("whc",  "oc_20cm_v5", "sw_dep_v5", "n_0_60cm_v5",  "surfaceom_wt_v5", "sand_40cm", "clay_40cm") #"root_wt_v5",, "n_deep_v5", "esw_pct_v5", 
+
+
 rm(reg_model_stuff)
 # crop_varb <- reg_model_stuff$crop_varb
 
@@ -118,9 +128,8 @@ process_field_economics <- function(j){
       
 
       #===================================================================================================================
-      # # 2) PREDICT WITH REGIONAL RF 1 - UR 
-      # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
-      prediction_set <- data.table(unique(ic_field_dt[, c('mukey', 'z','area_ha', no_cost_varb, ss_var), with = FALSE])) #this is unique v5 conditions, doesn't have the different N rates
+      # AGGREGATE THE INFORMATION AT THE FIELD LEVEL 
+      prediction_set <- data.table(unique(ic_field_dt[, c('mukey', 'z','area_ha', low_var, high_var), with = FALSE])) #this is unique v5 conditions, doesn't have the different N rates
 
       table(prediction_set$z)
 
@@ -128,7 +137,7 @@ process_field_economics <- function(j){
 
       # We need to aggregate at the field level because is UR
       do_not_aggregate = c("mukey", "z", "area_ha")
-      do_aggregate = setdiff(c(no_cost_varb, ss_var), do_not_aggregate)
+      do_aggregate = setdiff(c(low_var, high_var), do_not_aggregate)
 
       prediction_set_aggregated  <- aggregate_by_area(data_dt = prediction_set, variables = do_aggregate,
                                                     weight = 'area_ha', by_c = c('z'))# %>% .[,-'area_ha']
@@ -156,12 +165,15 @@ test_dt$testing_set[N_fert == 150 & z == 11]
 
 #---------------------
 #Get the two sets for each field
-big_list <- list()
-for(j in fields_seq){
-  big_list[[length(big_list)+1]] <- process_field_economics(j)
-  }
+registerDoParallel(cores = 4)
+output_list = foreach(j = fields_seq, .combine = "c", .packages = c("data.table")) %dopar% {
+  # j <- 1
+  tmp_dt <- process_field_economics(j)
+  list(tmp_dt)
+}#end of dopar loop
 
-time2 <- Sys.time()
+stopImplicitCluster()
+
 
 #---------------------
 # Split the sets in two list
