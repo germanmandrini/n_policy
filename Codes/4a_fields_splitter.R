@@ -180,9 +180,9 @@ stopImplicitCluster()
 testing_set_list <- list()
 prediction_set_aggregated_list <- list()
 
-for(i in 1:length(big_list)){
-  testing_set_list[[i]] <- big_list[[i]][["testing_set"]]
-  prediction_set_aggregated_list[[i]] <- big_list[[i]][["prediction_set_aggregated"]]
+for(i in 1:length(output_list)){
+  testing_set_list[[i]] <- output_list[[i]][["testing_set"]]
+  prediction_set_aggregated_list[[i]] <- output_list[[i]][["prediction_set_aggregated"]]
 }
 
 
