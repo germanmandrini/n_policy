@@ -24,6 +24,8 @@ reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
 
 prediction_set_aggregated_dt <- readRDS("./n_policy_box/Data/files_rds/prediction_set_aggregated_dt.rds")
 testing_set_dt <- readRDS("./n_policy_box/Data/files_rds/testing_set_dt.rds")
+testing_set_dt[, region := factor(region)]
+
 
 testing_set_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z, N_fert)]$area_ha %>% summary()
 
@@ -70,7 +72,7 @@ for(policy_n in policies_ratios){
   
   testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
   
-  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := '1'][,policy := policy_n]
+  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'static'][,policy := policy_n]
   
   #===================================================================================================================
   # 4) PREDICT WITH REGIONAL RF 2 - UR 
@@ -86,7 +88,7 @@ for(policy_n in policies_ratios){
     .[N_fert == eonr_pred] %>%
     .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
   
-  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := '2'][,policy := policy_n]
+  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic'][,policy := policy_n]
   
 }
 #---------------------------------------------------------------------------
@@ -118,7 +120,7 @@ for(policy_n in policies_fee){
   
   testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
   
-  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := '1'][,policy := policy_n]
+  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'static'][,policy := policy_n]
   
   #===================================================================================================================
   # 4) PREDICT WITH REGIONAL RF 2 - UR 
@@ -134,7 +136,7 @@ for(policy_n in policies_fee){
     .[N_fert == eonr_pred] %>%
     .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
   
-  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := '2'][,policy := policy_n]
+  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic'][,policy := policy_n]
   
 }
 #-------------------------------------------------------
@@ -160,7 +162,7 @@ for(policy_n in policies_target){
   
   testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
   
-  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := '1'][,policy := policy_n]
+  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'static'][,policy := policy_n]
   
   #===================================================================================================================
   # 4) PREDICT WITH REGIONAL RF 2 - UR 
@@ -176,7 +178,7 @@ for(policy_n in policies_target){
     .[N_fert == eonr_pred] %>%
     .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
   
-  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := '2'][,policy := policy_n]
+  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic'][,policy := policy_n]
   
 }
 
@@ -204,7 +206,7 @@ for(policy_n in policies_nred){
   
   testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
   
-  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := '1'][,policy := policy_n]
+  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'static'][,policy := policy_n]
   
   #===================================================================================================================
   # 4) PREDICT WITH REGIONAL RF 2 - UR 
@@ -220,123 +222,123 @@ for(policy_n in policies_nred){
     .[N_fert == eonr_pred] %>%
     .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
   
-  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := '2'][,policy := policy_n]
+  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic'][,policy := policy_n]
   
 }
 
 #-------------------------------------------------------
 # LEACHING TARGET POLICY SHADOW VALUE
 
-testing_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
-testing_set_dt[, G := 0] #gov collection
-
-baseline_leaching_dt <- merge(testing_set_dt,
-                              reg_model_stuff[['ratio_5']]$minimum_ok, 
-                              by = c('region')) %>% 
-  .[N_fert == eonr_pred] %>%  aggregate_by_area(data_dt = ., variables = c('L'), 
-                                                weight = 'area_ha', by_c = c('region', 'id_10', 'id_field','z'))
-setnames(baseline_leaching_dt, 'L', 'leach_base')
-policies_shadow <- names(reg_model_stuff)[str_detect(names(reg_model_stuff), pattern = 'shadow_')]
-
-for(policy_n in sort(policies_shadow)){
-  # policy_n = policies_shadow[[1]]
-  nred_n <- as.numeric(str_extract(policy_n,pattern = '[0-9.]+'))
-  print(policy_n)
-  
-  #===================================================================================================================
-  # 1b) MINIMUM OK-
-  
-  #---------------------------------------------------------------------------
-  # PERFORMANCE EVALUATION
-  # the NMS is trained with z1-10 and testing is evaluated with z11-25
-  testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
-                           reg_model_stuff[[policy_n]]$minimum_ok, #because I forgot to set the name to eonr_pred
-                           by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-    .[N_fert == eonr_pred] %>%
-    .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-  
-  testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
-  
-  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := '1'][,policy := policy_n]
-  
-  #===================================================================================================================
-  # 4) PREDICT WITH REGIONAL RF 2 - UR 
-  # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
-  
-  # prediction_set_aggregated_dt[,eonr_pred := ceiling(predict(reg_model_stuff[[policy_n]]$rf2, prediction_set_aggregated_dt)/10)*10]
-  # 
-  # prediction_set_aggregated_dt[,shadow_val_rel := predict(reg_model_stuff[["shadow_0.8"]]$rf2_shadow, prediction_set_aggregated_dt)]
-  # summary(prediction_set_aggregated_dt$shadow_val_rel)
-
-  #---------------------------------------------------------------------------
-  # PERFORMANCE EVALUATION
-  fields_testing <- unique(testing_set_dt[,.(id_10, id_field)])
-  registerDoParallel(12) # register the cluster
-  # registerDoParallel(cores = 10)
-  testing_set_tmp_list = foreach(i = 1:nrow(fields_testing), .combine = "c", .packages = c("data.table")) %dopar% {
-    # i= 35
-    print(i)
-    fields_testing_n <- fields_testing[i]
-    
-    prediction_set_field <- filter_dt_in_dt(prediction_set_aggregated_dt[!z %in% training_z], fields_testing_n, return_table = T)
-    
-    prediction_set_field[,eonr_pred_econ := ceiling(predict(reg_model_stuff[['ratio_5']]$rf2, prediction_set_field)/10)*10]
-    prediction_set_field[,eonr_pred_cut := ceiling(predict(reg_model_stuff[[policy_n]]$rf2, prediction_set_field)/10)*10]
-    prediction_set_field[,shadow_val_rel := predict(reg_model_stuff[[policy_n]]$rf2_shadow, prediction_set_field)]
-    
-    prediction_set_field[,eonr_pred_1 := ceiling((shadow_val_rel * eonr_pred_econ + (1-shadow_val_rel) * eonr_pred_cut)/10)*10]
-    
-    testing_set_field <- filter_dt_in_dt(testing_set_dt[!z %in% training_z], fields_testing_n, return_table = T)
-    
-    
-    baseline_leaching_field <- filter_dt_in_dt(baseline_leaching_dt[!z %in% training_z], fields_testing_n, return_table = T)
-    
-    
-    leaching_balance = 0
-    for(z_n in unique(testing_set_field$z)){
-      prediction_set_field[z == z_n, eonr_pred := eonr_pred_1 + round(leaching_balance/10)*10]
-      prediction_set_field[z == z_n, leaching_bal := leaching_balance]
-    
-      testing_set_tmp_field <- merge(testing_set_field,
-                               prediction_set_field[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-        .[,eonr_pred := ifelse(eonr_pred <10, 10, ifelse(eonr_pred > 330, 330, eonr_pred))] %>%
-        .[N_fert == eonr_pred] %>%
-        .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-      
-      
-      testing_set_tmp_leaching <- aggregate_by_area(data_dt = testing_set_tmp_field, variables = c('L'), 
-                                                    weight = 'area_ha', by_c = c('region', 'id_10', 'id_field','z'))
-  
-      leaching_balance <- sum(baseline_leaching_field[z <= z_n]$leach_base) * nred_n - sum(testing_set_tmp_leaching[z <= z_n]$L)
-      leaching_balance
-      round(leaching_balance/10)*10
-  }#end z_n loop
-      sum(testing_set_tmp_leaching$L) / sum(baseline_leaching_field$L)
-      list(testing_set_tmp_field)
-  }#end dopar loop  
-  stopImplicitCluster()
-  
-  testing_set_tmp <- rbindlist(testing_set_tmp_list)
-  
-  # shadow_results_dt <- aggregate_by_area(data_dt = testing_set_tmp, variables = c('L'),
-  #                                        weight = 'area_ha', by_c = c('z'))
-  # 
-  # baseline_leaching_dt2 <- aggregate_by_area(data_dt = baseline_leaching_dt, variables = c('leach_base'),
-  #                                          weight = 'area_ha', by_c = c('z'))
-  # 
-  # shadow_results_dt2 <- merge(shadow_results_dt[,-'area_ha'], baseline_leaching_dt2[,-'area_ha'], by = c('z'))
-  # shadow_results_dt2[,L_rel := L/leach_base]
-  # shadow_results_dt2[,z := as.numeric(z)]
-  # shadow_results_dt2[order(z)]
-  # shadow_results_dt3 <- shadow_results_dt2[,.(L_rel = sum(L)/sum(leach_base)), by = .(id_10, id_field)]
-  # 
-  # summary(shadow_results_dt3$L_rel)
-  # 
-  # testing_set_tmp[,.N, .(id_10, id_field)]
-  
-  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := '2'][,policy := policy_n]
-  
-}
+# testing_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
+# testing_set_dt[, G := 0] #gov collection
+# 
+# baseline_leaching_dt <- merge(testing_set_dt,
+#                               reg_model_stuff[['ratio_5']]$minimum_ok, 
+#                               by = c('region')) %>% 
+#   .[N_fert == eonr_pred] %>%  aggregate_by_area(data_dt = ., variables = c('L'), 
+#                                                 weight = 'area_ha', by_c = c('region', 'id_10', 'id_field','z'))
+# setnames(baseline_leaching_dt, 'L', 'leach_base')
+# policies_shadow <- names(reg_model_stuff)[str_detect(names(reg_model_stuff), pattern = 'shadow_')]
+# 
+# for(policy_n in sort(policies_shadow)){
+#   # policy_n = policies_shadow[[1]]
+#   nred_n <- as.numeric(str_extract(policy_n,pattern = '[0-9.]+'))
+#   print(policy_n)
+#   
+#   #===================================================================================================================
+#   # 1b) MINIMUM OK-
+#   
+#   #---------------------------------------------------------------------------
+#   # PERFORMANCE EVALUATION
+#   # the NMS is trained with z1-10 and testing is evaluated with z11-25
+#   testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
+#                            reg_model_stuff[[policy_n]]$minimum_ok, #because I forgot to set the name to eonr_pred
+#                            by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+#     .[N_fert == eonr_pred] %>%
+#     .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+#   
+#   testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+#   
+#   results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'static'][,policy := policy_n]
+#   
+#   #===================================================================================================================
+#   # 4) PREDICT WITH REGIONAL RF 2 - UR 
+#   # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
+#   
+#   # prediction_set_aggregated_dt[,eonr_pred := ceiling(predict(reg_model_stuff[[policy_n]]$rf2, prediction_set_aggregated_dt)/10)*10]
+#   # 
+#   # prediction_set_aggregated_dt[,shadow_val_rel := predict(reg_model_stuff[["shadow_0.8"]]$rf2_shadow, prediction_set_aggregated_dt)]
+#   # summary(prediction_set_aggregated_dt$shadow_val_rel)
+# 
+#   #---------------------------------------------------------------------------
+#   # PERFORMANCE EVALUATION
+#   fields_testing <- unique(testing_set_dt[,.(id_10, id_field)])
+#   registerDoParallel(12) # register the cluster
+#   # registerDoParallel(cores = 10)
+#   testing_set_tmp_list = foreach(i = 1:nrow(fields_testing), .combine = "c", .packages = c("data.table")) %dopar% {
+#     # i= 35
+#     print(i)
+#     fields_testing_n <- fields_testing[i]
+#     
+#     prediction_set_field <- filter_dt_in_dt(prediction_set_aggregated_dt[!z %in% training_z], fields_testing_n, return_table = T)
+#     
+#     prediction_set_field[,eonr_pred_econ := ceiling(predict(reg_model_stuff[['ratio_5']]$rf2, prediction_set_field)/10)*10]
+#     prediction_set_field[,eonr_pred_cut := ceiling(predict(reg_model_stuff[[policy_n]]$rf2, prediction_set_field)/10)*10]
+#     prediction_set_field[,shadow_val_rel := predict(reg_model_stuff[[policy_n]]$rf2_shadow, prediction_set_field)]
+#     
+#     prediction_set_field[,eonr_pred_1 := ceiling((shadow_val_rel * eonr_pred_econ + (1-shadow_val_rel) * eonr_pred_cut)/10)*10]
+#     
+#     testing_set_field <- filter_dt_in_dt(testing_set_dt[!z %in% training_z], fields_testing_n, return_table = T)
+#     
+#     
+#     baseline_leaching_field <- filter_dt_in_dt(baseline_leaching_dt[!z %in% training_z], fields_testing_n, return_table = T)
+#     
+#     
+#     leaching_balance = 0
+#     for(z_n in unique(testing_set_field$z)){
+#       prediction_set_field[z == z_n, eonr_pred := eonr_pred_1 + round(leaching_balance/10)*10]
+#       prediction_set_field[z == z_n, leaching_bal := leaching_balance]
+#     
+#       testing_set_tmp_field <- merge(testing_set_field,
+#                                prediction_set_field[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+#         .[,eonr_pred := ifelse(eonr_pred <10, 10, ifelse(eonr_pred > 330, 330, eonr_pred))] %>%
+#         .[N_fert == eonr_pred] %>%
+#         .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+#       
+#       
+#       testing_set_tmp_leaching <- aggregate_by_area(data_dt = testing_set_tmp_field, variables = c('L'), 
+#                                                     weight = 'area_ha', by_c = c('region', 'id_10', 'id_field','z'))
+#   
+#       leaching_balance <- sum(baseline_leaching_field[z <= z_n]$leach_base) * nred_n - sum(testing_set_tmp_leaching[z <= z_n]$L)
+#       leaching_balance
+#       round(leaching_balance/10)*10
+#   }#end z_n loop
+#       sum(testing_set_tmp_leaching$L) / sum(baseline_leaching_field$L)
+#       list(testing_set_tmp_field)
+#   }#end dopar loop  
+#   stopImplicitCluster()
+#   
+#   testing_set_tmp <- rbindlist(testing_set_tmp_list)
+#   
+#   # shadow_results_dt <- aggregate_by_area(data_dt = testing_set_tmp, variables = c('L'),
+#   #                                        weight = 'area_ha', by_c = c('z'))
+#   # 
+#   # baseline_leaching_dt2 <- aggregate_by_area(data_dt = baseline_leaching_dt, variables = c('leach_base'),
+#   #                                          weight = 'area_ha', by_c = c('z'))
+#   # 
+#   # shadow_results_dt2 <- merge(shadow_results_dt[,-'area_ha'], baseline_leaching_dt2[,-'area_ha'], by = c('z'))
+#   # shadow_results_dt2[,L_rel := L/leach_base]
+#   # shadow_results_dt2[,z := as.numeric(z)]
+#   # shadow_results_dt2[order(z)]
+#   # shadow_results_dt3 <- shadow_results_dt2[,.(L_rel = sum(L)/sum(leach_base)), by = .(id_10, id_field)]
+#   # 
+#   # summary(shadow_results_dt3$L_rel)
+#   # 
+#   # testing_set_tmp[,.N, .(id_10, id_field)]
+#   
+#   results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic'][,policy := policy_n]
+#   
+# }
 
 perfomances_dt <- rbindlist(results_list)
 

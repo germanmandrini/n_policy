@@ -24,7 +24,7 @@ if(FALSE){
   grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
    
   perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt.rds")
-  
+
   perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
   perfomances_dt[,.N, .(id_10, id_field, mukey, policy, NMS)] %>% .[,N] %>% table() #number of z by mukey. SHould be all equal
   perfomances_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of treatments (policy sublevels x NMS). SHould be all equal
@@ -109,9 +109,10 @@ if(FALSE){
   
   perfomances_dt4 <- aggregate_by_area(data_dt = perfomances_dt3, variables = c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G"), 
                                        weight = 'corn_avg_ha', by_c = c('policy','NMS')) #state level, weighted by corn_ha
+  
   # ---------
   # Make leaching relative to baselevel
-  baselevel_L <- perfomances_dt4[policy == 'ratio_5' & NMS == '1', L]
+  baselevel_L <- perfomances_dt4[policy == 'ratio_5' & NMS == 'static', L]
   perfomances_dt4[,L_change := round((L / baselevel_L) - 1,3)*100 ]
   
   #---------------------------------------------------------------------------
@@ -128,17 +129,18 @@ if(FALSE){
   
   #---------
   #remove yields modifications of more that 5%
-  baselevel_Y_corn <- perfomances_dt4[policy == 'ratio_5' & NMS == '1', Y_corn ]
+  baselevel_Y_corn <- perfomances_dt4[policy == 'ratio_5' & NMS == 'static', Y_corn ]
   perfomances_dt4[,Y_corn_change := Y_corn/baselevel_Y_corn]
-  perfomances_dt4 <- perfomances_dt4[Y_corn_change >=0.95 & Y_corn_change <= 1.05, -'Y_corn_change'] #remove yields modifications of more that 5%
   
+  perfomances_dt4 <- perfomances_dt4[Y_corn_change >=0.95 & Y_corn_change <= 1.05, -'Y_corn_change'] #remove yields modifications of more that 5%
+
   #---------
   #remove ratios that are subsidized
   perfomances_dt4 <- perfomances_dt4[!(policy_name == 'ratio' & policy_val < 5)] 
   
   #---------
   #Calculate the subsidies
-  baselevel_P <- perfomances_dt4[policy == 'ratio_5' & NMS == '1', P ]
+  baselevel_P <- perfomances_dt4[policy == 'ratio_5' & NMS == 'static', P ]
   # perfomances_dt4[,S := P - baselevel_P]
   perfomances_dt4[,net_balance := P - baselevel_P + G]
   # perfomances_dt4[,ag_cost := P  + G]
@@ -147,7 +149,7 @@ if(FALSE){
 }  
 
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
-perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1') & NMS == 1]
+perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1') & NMS == 'static']
 
 W_peak_dt <- perfomances_dt4[,.SD[W == max(W)], by = .(policy_name, NMS)] #peak in W
 saveRDS(W_peak_dt, "./n_policy_box/Data/files_rds/W_peak_dt.rds")
@@ -155,7 +157,7 @@ saveRDS(W_peak_dt, "./n_policy_box/Data/files_rds/W_peak_dt.rds")
 #==========================================================================
 # RATIO CHART 2
 
-plot_dt <- perfomances_dt4[policy_name == 'ratio' & NMS %in% c('1','2')] 
+plot_dt <- perfomances_dt4[policy_name == 'ratio' & NMS %in% c('static','dynamic')] 
 
 # Total G collections in IL
 if(FALSE){
@@ -175,13 +177,13 @@ if(FALSE){
   d_quantity/d_price
 }
 
-# current_ratio_dt <- perfomances_dt4[policy == 'fee_0' & NMS %in% c('1','2','3','4','5')]
+# current_ratio_dt <- perfomances_dt4[policy == 'fee_0' & NMS %in% c('static','dynamic','3','4','5')]
 # current_ratio_dt[,policy_name := 'ratio']
 # current_ratio_dt[,policy_val := Pn/Pc]
 # current_ratio_dt[,policy := paste('ratio', round(Pn/Pc,1), sep = '_')]   
 # plot_dt <- rbind(plot_dt, current_ratio_dt)
-baselevel_L <- perfomances_dt4[policy == 'ratio_5' & NMS == '1', L]
-baselevel_Y_corn <- perfomances_dt4[policy == 'ratio_5' & NMS == '1', Y_corn ]
+baselevel_L <- perfomances_dt4[policy == 'ratio_5' & NMS == 'static', L]
+baselevel_Y_corn <- perfomances_dt4[policy == 'ratio_5' & NMS == 'static', Y_corn ]
 
 # plot_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
 
@@ -255,6 +257,7 @@ ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)", "h)")]
         legend.position = "none",
         plot.margin =  unit(c(2,1,1,1), "lines")))
 
+
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn')] 
 
 (plot_2 <- ggplot() +
@@ -293,7 +296,7 @@ ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1),
        units = 'in')
 #==========================================================================
 # LRED CHART
-plot_dt <- perfomances_dt4[policy_name == 'nred' & NMS %in% c('1','2')][order(NMS, -policy_val)]
+plot_dt <- perfomances_dt4[policy_name == 'nred' & NMS %in% c('static','dynamic')][order(NMS, -policy_val)]
 
 # plot_dt[,L_red := round(1-(L / baselevel_L),2)*100 ]
 # plot_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
@@ -397,7 +400,7 @@ ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1),
 #==========================================================================
 # FEE CHART
 
-plot_dt <- perfomances_dt4[policy_name == 'fee' & NMS %in% c('1','2') ] 
+plot_dt <- perfomances_dt4[policy_name == 'fee' & NMS %in% c('static','dynamic') ] 
 
 plot_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
 
@@ -542,18 +545,18 @@ print(latex_table_xt, file = "./n_policy_box/Data/figures/w_maximization.tex", i
 unique(perfomances_dt4$policy)
 
 policies_f <- c("fee_0", "ratio_9", "fee_8", 'nred_0.85', 'nred_0.7')
-NMSs_f <- c('1', '2')
+NMSs_f <- c('static', 'dynamic')
 
 table_dt <- perfomances_dt4[policy %in% policies_f & NMS %in% NMSs_f]
-table_dt[policy == 'fee_0' & NMS == '1', order := 1]
-table_dt[policy == 'fee_0' & NMS == '2', order := 2] #science
-table_dt[policy == 'yr_0.9' & NMS == '1', order := 3] #ecological model
-table_dt[policy == 'ratio_9' & NMS == '1', order := 4] #tax
-table_dt[policy == 'fee_8' & NMS == '1', order := 5] #fee
-table_dt[policy == 'nred_0.85' & NMS == '2', order := 6] #ecological model + science
-table_dt[policy == 'ratio_9' & NMS == '2', order := 7] #tax+science
-table_dt[policy == 'fee_8' & NMS == '2', order := 8] #fee+science
-table_dt[policy == 'nred_0.7' & NMS == '2', order := 9] #ecological model strong  + science
+table_dt[policy == 'fee_0' & NMS == 'static', order := 1]
+table_dt[policy == 'fee_0' & NMS == 'dynamic', order := 2] #science
+table_dt[policy == 'yr_0.9' & NMS == 'static', order := 3] #ecological model
+table_dt[policy == 'ratio_9' & NMS == 'static', order := 4] #tax
+table_dt[policy == 'fee_8' & NMS == 'static', order := 5] #fee
+table_dt[policy == 'nred_0.85' & NMS == 'dynamic', order := 6] #ecological model + science
+table_dt[policy == 'ratio_9' & NMS == 'dynamic', order := 7] #tax+science
+table_dt[policy == 'fee_8' & NMS == 'dynamic', order := 8] #fee+science
+table_dt[policy == 'nred_0.7' & NMS == 'dynamic', order := 9] #ecological model strong  + science
 table_dt <- table_dt[order(order)]
 
 #---------------------------------------------------------------------------
@@ -580,7 +583,7 @@ table_dt
 
 #---------------------------------------------------------------------------
 # BEST OPTION 2: considering a cost of the externality, what NMS would maximize the welfare of the society
-NMSs_f <- c('1','2','4')
+NMSs_f <- c('static','dynamic','4')
 table_dt <- perfomances_dt4[ NMS %in% NMSs_f]
 baselevel_n <- table_dt[policy == 'fee_0' & NMS == 1, L] 
 table_dt[,abatement := baselevel_n - L]
@@ -624,7 +627,7 @@ rmse_dt <- perfomances_dt[stringr::str_detect(string = perfomances_dt$policy, pa
 
 rmse_dt[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
 rmse_dt[,policy_name := lapply(policy, function(x) str_split(x, pattern = '_')[[1]][1])]
-rmse_dt <- rmse_dt[ NMS %in% c('1','2','3','4','5')]
+rmse_dt <- rmse_dt[ NMS %in% c('static','dynamic','3','4','5')]
 
 plot_1 <- ggplot(rmse_dt)+
   geom_line(aes(x = policy_val, y =  RMSE, colour = NMS)) +
@@ -744,7 +747,7 @@ ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/valueISST_by_ratio
 # nred CHART #===============================================================
 #==========================================================================
 unique(perfomances_dt4$policy_name)
-plot_dt <- perfomances_dt4[policy_name == 'nred' & NMS %in% c('1_ok','2','3','4','5')  ] 
+plot_dt <- perfomances_dt4[policy_name == 'nred' & NMS %in% c('1_ok','dynamic','3','4','5')  ] 
 
 plot_dt[,soc_benefits := P + G]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
@@ -808,7 +811,7 @@ ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/nred_all_vars_part
 #==========================================================================
 # FEE CHART
 
-plot_dt <- perfomances_dt4[policy_name == 'fee' & NMS == '1'] 
+plot_dt <- perfomances_dt4[policy_name == 'fee' & NMS == 'static'] 
 
 plot_dt1 <- melt(plot_dt, id.vars = 'policy_val', measure.vars = c('Y_corn', 'L', 'N_fert', 'P', 'G'))
 plot_dt2 <- melt(plot_dt[policy_val == 6], id.vars = 'policy_val', measure.vars = c('Y_corn', 'L', 'N_fert', 'P', 'G'))
@@ -828,7 +831,7 @@ ggplot(plot_dt3) +
 # cols <- c( 'RMSE', 'MAE', 'RMSE_MAE')
 # rmse_dt[, (cols) := lapply(.SD, function(x) round(x,1)), .SDcols = cols]
 
-# rmse_dt[,NMS := factor(NMS, levels= c('1', '2', '3','4', '5', '6', '7', '8', '9', '10', '11', '12'))]
+# rmse_dt[,NMS := factor(NMS, levels= c('static', 'dynamic', '3','4', '5', '6', '7', '8', '9', '10', '11', '12'))]
 
 # (p1 <- ggplot(rmse_dt, aes(x = NMS, y = RMSE))+
 #     geom_bar(stat="identity") )
@@ -906,7 +909,7 @@ value_dt[, leach_ext_cell := leach_ext * corn_avg_ha]
 value_dt <- dcast(value_dt, id_10 ~ NMS, value.var = c('L_cell', 'leach_ext_cell', 'L'))
 value_dt[,L_4 := NULL]
 
-# setnames(value_dt, c('1', '4'), c('L_m1', 'L_m2'))
+# setnames(value_dt, c('static', '4'), c('L_m1', 'L_m2'))
 #make one negative
 value_dt[, eb_cell := L_cell_4-L_cell_1] #Enviromental Benefit
 
@@ -1376,7 +1379,7 @@ testing_set_dt <- perfomances_dt[id_10 == cell_n]
 testing_set_dt[,mean(Y_corn), by = mukey]
 
 testing_set_plot <- testing_set_dt[mukey == mukey_n]
-testing_set_plot[,NMS := factor(NMS, levels= c('1', '2', '3','4', '5', '6', '7', '8', '9', '10', '11', '12'))]
+testing_set_plot[,NMS := factor(NMS, levels= c('static', 'dynamic', '3','4', '5', '6', '7', '8', '9', '10', '11', '12'))]
 ic_field_plot <- yc_yearly_dt3[mukey == mukey_n & id_10 == cell_n ] %>% .[!z %in% training_z ]
 
 # testing_set_plot[,z := gsub(pattern = 'A', replacement = 'z', x = z)]

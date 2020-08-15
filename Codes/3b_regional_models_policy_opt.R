@@ -53,12 +53,9 @@ TrainSet2[,L := L1 + L2]
 TrainSet2[, Yld_response := max(Y_corn) - min(Y_corn), by = .(id_10, mukey,z)]
 
 # Limit the trials included in MRTN
-soy_profits <- FALSE
-if(soy_profits){
-  Yld_response_threshold <- 1000 
-}else{
-  Yld_response_threshold <- 2000  
-}
+
+Yld_response_threshold <- 500 
+
 
 # =========================================================================================================================================================
 # CREATE THE N RATIO TAX MODEL
@@ -138,6 +135,7 @@ for(ratio_n in ratio_seq){
   
   TrainSet_eonr2 <- TrainSet_eonr[,c('eonr', low_var, high_var), with = FALSE]
   
+  # saveRDS(TrainSet_eonr2, "./n_policy_box/Data/files_rds/TrainSet_eonr2.rds") #for python
   # =========================================================================================================================================================
   # RF Model 1------------------------
   
@@ -388,7 +386,7 @@ for(target_n in target_seq){
   
   best.m = 6
   
-  rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2[,c('eonr', low_var, high_var), with = FALSE],
+  rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_nr_tmp[,c('eonr', low_var, high_var), with = FALSE],
                            importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
   
   varImpPlot(rf2_eonr, type=2)
@@ -472,12 +470,12 @@ for(n_red in sort(red_seq, decreasing = T)){
   # =========================================================================================================================================================
   # ## PREPARE THE TRAINING DATA WITH EONR ========
   soils_training <- unique(TrainSet2_nr[,.(id_10, mukey, z_type)])
-  TrainSet_nr_tmp_list <- list()
   
   library("foreach")
   library("doParallel")
   registerDoParallel(20) # register the cluster
   # registerDoParallel(cores = 10)
+  
   TrainSet_nr_tmp_list = foreach(i = 1:nrow(soils_training), .combine = "c", .packages = c("data.table")) %dopar% {
     # i= 419
     print(i)
@@ -528,7 +526,7 @@ for(n_red in sort(red_seq, decreasing = T)){
       previous = sum(opt_dt$L)
       # print(sum(opt_dt$L))
       hit_the_target <- sum(opt_dt$L) <= leach_base_sum * n_red
-      # print(sum(opt_dt$L)/leach_base_sum)
+      print(sum(opt_dt$L)/leach_base_sum)
     } #end of while loop
     
     # return the results
@@ -569,10 +567,11 @@ for(n_red in sort(red_seq, decreasing = T)){
   #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
   # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
   
-  best.m <- 5
+  best.m = 6
   
   rf2_eonr <- randomForest(eonr ~ ., data = Trainset_optimized_tmp[,c('eonr', low_var, high_var), with = FALSE],
-                           importance = TRUE , mtry = best.m, ntree=1000, nodesize = 20)
+                           importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
+  
   # plot(rf2_eonr)
   varImpPlot(rf2_eonr, type=2)
   name_model = paste0('rf2')
