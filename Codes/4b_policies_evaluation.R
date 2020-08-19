@@ -12,16 +12,16 @@ library("foreach")
 library("doParallel")
 
 # install.packages('reticulate')
-library(reticulate)
-
-use_condaenv('GEOANN', conda = '/opt/anaconda3/condabin/conda')
-conda_install("GEOANN", "pyreadr")
-
-py_run_file("./n_policy_git/Codes/3c_cnn.py")
-
-#Activate condas from terminal
-system('source activate GEOANN')  
-system('/home/germanm2/n_policy_git/Codes/3c_cnn.py')
+# library(reticulate)
+# 
+# use_condaenv('GEOANN', conda = '/opt/anaconda3/condabin/conda')
+# conda_install("GEOANN", "pyreadr")
+# 
+# py_run_file("./n_policy_git/Codes/3c_cnn.py")
+# 
+# #Activate condas from terminal
+# system('source activate GEOANN')  
+# system('/home/germanm2/n_policy_git/Codes/3c_cnn.py')
 
 
 # #Create condas environment from R
@@ -39,24 +39,27 @@ system('/home/germanm2/n_policy_git/Codes/3c_cnn.py')
 # https://cran.r-project.org/web/packages/reticulate/vignettes/calling_python.html
 library(reticulate)
 use_condaenv('GEOANN', conda = '/opt/anaconda3/condabin/conda')
-# pd <- import("pandas")
-py_run_file("./n_policy_git/Codes/3c_cnn.py")
+source_python("./n_policy_git/Codes/3c_cnn_functions.py")
 
-# library(randomForest)
-# library(mlr)
-# eonr_mukey_dt3 <- readRDS("./n_policy_box/Data/files_rds/eonr_mukey_dt3.rds")
-# yc_yearly_dt <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt.rds")  
-# yc_yearly_dt3 <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
-# grid10_tiles_sf6 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf6.rds") 
-# grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
-# grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
+
 reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
 # grid10_soils_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_soils_sf2.rds')
 
 prediction_set_aggregated_dt <- readRDS("./n_policy_box/Data/files_rds/prediction_set_aggregated_dt.rds")
-prediction_set_aggregated_cnn_dt <- readRDS("./n_policy_box/Data/files_rds/prediction_set_aggregated_cnn_dt.rds") %>% data.table()
-nrow(prediction_set_aggregated_cnn_dt)
 
+# #---------------------------------------------------------------------------------
+# # Evaluate CNN
+# 
+# prediction_set_aggregated_cnn_dt <- readRDS("./n_policy_box/Data/files_rds/prediction_set_aggregated_cnn_dt.rds") %>% data.table()
+# nrow(prediction_set_aggregated_cnn_dt)
+# 
+# prediction_set_aggregated_dt[,eonr_pred_rf := ceiling(predict(reg_model_stuff[['ratio_5']]$rf2, prediction_set_aggregated_dt)/10)*10]
+# 
+# compare_dt <- merge(prediction_set_aggregated_dt, prediction_set_aggregated_cnn_dt[,.(id_10, id_field, region, z, eonr_pred_cnn = eonr_pred)], by = c('id_10', 'id_field', 'region', 'z'))
+# compare_dt[,eonr_pred_cnn := ceiling(as.numeric(eonr_pred_cnn)/10)*10]
+# 
+# ggplot(compare_dt[sample(1:nrow(compare_dt), 1000)]) + geom_point(aes(x = eonr_pred_rf, y= eonr_pred_cnn))
+#---------------------------------------------------------------------------------
 testing_set_dt <- readRDS("./n_policy_box/Data/files_rds/testing_set_dt.rds")
 testing_set_dt[, region := factor(region)]
 
@@ -109,7 +112,7 @@ for(policy_n in policies_ratios){
   results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'static'][,policy := policy_n]
   
   #===================================================================================================================
-  # 4) PREDICT WITH REGIONAL RF 2 - UR 
+  # 2) PREDICT WITH REGIONAL RF 2 - UR 
   # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
   
   prediction_set_aggregated_dt[,eonr_pred := ceiling(predict(reg_model_stuff[[policy_n]]$rf2, prediction_set_aggregated_dt)/10)*10]
@@ -122,7 +125,27 @@ for(policy_n in policies_ratios){
     .[N_fert == eonr_pred] %>%
     .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
   
-  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic'][,policy := policy_n]
+  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'rf'][,policy := policy_n]
+  
+  #===================================================================================================================
+  # 3) PREDICT CNN
+  # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
+  
+  prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n) %>% data.table()
+  
+  prediction_set_aggregated_dt2[,eonr_pred := ceiling(eonr_pred/10)*10]
+  
+  #---------------------------------------------------------------------------
+  # PERFORMANCE EVALUATION
+  testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
+                           prediction_set_aggregated_dt2[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+    .[,eonr_pred := ifelse(eonr_pred <10, 10, ifelse(eonr_pred > 330, 330, eonr_pred))] %>%
+    .[N_fert == eonr_pred] %>%
+    .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+  
+  
+  
+  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'cnn'][,policy := policy_n]
   
 }
 #---------------------------------------------------------------------------
