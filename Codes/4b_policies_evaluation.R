@@ -11,6 +11,37 @@ source('./n_policy_git/Codes/parameters.R')
 library("foreach")
 library("doParallel")
 
+# install.packages('reticulate')
+library(reticulate)
+
+use_condaenv('GEOANN', conda = '/opt/anaconda3/condabin/conda')
+conda_install("GEOANN", "pyreadr")
+
+py_run_file("./n_policy_git/Codes/3c_cnn.py")
+
+#Activate condas from terminal
+system('source activate GEOANN')  
+system('/home/germanm2/n_policy_git/Codes/3c_cnn.py')
+
+
+# #Create condas environment from R
+# library(reticulate)
+# conda_create("r-reticulate")
+# conda_install("r-reticulate", "pyreadr")
+# conda_install("r-reticulate", "numpy")
+# conda_install("r-reticulate", "pandas")
+# conda_install("r-reticulate", "scipy")
+# conda_install("r-reticulate", "torch")
+# conda_install("r-reticulate", "torchvision")
+# conda_install("r-reticulate", "sklearn")
+
+#Run python in condas environment from R
+# https://cran.r-project.org/web/packages/reticulate/vignettes/calling_python.html
+library(reticulate)
+use_condaenv('GEOANN', conda = '/opt/anaconda3/condabin/conda')
+# pd <- import("pandas")
+py_run_file("./n_policy_git/Codes/3c_cnn.py")
+
 # library(randomForest)
 # library(mlr)
 # eonr_mukey_dt3 <- readRDS("./n_policy_box/Data/files_rds/eonr_mukey_dt3.rds")
@@ -23,6 +54,9 @@ reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
 # grid10_soils_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_soils_sf2.rds')
 
 prediction_set_aggregated_dt <- readRDS("./n_policy_box/Data/files_rds/prediction_set_aggregated_dt.rds")
+prediction_set_aggregated_cnn_dt <- readRDS("./n_policy_box/Data/files_rds/prediction_set_aggregated_cnn_dt.rds") %>% data.table()
+nrow(prediction_set_aggregated_cnn_dt)
+
 testing_set_dt <- readRDS("./n_policy_box/Data/files_rds/testing_set_dt.rds")
 testing_set_dt[, region := factor(region)]
 
