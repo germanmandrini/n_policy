@@ -130,6 +130,7 @@ for(policy_n in policies_ratios){
   #===================================================================================================================
   # 3) PREDICT CNN
   # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
+  source_python("./n_policy_git/Codes/3c_cnn_functions.py")
   
   prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n) %>% data.table()
   

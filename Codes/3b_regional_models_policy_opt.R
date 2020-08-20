@@ -120,6 +120,8 @@ for(ratio_n in ratio_seq){
   
   # =========================================================================================================================================================
   #Call python to build the CNN
+  source_python("./n_policy_git/Codes/3c_cnn_functions.py")
+  name_model = paste0('ratio_', ratio_n)
   build_cnn(TrainSet_eonr2[,c('eonr', low_var, high_var), with = FALSE], name_model)
   
   # --------------------------------------
