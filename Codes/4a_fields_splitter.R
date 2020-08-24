@@ -6,7 +6,7 @@ rm(list=ls())
 
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
-source('./n_policy_git/Codes/parameters.R')
+source('C:/Users/germa/Documents/n_policy_git/Codes/parameters.R')
 source('C:/Users/germanm2/Documents/n_policy_git/Codes/parameters.R')
 
 
@@ -122,30 +122,30 @@ process_field_economics <- function(j){
     ic_field_dt$mukey %>% unique()
     #===================================================================================================================
     # CHANGE THE RATIO APPROACH
-    
-      # the NMS is trained with z1-10 and testing is evaluated with z11-25
-      testing_set <- ic_field_dt %>%
+    testing_set <- ic_field_dt %>%
         .[,c("mukey", "z", "id_10", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert")]
       
 
-      #===================================================================================================================
-      # AGGREGATE THE INFORMATION AT THE FIELD LEVEL 
-      prediction_set <- data.table(unique(ic_field_dt[, c('mukey', 'z','area_ha', low_var, high_var), with = FALSE])) #this is unique v5 conditions, doesn't have the different N rates
+    #===================================================================================================================
+    # AGGREGATE THE INFORMATION AT THE FIELD LEVEL 
+  
+    ic_field_dt[, P := Y_corn * Pc - N_fert * Pn]
+    prediction_set <- data.table(unique(ic_field_dt[, c('mukey', 'z','area_ha', low_var, high_var, 'N_fert','P'), with = FALSE])) #this is unique v5 conditions, doesn't have the different N rates
 
-      table(prediction_set$z)
+    table(prediction_set$z)
 
-      test <- copy(prediction_set) #need to be here, before the columns are updated
+    # We need to aggregate at the field level because is UR
+    do_aggregate = c(low_var, high_var, 'P')
 
-      # We need to aggregate at the field level because is UR
-      do_not_aggregate = c("mukey", "z", "area_ha")
-      do_aggregate = setdiff(c(low_var, high_var), do_not_aggregate)
+    prediction_set_aggregated  <- aggregate_by_area(data_dt = prediction_set, variables = do_aggregate,
+                                                  weight = 'area_ha', by_c = c('z', 'N_fert')) %>% 
+      .[, .SD[ P == max( P)], by = .(z)] %>%
+      .[, .SD[ N_fert == min(N_fert)], by = .(z)] %>% setnames('N_fert', 'eonr_12') %>% .[,-'P']
+    
 
-      prediction_set_aggregated  <- aggregate_by_area(data_dt = prediction_set, variables = do_aggregate,
-                                                    weight = 'area_ha', by_c = c('z'))# %>% .[,-'area_ha']
-
-      output_list <- list() 
-      output_list[['testing_set']] <- cbind(field_info[1,.(id_10, id_field, region)], testing_set[,-'id_10'])
-      output_list[['prediction_set_aggregated']] <- cbind(field_info[1,.(id_10, id_field, region)], prediction_set_aggregated)
+    output_list <- list() 
+    output_list[['testing_set']] <- cbind(field_info[1,.(id_10, id_field, region)], testing_set[,-'id_10'])
+    output_list[['prediction_set_aggregated']] <- cbind(field_info[1,.(id_10, id_field, region)], prediction_set_aggregated)
       
    
       
@@ -158,16 +158,10 @@ time1 <- Sys.time()
 
 fields_seq <- 1:nrow(fields_list_dt)
 
-which(fields_list_dt$id_10 == 22 & fields_list_dt$id_field == 1)
-fields_list_dt[20]
-# fields_seq <- sample(1:nrow(fields_list_dt), 50)
-# test_dt <- process_field_economics(20)
-test_dt$testing_set[N_fert == 150 & z == 11]
-
 #---------------------
 #Get the two sets for each field
-registerDoParallel(cores = 4)
-output_list = foreach(j = fields_seq, .combine = "c", .packages = c("data.table")) %dopar% {
+registerDoParallel(cores = 7)
+output_list = foreach(j = fields_seq, .combine = "c", .packages = c("data.table", "dplyr")) %dopar% {
   # j <- 1
   tmp_dt <- process_field_economics(j)
   list(tmp_dt)
