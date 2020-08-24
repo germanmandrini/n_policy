@@ -158,15 +158,9 @@ time1 <- Sys.time()
 
 fields_seq <- 1:nrow(fields_list_dt)
 
-which(fields_list_dt$id_10 == 22 & fields_list_dt$id_field == 1)
-fields_list_dt[20]
-# fields_seq <- sample(1:nrow(fields_list_dt), 50)
-# test_dt <- process_field_economics(20)
-test_dt$testing_set[N_fert == 150 & z == 11]
-
 #---------------------
 #Get the two sets for each field
-registerDoParallel(cores = 4)
+registerDoParallel(cores = 7)
 output_list = foreach(j = fields_seq, .combine = "c", .packages = c("data.table")) %dopar% {
   # j <- 1
   tmp_dt <- process_field_economics(j)
