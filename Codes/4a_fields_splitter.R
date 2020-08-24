@@ -161,7 +161,7 @@ fields_seq <- 1:nrow(fields_list_dt)
 #---------------------
 #Get the two sets for each field
 registerDoParallel(cores = 7)
-output_list = foreach(j = fields_seq, .combine = "c", .packages = c("data.table")) %dopar% {
+output_list = foreach(j = fields_seq, .combine = "c", .packages = c("data.table", "dplyr")) %dopar% {
   # j <- 1
   tmp_dt <- process_field_economics(j)
   list(tmp_dt)
