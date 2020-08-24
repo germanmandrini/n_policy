@@ -13,6 +13,10 @@ library(randomForest)
 # library(mlr)
 source('./n_policy_git/Codes/parameters.R')
 
+library(reticulate)
+use_condaenv('GEOANN', conda = '/opt/anaconda3/condabin/conda')
+source_python("./n_policy_git/Codes/3c_cnn_functions.py")
+
 # yc_yearly_dt3 <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
 # grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
 
@@ -77,43 +81,6 @@ for(ratio_n in ratio_seq){
   # TrainSet2[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn_tmp]  #update profits
   TrainSet2[, P := Y_corn * Pc - N_fert * Pn_tmp]  #update profits
   # =========================================================================================================================================================
-  # CREATE THE REGIONAL MINIMUM MODEL
-  
-  # #Analysis included only responsive sites (sawyer 2006)
-  # TrainSet2[, Y_corn_response := max(Y_corn) - min(Y_corn), by = .(id_10, mukey,z)]
-  # TrainSet_RMM <- TrainSet2[Y_corn_response > 500]
-  # 
-  # #Select a few rates
-  # #Alll this comes from https://rcompanion.org/handbook/I_11.html
-  # # N_rates_trial <- c(10, 90,170,250, 330)
-  # N_rates_trial <- seq(10,330,10)
-  # 
-  # quadratic_dt <- TrainSet_RMM[,list(intercept=coef(lm(P ~ N_fert + I(N_fert^2)))[1], 
-  #                                    coef1=coef(lm(P ~ N_fert + I(N_fert^2)))[2],
-  #                                    coef2=coef(lm(P ~ N_fert + I(N_fert^2)))[3]),by=.(id_10, mukey,z, region)]
-  # 
-  # # Expand and calculate P
-  # N_rates_int <- seq(min(N_rates_trial),max(N_rates_trial), by = 10)
-  # quadratic_dt2 <- quadratic_dt[rep(x = 1:nrow(quadratic_dt), each = length(N_rates_int))]
-  # 
-  # 
-  # 
-  # quadratic_dt2[,N_fert := rep(N_rates_int, nrow(quadratic_dt))]
-  # quadratic_dt2[,P := intercept + coef1 * N_fert + coef2 * (N_fert^2)]
-  # # quadratic_dt2[,P:= Y_corn * Pc - N_fert * Pn]
-  # 
-  # #Average all curves
-  # quadratic_dt3 <- quadratic_dt2[,.(P_avg = mean(P)), by = .(region, N_fert)]
-  # ggplot(quadratic_dt3) + geom_point(aes(x = N_fert, y = P_avg, colour = interaction(region)))
-  # 
-  # #Select EONR
-  # model_minimum_regional <- quadratic_dt3[, .SD[ P_avg == max( P_avg)], by = .(region)][,.( region, N_fert)]
-  # setnames(model_minimum_regional, 'N_fert', 'eonr_pred')
-  # 
-  # name_model = paste0('minimum')
-  # small_model_list[[name_model]] <- model_minimum_regional
-  
-  # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL - OK
   TrainSet_RMM <- TrainSet2[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
   
@@ -137,25 +104,7 @@ for(ratio_n in ratio_seq){
   
   # saveRDS(TrainSet_eonr2, "./n_policy_box/Data/files_rds/TrainSet_eonr2.rds") #for python
   # =========================================================================================================================================================
-  # RF Model 1------------------------
-  
-  # Create a Random Forest model with default parameters
-  
-  # mtry <- tuneRF(TrainSet_eonr2[,c(low_var), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
-  #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
-  # 
-  # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
-  # best.m = 6
-  # 
-  # rf1_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2[,c('eonr',low_var), with = FALSE],
-  #                         importance = TRUE , mtry = best.m, ntree=1000) # , ntree=500, nodesize = 20
-  # 
-  # varImpPlot(rf1_eonr, type=2)
-  # name_model = paste0('rf1')
-  # small_model_list[[name_model]] <- rf1_eonr
-  
-  # --------------------------------------
-  # RF Model 2------------------------
+    # RF Model 2------------------------
   # mtry <- tuneRF(TrainSet_eonr2[,c(low_var, high_var), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
   #                 stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE) # ,mtryStart = 5
   # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
@@ -168,6 +117,12 @@ for(ratio_n in ratio_seq){
   plot(rf2_eonr)
   name_model = paste0('rf2')
   small_model_list[[name_model]] <- rf2_eonr
+  
+  # =========================================================================================================================================================
+  #Call python to build the CNN
+  source_python("./n_policy_git/Codes/3c_cnn_functions.py")
+  name_model = paste0('ratio_', ratio_n)
+  build_cnn(TrainSet_eonr2[,c('eonr', low_var, high_var), with = FALSE], name_model)
   
   # --------------------------------------
   # Save it to the big list
@@ -280,6 +235,11 @@ for(fee_n in fee_seq){
   
   name_model = paste0('rf2')
   small_model_list[[name_model]] <- rf2_eonr
+  # =========================================================================================================================================================
+  #Call python to build the CNN
+  build_cnn(TrainSet_eonr2[,c('eonr', low_var, high_var), with = FALSE], name_model)
+  
+  
   # --------------------------------------
   # Save it to the big list
   name_model = paste0('fee_', fee_n)
@@ -392,6 +352,12 @@ for(target_n in target_seq){
   varImpPlot(rf2_eonr, type=2)
   name_model = paste0('rf2')
   small_model_list[[name_model]] <- rf2_eonr
+  
+  # =========================================================================================================================================================
+  #Call python to build the CNN
+  build_cnn(TrainSet_eonr2[,c('eonr', low_var, high_var), with = FALSE], name_model)
+  
+  #----------------------------------------------------------------------------------------------------------------------
   
   name_model = paste0('target_', target_n)
   reg_model_stuff[[name_model]] <- small_model_list
@@ -577,6 +543,11 @@ for(n_red in sort(red_seq, decreasing = T)){
   name_model = paste0('rf2')
   small_model_list[[name_model]] <- rf2_eonr
   
+  # =========================================================================================================================================================
+  #Call python to build the CNN
+  build_cnn(Trainset_optimized_tmp[,c('eonr', low_var, high_var), with = FALSE], name_model)
+  
+  #--------------------------------------------------------------------------------------------------------------
   name_model = paste0('nred_', n_red)
   reg_model_stuff[[name_model]] <- small_model_list
   names(reg_model_stuff)
