@@ -143,8 +143,8 @@ eonr_explore_dt[,.(eonr = mean(eonr)), by = z][order(z)]
 ggplot(eonr_explore_dt) + geom_boxplot(aes(x = factor(z), y = eonr))
 
 # training_z <- sort(sample(1:30, 15))
-# training_z <- c(3  5  7 11 12 13 15 16 18 19 21 22 23 24 25)
-training_z <- c(1:10)
+training_z <- c(2,  3,  4,  6, 10, 11, 16, 20, 22, 23, 24, 25, 26, 28, 29)
+# training_z <- c(1:15)
 
 # training_z <- sort(sample(1:30, 15))
 

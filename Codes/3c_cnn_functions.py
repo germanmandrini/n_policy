@@ -24,7 +24,7 @@ class Net(torch.nn.Module):
         x = self.predict(x)             # linear output
         return x
     
-def build_cnn(TrainSet_eonr2_df, policy):
+def build_cnn(TrainSet_eonr2_df, policy, pred_vars):
     #Define training hyperprameters.
     batch_size = 50
     num_epochs = 200
@@ -32,8 +32,9 @@ def build_cnn(TrainSet_eonr2_df, policy):
     size_hidden= 100
     
     y_train = TrainSet_eonr2_df['eonr']
-    X_train = TrainSet_eonr2_df.drop('eonr', axis=1)
-
+    #X_train = TrainSet_eonr2_df.drop('eonr', axis=1)
+    X_train = TrainSet_eonr2_df[pred_vars]
+    
     X_train=X_train.values
     y_train=y_train.values
 
@@ -84,7 +85,7 @@ def build_cnn(TrainSet_eonr2_df, policy):
     torch.save(net.state_dict(), path)
     return(net)    
 
-def predict_cnn(prediction_set_aggregated_df, policy):
+def predict_cnn(prediction_set_aggregated_df, policy, pred_vars):
     #Load the saved model
     #policy = 'ratio_5'
     path = '/home/germanm2/n_policy_box/Data/files_rds/cnn_models/'+ policy + '.pth'
@@ -92,8 +93,7 @@ def predict_cnn(prediction_set_aggregated_df, policy):
     net_load.load_state_dict(torch.load(path))
     net_load.eval()
     net_load.state_dict()
-    X_pred = prediction_set_aggregated_df[['rain_30', 'rain_60','rain_90', 't_max_30', 't_max_60', 't_max_90', 't_min_30', 't_min_60', 't_min_90', 'Y_prev',
- 'Y_corn_lt_avg', 'day_sow', 'day_v5', 'lai_v5', 'whc', 'oc_20cm_v5', 'sw_dep_v5', 'n_0_60cm_v5', 'surfaceom_wt_v5', 'sand_40cm', 'clay_40cm']]
+    X_pred = prediction_set_aggregated_df[pred_vars]
     X_pred=X_pred.values
     X_pred
     X = Variable(torch.FloatTensor(X_pred)) 

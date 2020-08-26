@@ -130,7 +130,7 @@ for(policy_n in policies_ratios){
   #===================================================================================================================
   # 3) PREDICT CNN
   # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
-  prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n) %>% data.table()
+  prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n, pred_vars) %>% data.table()
   
   prediction_set_aggregated_dt2[,eonr_pred := ceiling(eonr_pred/10)*10]
   
@@ -197,7 +197,7 @@ for(policy_n in policies_fee){
   #===================================================================================================================
   # 3) PREDICT CNN
   # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
-  prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n) %>% data.table()
+  prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n, pred_vars) %>% data.table()
   
   prediction_set_aggregated_dt2[,eonr_pred := ceiling(eonr_pred/10)*10]
   
@@ -258,7 +258,7 @@ for(policy_n in policies_target){
   #===================================================================================================================
   # 3) PREDICT CNN
   # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
-  prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n) %>% data.table()
+  prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n, pred_vars) %>% data.table()
   
   prediction_set_aggregated_dt2[,eonr_pred := ceiling(eonr_pred/10)*10]
   
@@ -319,7 +319,7 @@ for(policy_n in policies_nred){
   #===================================================================================================================
   # 3) PREDICT CNN
   # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
-  prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n) %>% data.table()
+  prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n, pred_vars) %>% data.table()
   
   prediction_set_aggregated_dt2[,eonr_pred := ceiling(eonr_pred/10)*10]
   

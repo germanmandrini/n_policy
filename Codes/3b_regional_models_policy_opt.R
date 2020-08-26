@@ -46,11 +46,12 @@ TrainSet2 <- reg_model_stuff[['TrainSet']]
 
 hist(TrainSet2$n_0_60cm_v5)
 
-low_var <- c("rain_30", "rain_60", "rain_90",
-             "t_max_30", "t_max_60", "t_max_90", "t_min_30", "t_min_60",
-             "t_min_90", "Y_prev", 'Y_corn_lt_avg', "day_sow", "day_v5", "lai_v5")#'Y_corn_lt_min', 'Y_corn_lt_max', 
+pred_vars <- c("rain_30", "rain_60", "rain_90",
+               "t_max_30", "t_max_60", "t_max_90", "t_min_30", "t_min_60",
+               "t_min_90", "Y_prev", 'Y_corn_lt_avg', "day_sow", "day_v5", "lai_v5",
+               "whc",  "oc_20cm_v5", "sw_dep_v5", "n_0_60cm_v5",  "surfaceom_wt_v5", "sand_40cm", "clay_40cm") #"root_wt_v5",, "n_deep_v5", "esw_pct_v5", 
 
-high_var <- c("whc",  "oc_20cm_v5", "sw_dep_v5", "n_0_60cm_v5",  "surfaceom_wt_v5", "sand_40cm", "clay_40cm") #"root_wt_v5",, "n_deep_v5", "esw_pct_v5", 
+saveRDS(pred_vars, "./n_policy_box/Data/files_rds/pred_vars.rds")
 
 TrainSet2[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5]
 TrainSet2[,L := L1 + L2]
@@ -64,7 +65,7 @@ Yld_response_threshold <- 500
 # =========================================================================================================================================================
 # CREATE THE N RATIO TAX MODEL
 
-ratio_seq <- sort(c(seq(5, 20, by = 3)))
+ratio_seq <- sort(c(seq(5, 20, by = 1)))
 # ratio_seq <- sort(c(seq(5, 20, by = 5)))
 # ratio_seq <- c(5)
 set.seed(123)
@@ -100,17 +101,17 @@ for(ratio_n in ratio_seq){
   TrainSet_eonr <- TrainSet2[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
   setnames(TrainSet_eonr, 'N_fert', 'eonr')
   
-  TrainSet_eonr2 <- TrainSet_eonr[,c('eonr', low_var, high_var), with = FALSE]
+  TrainSet_eonr2 <- TrainSet_eonr[,c('eonr', pred_vars), with = FALSE]
   
   # saveRDS(TrainSet_eonr2, "./n_policy_box/Data/files_rds/TrainSet_eonr2.rds") #for python
   # =========================================================================================================================================================
     # RF Model 2------------------------
-  # mtry <- tuneRF(TrainSet_eonr2[,c(low_var, high_var), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
+  # mtry <- tuneRF(TrainSet_eonr2[,c(pred_vars), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
   #                 stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE) # ,mtryStart = 5
   # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
   best.m = 6
   
-  rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2[,c('eonr', low_var, high_var), with = FALSE],
+  rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2[,c('eonr', pred_vars), with = FALSE],
                            importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
  
   varImpPlot(rf2_eonr, type=2)
@@ -121,7 +122,7 @@ for(ratio_n in ratio_seq){
   # =========================================================================================================================================================
   #Call python to build the CNN
   # source_python("./n_policy_git/Codes/3c_cnn_functions.py")
-  build_cnn(TrainSet_eonr2[,c('eonr', low_var, high_var), with = FALSE], policy_n)
+  build_cnn(TrainSet_eonr2[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
   
   # --------------------------------------
   # Save it to the big list
@@ -135,7 +136,7 @@ for(ratio_n in ratio_seq){
 # CREATE THE LEACHING FEE MODEL
 source('./n_policy_git/Codes/parameters.R')
 # fee_seq <- sort(c(seq(0, 10, by = 2)))
-fee_seq <- sort(c(seq(0, 10, by = 3)))
+fee_seq <- sort(c(seq(0, 10, by = 1)))
 # fee_seq <- c(0,4)
 length(fee_seq)
 set.seed(123)
@@ -217,16 +218,16 @@ for(fee_n in fee_seq){
   TrainSet_eonr <- TrainSet2[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
   setnames(TrainSet_eonr, 'N_fert', 'eonr')
   
-  TrainSet_eonr2 <- TrainSet_eonr[,c('eonr', low_var, high_var), with = FALSE]
+  TrainSet_eonr2 <- TrainSet_eonr[,c('eonr', pred_vars), with = FALSE]
   
   # =========================================================================================================================================================
   # RF Model 2------------------------
-  # mtry <- tuneRF(TrainSet_eonr2[,c(low_var, high_var), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
+  # mtry <- tuneRF(TrainSet_eonr2[,c(pred_vars), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
   #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
   # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
   best.m = 6
   
-  rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2[,c('eonr', low_var, high_var), with = FALSE],
+  rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2[,c('eonr', pred_vars), with = FALSE],
                            importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
   
   varImpPlot(rf2_eonr, type=2)
@@ -235,7 +236,7 @@ for(fee_n in fee_seq){
   small_model_list[[name_model]] <- rf2_eonr
   # =========================================================================================================================================================
   #Call python to build the CNN
-  build_cnn(TrainSet_eonr2[,c('eonr', low_var, high_var), with = FALSE], policy_n)
+  build_cnn(TrainSet_eonr2[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
   
   
   # --------------------------------------
@@ -265,8 +266,8 @@ TrainSet_nr[L > 0 & leach_base == 0, leach_rel := L/0.0001] #avoid dividing by 0
 TrainSet_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)]
 TrainSet_RMM <- TrainSet_nr[Yld_response > Yld_response_threshold]
 
-# target_seq <- sort(unique(c(seq(0.7,0.89, by = 0.04), seq(0.9,1, by = 0.02))))
-target_seq <- sort(unique(c(seq(0.7,0.89, by = 0.04), seq(0.9,1, by = 0.05))))
+target_seq <- sort(unique(c(seq(0.7,0.89, by = 0.03), seq(0.9,1, by = 0.01))))
+# target_seq <- sort(unique(c(seq(0.7,0.89, by = 0.04), seq(0.9,1, by = 0.05))))
 
 length(target_seq)
 
@@ -334,17 +335,17 @@ for(target_n in target_seq){
   table(TrainSet_nr_tmp[,.N, by = .(id_10, mukey, z)]$N)
   
   TrainSet_nr_tmp[,.N, by = .(id_10, mukey, z)]
-  TrainSet_nr_tmp <- TrainSet_nr_tmp[,c('eonr', low_var, high_var), with = FALSE]
+  TrainSet_nr_tmp <- TrainSet_nr_tmp[,c('eonr', pred_vars), with = FALSE]
   
   # =========================================================================================================================================================
   # RF Model 2------------------------
-  # mtry <- tuneRF(TrainSet_nr_tmp[,c(low_var, high_var), with = FALSE],TrainSet_nr_tmp$eonr, ntreeTry=1000,
+  # mtry <- tuneRF(TrainSet_nr_tmp[,c(pred_vars), with = FALSE],TrainSet_nr_tmp$eonr, ntreeTry=1000,
   #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
   # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
   
   best.m = 6
   
-  rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_nr_tmp[,c('eonr', low_var, high_var), with = FALSE],
+  rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_nr_tmp[,c('eonr', pred_vars), with = FALSE],
                            importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
   
   varImpPlot(rf2_eonr, type=2)
@@ -353,7 +354,7 @@ for(target_n in target_seq){
   
   # =========================================================================================================================================================
   #Call python to build the CNN
-  build_cnn(TrainSet_eonr2[,c('eonr', low_var, high_var), with = FALSE], policy_n)
+  build_cnn(TrainSet_eonr2[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
   
   #----------------------------------------------------------------------------------------------------------------------
   reg_model_stuff[[policy_n]] <- small_model_list
@@ -521,17 +522,17 @@ for(n_red in sort(red_seq, decreasing = T)){
   # table(TrainSet_nr_tmp[,.N, by = .(id_10, mukey, z)]$N)
   # 
   # TrainSet_nr_tmp[,.N, by = .(id_10, mukey, z)]
-  # TrainSet_nr_tmp <- TrainSet_nr_tmp[,c('eonr', low_var, high_var), with = FALSE]
+  # TrainSet_nr_tmp <- TrainSet_nr_tmp[,c('eonr', pred_vars), with = FALSE]
   
   # =========================================================================================================================================================
   # RF Model 2------------------------
-  # mtry <- tuneRF(TrainSet_nr_tmp[,c(low_var, high_var), with = FALSE],TrainSet_nr_tmp$eonr, ntreeTry=1000,
+  # mtry <- tuneRF(TrainSet_nr_tmp[,c(pred_vars), with = FALSE],TrainSet_nr_tmp$eonr, ntreeTry=1000,
   #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
   # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
   
   best.m = 6
   
-  rf2_eonr <- randomForest(eonr ~ ., data = Trainset_optimized_tmp[,c('eonr', low_var, high_var), with = FALSE],
+  rf2_eonr <- randomForest(eonr ~ ., data = Trainset_optimized_tmp[,c('eonr', pred_vars), with = FALSE],
                            importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
   
   # plot(rf2_eonr)
@@ -541,8 +542,8 @@ for(n_red in sort(red_seq, decreasing = T)){
   
   # =========================================================================================================================================================
   #Call python to build the CNN
-  build_cnn(Trainset_optimized_tmp[,c('eonr', low_var, high_var), with = FALSE], policy_n)
-  
+  build_cnn(Trainset_optimized_tmp[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
+
   #--------------------------------------------------------------------------------------------------------------
   reg_model_stuff[[policy_n]] <- small_model_list
   names(reg_model_stuff)
@@ -635,7 +636,7 @@ for(n_red in sort(red_seq, decreasing = T)){
 #   table(TrainSet_nr_tmp[,.N, by = .(id_10, mukey, z)]$N)
 #   
 #   TrainSet_nr_tmp[,.N, by = .(id_10, mukey, z)]
-#   # TrainSet_nr_tmp <- TrainSet_nr_tmp[,c('eonr', low_var, high_var), with = FALSE]
+#   # TrainSet_nr_tmp <- TrainSet_nr_tmp[,c('eonr', pred_vars), with = FALSE]
 #   hist(TrainSet_nr_tmp$eonr)
 #   #-----------
 #   #Add the shadow value
@@ -651,24 +652,24 @@ for(n_red in sort(red_seq, decreasing = T)){
 #   
 #   # =========================================================================================================================================================
 #   # RF Model 2------------------------
-#   # mtry <- tuneRF(TrainSet_nr_tmp[,c(low_var, high_var), with = FALSE],TrainSet_nr_tmp$eonr, ntreeTry=1000,
+#   # mtry <- tuneRF(TrainSet_nr_tmp[,c(pred_vars), with = FALSE],TrainSet_nr_tmp$eonr, ntreeTry=1000,
 #   #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
 #   # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
 #   
 #   best.m <- 5
 #   
-#   rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_nr_tmp[,c('eonr', low_var, high_var), with = FALSE],
+#   rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_nr_tmp[,c('eonr', pred_vars), with = FALSE],
 #                            importance = TRUE , mtry = best.m, ntree=1000, nodesize = 20)
 #   
 #   # varImpPlot(rf2_eonr, type=2)
 #   name_model = paste0('rf2')
 #   small_model_list[[name_model]] <- rf2_eonr
 #   
-#   # mtry <- tuneRF(shadow_dt[,c('shadow_val_rel', low_var, high_var), with = FALSE],shadow_dt$shadow_val_rel, ntreeTry=1000,
+#   # mtry <- tuneRF(shadow_dt[,c('shadow_val_rel', pred_vars), with = FALSE],shadow_dt$shadow_val_rel, ntreeTry=1000,
 #   #                                stepFactor=1.2,improve=0.1, trace=TRUE, plot=TRUE)
 #   best.m <- 10           
 #   setnames(shadow_dt, 'N_fert', 'eonr_pred_cut') #when we predict the shadow value, we will do it using already predicted eonr_pred
-#   rf2_shadow <- randomForest(shadow_val_rel ~ ., data = shadow_dt[,c('shadow_val_rel', 'eonr_pred_cut' ,low_var, high_var), with = FALSE],
+#   rf2_shadow <- randomForest(shadow_val_rel ~ ., data = shadow_dt[,c('shadow_val_rel', 'eonr_pred_cut' ,pred_vars), with = FALSE],
 #                              importance = TRUE , mtry = best.m, ntree=1000, nodesize = 20)
 #   
 #   # plot(rf2_shadow)
@@ -686,8 +687,7 @@ for(n_red in sort(red_seq, decreasing = T)){
 names(reg_model_stuff)
 
 
-reg_model_stuff[['no_cost_var']] <-  low_var
-reg_model_stuff[['ss_var']] <-  high_var
+# reg_model_stuff[['pred_vars']] <-  pred_vars
 # reg_model_stuff[['crop_varb']] <-  crop_varb
 # reg_model_stuff[['low_var_trf']] <-  low_var
 # reg_model_stuff[['preprocessParams']] <-  preprocessParams

@@ -8,7 +8,7 @@ source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
 source('C:/Users/germa/Documents/n_policy_git/Codes/parameters.R')
 source('C:/Users/germanm2/Documents/n_policy_git/Codes/parameters.R')
-
+source('./n_policy_git/Codes/parameters.R')
 
 library("foreach")
 library("doParallel")
@@ -25,14 +25,7 @@ reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
 grid10_soils_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_soils_sf2.rds')
 
 names(reg_model_stuff)
-reg_model_stuff$ratio_6$minimum_ok
-reg_model_stuff$fee_0$minimum_ok
-# yc_yearly_dt3[,L := L1 + L2] #update leaching adding corn and soy
-# yc_yearly_dt3[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn] #update profits adding corn and soy
 
-#Get profits relative to zero Nitrogen Rate
-# data_zero_dt <- yc_yearly_dt3[N_fert == 10, .(id_10, mukey, z, Y_corn_zero = Y_corn, Y_soy_zero = Y_soy, L_zero = L, N_fert_zero = N_fert)] %>% unique()
-# yc_yearly_dt3 <- merge(yc_yearly_dt3, data_zero_dt, by = c('id_10', 'mukey', 'z'))
 
 #======================================================================================
 # GET THE FIELDS THAT CAN BE RUN
@@ -53,15 +46,7 @@ fields_list_dt <- full_fields_dt2
 
 # ----------------
 # training_z <- reg_model_stuff$training_z
-low_var <- reg_model_stuff$no_cost_var
-high_var <- reg_model_stuff$high_var
-
-low_var <- c("rain_30", "rain_60", "rain_90",
-             "t_max_30", "t_max_60", "t_max_90", "t_min_30", "t_min_60",
-             "t_min_90", "Y_prev", 'Y_corn_lt_avg', "day_sow", "day_v5", "lai_v5")#'Y_corn_lt_min', 'Y_corn_lt_max', 
-
-high_var <- c("whc",  "oc_20cm_v5", "sw_dep_v5", "n_0_60cm_v5",  "surfaceom_wt_v5", "sand_40cm", "clay_40cm") #"root_wt_v5",, "n_deep_v5", "esw_pct_v5", 
-
+pred_vars <- readRDS("./n_policy_box/Data/files_rds/pred_vars.rds")
 
 rm(reg_model_stuff)
 # crop_varb <- reg_model_stuff$crop_varb
@@ -130,12 +115,12 @@ process_field_economics <- function(j){
     # AGGREGATE THE INFORMATION AT THE FIELD LEVEL 
   
     ic_field_dt[, P := Y_corn * Pc - N_fert * Pn]
-    prediction_set <- data.table(unique(ic_field_dt[, c('mukey', 'z','area_ha', low_var, high_var, 'N_fert','P'), with = FALSE])) #this is unique v5 conditions, doesn't have the different N rates
+    prediction_set <- data.table(unique(ic_field_dt[, c('mukey', 'z','area_ha', pred_vars, 'N_fert','P'), with = FALSE])) #this is unique v5 conditions, doesn't have the different N rates
 
     table(prediction_set$z)
 
     # We need to aggregate at the field level because is UR
-    do_aggregate = c(low_var, high_var, 'P')
+    do_aggregate = c(pred_vars, 'P')
 
     prediction_set_aggregated  <- aggregate_by_area(data_dt = prediction_set, variables = do_aggregate,
                                                   weight = 'area_ha', by_c = c('z', 'N_fert')) %>% 
@@ -160,8 +145,10 @@ fields_seq <- 1:nrow(fields_list_dt)
 
 #---------------------
 #Get the two sets for each field
-registerDoParallel(cores = 7)
-output_list = foreach(j = fields_seq, .combine = "c", .packages = c("data.table", "dplyr")) %dopar% {
+process_field_economics(20)
+
+registerDoParallel(cores = detectCores()/2)
+output_list = foreach(j = fields_seq, .combine = "c", .packages = c("data.table", "dplyr")) %do% {
   # j <- 1
   tmp_dt <- process_field_economics(j)
   list(tmp_dt)
