@@ -84,16 +84,34 @@ grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
     grid10_soils_dt5 <- merge(grid10_soils_dt5, fields_cnt, by = 'id_10')
     candidates_dt <- grid10_soils_dt5[field_cnt == 4 & id_field %in% c(1,2)]
     
-    set.seed(256)
+    #Method 1: stations by region
+    if(FALSE){
+      set.seed(256)
+      stations_dt <- data.table()
+      stations_by_region <- 40
+      for(region_n in c(1,2,3)){
+        # region_n <- 1
+        candidates_region_dt <- candidates_dt[region == region_n]
+        id_10_sample <- sample(unique(candidates_region_dt$id_10), stations_by_region, replace = F)
+        stations_dt <- rbind(stations_dt, candidates_region_dt[id_10 %in% id_10_sample])
+      }
+    }
+    #Method 2: random stations proportional to the number of fields
+    set.seed(512)
+    stations_by_region_dt <- grid10_soils_dt5[,.N, .(region, id_10, id_field)][,.N, region]
+    stations_by_region_dt[,prop := N/sum(N)]
+    stations_by_region_dt[,station := round(120*prop)]
+    stations_by_region_dt[,sum(station)] == 120
+    
     stations_dt <- data.table()
-    stations_by_region <- 40
     for(region_n in c(1,2,3)){
       # region_n <- 1
       candidates_region_dt <- candidates_dt[region == region_n]
-      id_10_sample <- sample(unique(candidates_region_dt$id_10), stations_by_region, replace = F)
+      amount_of_stations <- stations_by_region_dt[region == region_n]$station
+      id_10_sample <- sample(unique(candidates_region_dt$id_10), amount_of_stations, replace = F)
       stations_dt <- rbind(stations_dt, candidates_region_dt[id_10 %in% id_10_sample])
     }
-    
+    stations_dt[,.N, region]
     #-------------------
     #Remove fields that are stations
     remove_this <- filter_dt_in_dt(grid10_soils_dt5, filter_dt = unique(stations_dt[,.(id_10, id_field)]))
@@ -126,7 +144,7 @@ ggplot(eonr_explore_dt) + geom_boxplot(aes(x = factor(z), y = eonr))
 
 # training_z <- sort(sample(1:30, 15))
 # training_z <- c(3  5  7 11 12 13 15 16 18 19 21 22 23 24 25)
-training_z <- c(1:14)
+training_z <- c(1:10)
 
 # training_z <- sort(sample(1:30, 15))
 

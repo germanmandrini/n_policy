@@ -93,6 +93,8 @@ if(FALSE){
   summary(yc_yearly_dt2a$L1)
   yc_yearly_dt2a[L1 > 500]
   
+  #Dont do it
+  yc_yearly_dt2a <- yc_yearly_dt
   #------------------------------------------------------------------------------------
   # Remove weird soils, with high OC or NA n_deep_v5
   ggplot(yc_yearly_dt[oc_20cm_v5 >10], aes(oc_20cm_v5 , fill = region    )) + #geom_bar(aes(y = (..count..)/sum(..count..)))+
@@ -111,6 +113,7 @@ if(FALSE){
   summary(yc_yearly_dt2b$n_deep_v5)
   yc_yearly_dt2c <- yc_yearly_dt2b[!is.na(n_deep_v5)]
   summary(yc_yearly_dt2c$whc)
+  
   #------------------------------------------------------------------------------------
   #Made it?
   yc_yearly_dt2c[stages_cnt != 12]
@@ -307,6 +310,7 @@ average_regions_soils_dt[,mukey := region]
 saveRDS(average_regions_soils_dt, "./n_policy_box/Data/Grid/average_regions_soils_dt.rds")
 
 #======================================================================================
+# Water-table by county (NOT USED)
 tiles_county_dt <- read.csv('./n_policy_box/Data/tiledrains_county.csv', header = T) %>% data.table() %>% 
   .[,.(county_name, prop_drain = Proportion)] %>% .[order(prop_drain)]
 
