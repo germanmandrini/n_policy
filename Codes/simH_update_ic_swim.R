@@ -118,7 +118,7 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     # edit_childs <- c(paste0("//SoilOrganicMatter/", c("OC","FBiom","FInert")),
     #                  paste0("//Sample/", c("NO3", "NH4", "SW")))
     # 
-    equivalent_colname <- c('oc', 'Fbiom', 'Finert', 'no3', 'nh4', 'sw')
+    # equivalent_colname <- c('oc', 'Fbiom', 'Finert', 'no3', 'nh4', 'sw')
     edit_childs <- c(paste0("//SoilOrganicMatter/", c("FBiom","FInert")),
                      paste0("//Sample/", c("NO3", "NH4", "SW")))
 

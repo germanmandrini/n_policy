@@ -31,24 +31,12 @@ if(FALSE){
 mrtn_dt <- readRDS("./n_policy_box/Data/files_rds/mrtn_yields_from_graphs.rds")
 #---------------------------------------------------------------------------------------
 # Load Simulated data
-batch_n = 56
-
-# reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
-# TrainSet_dt <- reg_model_stuff$TrainSet
-# rm(reg_model_stuff)
-# TrainSet_dt[,batch := batch_n]
-
-
 yc_yearly_dt3 <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
 #Add regions and areas
 grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds")
 areas_dt <- data.table(grid10_soils_dt5) %>% .[,.(area_ha = sum(area_ha)), by = .(id_10, mukey, region)]
 
-yc_yearly_dt3 <- merge(yc_yearly_dt3[,-c('region', 'area_ha')], areas_dt, by = c('id_10', 'mukey'))
-yc_yearly_dt3[, Yld_response := max(Y_corn) - min(Y_corn), by = .(id_10, mukey,z)]
-Yld_response_threshold = 0
-simulated_dt <- yc_yearly_dt3[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
-
+simulated_dt <- merge(yc_yearly_dt3[,-c('region', 'area_ha')], areas_dt, by = c('id_10', 'mukey'))
 
 #---------------------------------------------------------------------------------------
 # testing_set_dt <- readRDS(paste0("./n_policy_box/Data/files_rds/yc_yearly_dt_batch", batch_n, ".rds"))
@@ -73,8 +61,9 @@ simulated_eonr_dt[,source := 'simulated']
 # Merge data
 data_dt <- rbind(simulated_eonr_dt[,.(source, region, Y_corn)], mrtn_dt[,.(source, region, Y_corn)])
 
+data_dt[, .(Y_corn = mean(Y_corn)), by = .(source, region)]
 #---------------------------------------------------------------------------------------
-# Source Boxplots
+# Yield Boxplots
 
 # New facet label names for supp variable
 supp.labs <- c("MRTN data", "Simulated data")
@@ -119,9 +108,7 @@ mrtn_dt[N_fert < 0, N_fert := 0]
 mrtn_dt[,source := 'mrtn']
 
 #---------------------------------------------------------------------------------------
-# Load simulated data
-
-simulated_dt[!(region == 2 & n_deep_v5 > 50) & !(region == 1 & n_deep_v5 > 50)]
+# Prepare simulated data
 
 (plot_1 <- ggplot(simulated_dt[n_deep_v5 < 100]) +
   geom_density(aes(x = n_deep_v5, color = factor(region))))
@@ -130,8 +117,6 @@ simulated_dt[!(region == 2 & n_deep_v5 > 50) & !(region == 1 & n_deep_v5 > 50)]
 ggsave(plot = plot_1, 
        filename = "./n_policy_box/Data/figures/validation_pdf.pdf")
 
-simulated_dt[!(region == 2 & n_deep_v5 > 40) & !(region == 1 & n_deep_v5 > 40)]
-simulated_dt[n_deep_v5 < 40]
 state_agg_dt  <- aggregate_by_area(data_dt = simulated_dt, variables = c('Y_corn', 'Y_soy', 'L1','L2'), 
                                    weight = 'area_ha', by_c = c('N_fert', 'region'))# %>% .[,-'area_ha']
 
@@ -256,6 +241,17 @@ ggsave(plot = plot_1,
        filename = "./n_policy_box/Data/figures/validation_eonr.pdf",  width = 706/300*3, height = 415/300*3,
        units = 'in')
        
+# =========================================================================================================================================================
+# CREATE THE REGIONAL MINIMUM MODEL - OK
+Yld_response_threshold <- 0  
+simulated_dt[, Yld_response := max(Y_corn) - min(Y_corn), by = .( id_10, mukey,z)]
+simulated_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
+TrainSet_RMM <- simulated_dt[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
 
+model_minimum_ok  <- aggregate_by_area(data_dt = simulated_dt, variables = c('P'), 
+                                         weight = 'area_ha', by_c = c('region', 'N_fert')) %>% 
+    .[, .SD[ P == max( P)], by = .( region)] %>% .[,.(region, eonr_pred = N_fert)]
+
+model_minimum_ok[]
 
 

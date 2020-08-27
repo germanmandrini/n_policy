@@ -34,8 +34,20 @@ if(FALSE){
   perfomances_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of treatments (policy sublevels x NMS). SHould be all equal
   
   summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NMS, z)]$area_ha)
-  # setnames(perfomances_dt, c('gov' ),c('G'))
+  
+  test <- perfomances_dt[,.N, .(id_10, id_field, mukey, policy, NMS)]
+  test[N==9]$NMS %>% table()
 
+  
+  yc_yearly_dt3 <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
+  yc_yearly_dt3[,.N, .(id_10, mukey)] %>% .[,N] %>% table() #number of z by mukey. SHould be all equal
+  
+  testing_set_dt <- readRDS("./n_policy_box/Data/files_rds/testing_set_dt.rds")
+  testing_set_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
+  testing_set_dt[,.N, .(id_10, id_field, mukey)] %>% .[,N] %>% table() #number of z by mukey. SHould be all equal
+  testing_set_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of treatments (policy sublevels x NMS). SHould be all equal
+  
+  
   #-------------------------------------------------------------------------
   #Make profits relative to the zero rate
   yc_yearly_dt3 <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")

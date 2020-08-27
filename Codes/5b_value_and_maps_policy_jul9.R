@@ -28,7 +28,9 @@ if(FALSE){
   perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
   perfomances_dt[,.N, .(id_10, id_field, mukey, policy, NMS)] %>% .[,N] %>% table() #number of z by mukey. SHould be all equal
   perfomances_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of treatments (policy sublevels x NMS). SHould be all equal
+  table(perfomances_dt$NMS) #obs by NMS. SHould be all equal
   
+  perfomances_dt[NMS == 'dynamic', NMS := 'dynamic1']
   summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NMS, z)]$area_ha)
   
   #-------------------------------------------------------------------------
@@ -157,7 +159,7 @@ saveRDS(W_peak_dt, "./n_policy_box/Data/files_rds/W_peak_dt.rds")
 #==========================================================================
 # RATIO CHART 2
 
-plot_dt <- perfomances_dt4[policy_name == 'ratio' & NMS %in% c('static','dynamic')] 
+plot_dt <- perfomances_dt4[policy_name == 'ratio' ] 
 
 # Total G collections in IL
 if(FALSE){
@@ -189,7 +191,7 @@ baselevel_Y_corn <- perfomances_dt4[policy == 'ratio_5' & NMS == 'static', Y_cor
 
 # plot_dt[,.SD[W == max(W)], by = NMS] #peak in W
 
-ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L_change, color = NMS))
+ggplot(plot_dt) + geom_line(aes(x = policy_val, y = P, color = NMS))
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
                                                                                  'P', 'G', 'net_balance'))

@@ -133,7 +133,25 @@ two_batches_state_dt[,batch := factor(batch)]
 # ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
 #        filename = paste0("./n_policy_box/Data/batches_tests/", batch_n, "_yield_plot.jpg"), width = 979/300*3, height = 1042/300*3,
 #        units = 'in')
+# =========================================================================================================================================================
+# CREATE THE REGIONAL MINIMUM MODEL - OK
+Yld_response_threshold <- 0  
+two_batches_yc_dt[, Yld_response := max(Y_corn) - min(Y_corn), by = .(batch, id_10, mukey,z)]
+two_batches_yc_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
+TrainSet_RMM <- two_batches_yc_dt[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
 
+two_batches_yc_dt[,.N, .(id_10, mukey, z)] %>% nrow() #trials before (all of them)
+TrainSet_RMM[,.N, .(id_10, mukey, z)] %>% nrow()#trials after (whith response > threshold)
+
+if(!regional_test){
+  model_minimum_ok  <- aggregate_by_area(data_dt = TrainSet_RMM, variables = c('P'), 
+                                         weight = 'area_ha', by_c = c('batch', 'region', 'N_fert')) %>% 
+    .[, .SD[ P == max( P)], by = .(batch, region)] %>% .[,.(batch, region, eonr_pred = N_fert)]
+}else{
+  model_minimum_ok <- TrainSet_RMM[,.(P = mean(P)), by = .(batch, region, N_fert)] %>% 
+    .[, .SD[ P == max( P)], by = .(batch, region)] %>% .[,.(batch, region, eonr_pred = N_fert)]
+}
+model_minimum_ok[]
 #======================================================================================
 #EONR frecuency
 # yc_yearly_dt2 <- yc_yearly_dt#[batch %in% c(33,34)]
@@ -164,7 +182,7 @@ two_batches_eonr_dt[,region := factor(region)]
   theme(legend.title =  element_blank(),
         axis.text=element_text(size=14))+
   facet_wrap(region~batch, 
-             ncol =2 ,
+             ncol =1 ,
              #scales="free",
              strip.position = "left"))
 
@@ -279,25 +297,7 @@ grid.arrange(plot_1, plot_2 ,nrow=1)
 # wrong_region_ids <- regions_comp[region_dt4 != region_dt5]$id_10
 # saveRDS(wrong_region_ids, "./n_policy_box/Data/files_rds/wrong_region_ids.rds")
 
-# =========================================================================================================================================================
-# CREATE THE REGIONAL MINIMUM MODEL - OK
-Yld_response_threshold <- 0  
-two_batches_yc_dt[, Yld_response := max(Y_corn) - min(Y_corn), by = .(batch, id_10, mukey,z)]
-two_batches_yc_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
-TrainSet_RMM <- two_batches_yc_dt[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
 
-two_batches_yc_dt[,.N, .(id_10, mukey, z)] %>% nrow() #trials before (all of them)
-TrainSet_RMM[,.N, .(id_10, mukey, z)] %>% nrow()#trials after (whith response > threshold)
-
-if(!regional_test){
-model_minimum_ok  <- aggregate_by_area(data_dt = TrainSet_RMM, variables = c('P'), 
-                                       weight = 'area_ha', by_c = c('batch', 'region', 'N_fert')) %>% 
-  .[, .SD[ P == max( P)], by = .(batch, region)] %>% .[,.(batch, region, eonr_pred = N_fert)]
-}else{
-model_minimum_ok <- TrainSet_RMM[,.(P = mean(P)), by = .(batch, region, N_fert)] %>% 
-  .[, .SD[ P == max( P)], by = .(batch, region)] %>% .[,.(batch, region, eonr_pred = N_fert)]
-}
-model_minimum_ok[]
 
 # =========================================================================================================================================================
 # INITIAL CONDITIONS 

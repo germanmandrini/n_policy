@@ -143,8 +143,8 @@ eonr_explore_dt[,.(eonr = mean(eonr)), by = z][order(z)]
 ggplot(eonr_explore_dt) + geom_boxplot(aes(x = factor(z), y = eonr))
 
 # training_z <- sort(sample(1:30, 15))
-training_z <- c(2,  3,  4,  6, 10, 11, 16, 20, 22, 23, 24, 25, 26, 28, 29)
-# training_z <- c(1:15)
+# training_z <- c(2,  3,  4,  6, 10, 11, 16, 20, 22, 23, 24, 25, 26, 28, 29)
+training_z <- c(1:14)
 
 # training_z <- sort(sample(1:30, 15))
 
@@ -294,7 +294,7 @@ grid10_region <- grid10_tiles_sf6 %>% group_by(region) %>% summarise()
 library(smoothr)
 area_thresh <- units::set_units(10*10+10, km^2)
 grid10_region2 <- fill_holes(grid10_region, threshold = area_thresh)
-# grid10_region_by_hand <- sf::read_sf('./n_management_box/Data/shapefiles/grid10_region_by_hand.shp')
+# grid10_region_by_hand <- sf::read_sf('./n_policy_box/Data/shapefiles/grid10_region_by_hand.shp')
 # grid10_region_by_hand <- st_transform(grid10_region_by_hand, crs = st_crs(stations_sf))
 
 
@@ -307,7 +307,7 @@ grid10_region2 <- fill_holes(grid10_region, threshold = area_thresh)
               main.title.position = "center",
               main.title.size = 1))
 
-tmap_save(fields_map_clean, filename = "./n_management_box/Data/figures/fields_map_and_stations.pdf", height = 8, width = 6)  
+tmap_save(fields_map_clean, filename = "./n_policy_box/Data/figures/fields_map_and_stations.pdf", height = 8, width = 6)  
 
 st_write(stations_sf, "./n_policy_box/Data/shapefiles/stations_sf.shp", delete_dsn = TRUE)
 st_write(regularfields_sf, "./n_policy_box/Data/shapefiles/regularfields_sf.shp", delete_dsn = TRUE)
