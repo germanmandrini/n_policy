@@ -54,7 +54,7 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     horizons_dt <- horizons_dt[,.(layer, oc, no3, nh4, sw, Finert, Fbiom)]
     
     #-------------------------
-    if(TRUE){
+    if(FALSE){#this was used in batch 88
       # Correct the n deep to target    
       #batch 52
       # n_mean_target <- c(1, 30, 70)[instructions_tmp$region]

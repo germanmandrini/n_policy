@@ -13,9 +13,9 @@ print(Sys.info()["nodename"])
 if(server){
   setwd('~')
   codes_folder <- getwd()
-  test_small <- T #only one soil and one z
-  regional_test <- F #makes rates every 25
-  regional_soils <- F #uses regional soils
+  test_small <- F #only one soil and one z
+  regional_test <- T #makes rates every 25
+  regional_soils <- T #uses regional soils
 }else if(cpsc){
   setwd('C:/Users/germanm2/Box Sync/My_Documents')
   codes_folder <-'C:/Users/germanm2/Documents'
@@ -40,20 +40,19 @@ water_n = 'swat'
 
 if(server|cpsc){
   id10_n = 791
-  batch_n = '88'
+  batch_n = '90'
 }else{
   id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
   batch_n = as.numeric(commandArgs(trailingOnly=TRUE)[2])
 }
 
 # id10_seq <- c(1426, 1212, 938, 765, 29, 69)
+
 # id10_seq <- c( 1212, 938, 69, 1426, 765, 29) 
 # id10_seq <- c(1212, 938, 69, 1426, 765, 29, 1069, 513, 53, 1069, 1200, 1507, 1330, 1363, 468 ,513, 678, 473, 655, 363, 355,  45, 188 , 53)
 # id10_seq <- c(1426, 938, 29)
-
-for(batch_n in c('89_105', '89_110', '89_115')){
 id10_seq <- c(1212, 765, 69)
-
+# for(batch_n in c('89_105', '89_110', '89_115')){
 for(id10_n in id10_seq){
   # id10_n = id10_seq[1]
   print(id10_n)
@@ -126,5 +125,5 @@ for(id10_n in id10_seq){
   
   unlink(directory, recursive = TRUE)
 }# end id10_n loop
-}#end batch_n loop
+#}#end batch_n loop
 

@@ -12,6 +12,7 @@ grid10_horizons_v1_dt <- grid10_horizons_v1_dt[bottom <= 200] #make soils to onl
 #---------------------------------------------------------
 if(FALSE){
 # Explore soils
+  library(ggplot2)
   regions_dt <- grid10_soils_dt4[,.(region = round(mean(region),0)), by = mukey]
   grid10_horizons_v1_dt2 <- merge(grid10_horizons_v1_dt, regions_dt, by = 'mukey')
   
@@ -24,10 +25,11 @@ if(FALSE){
                  #scales="free",
                  strip.position = "left"))
   
-  grid10_horizons_v1_dt2[restriction<200, .N, by = region]
+  grid10_horizons_v1_dt2[,rest_count := ifelse(restriction < 200, 1, 0)]
+  grid10_horizons_v1_dt2[, .(rest_count = sum(rest_count)/.N), by = region]
+  
   # hist(grid10_horizons_v1_dt$watertable)
 }
-grid10_fields_sf2 <- readRDS("./n_policy_box/Data/Grid/grid10_fields_sf2.rds")
 
 if(FALSE){ #test if regions are correct
   regions1 <- unique(grid10_soils_dt4[,.(id_10, region)])
@@ -44,12 +46,10 @@ if(FALSE){ #test if regions are correct
 source('./n_policy_box/Data/APssurgo_master/R/calc_apsim_variables_onesoil.R')
 source('./n_policy_box/Data/APssurgo_master/R/make_apsoils_toolbox.R')
 
-list.files('./n_policy_box/Data/APssurgo_master/')
-
 if(server){
-  directory <- paste('/home/germanm2/apsim_temp/n_management/batch_', batch_n, '/cell', id10_n, sep = '')
+  directory <- paste('/home/germanm2/apsim_temp/n_policy/batch_', batch_n, '/cell', id10_n, sep = '')
 }else if(cpsc){
-  directory <- paste('C:/apsim_temp/', Sys.info()["nodename"],'/n_management/batch_', batch_n, '/cell', id10_n, sep = '')
+  directory <- paste('C:/apsim_temp/', Sys.info()["nodename"],'/n_policy/batch_', batch_n, '/cell', id10_n, sep = '')
 }else if(cluster){
   # directory <- paste('/projects/aces/germanm2/n_policy/batch_', batch_n, '/cell', id10_n, sep = '')
   directory <- paste('/home/germanm2/scratch/apsim_temp/batch_', batch_n, '/cell', id10_n, sep = '')
@@ -72,9 +72,8 @@ if(FALSE & server & regional_soils){
   one_cell_dt <- one_cell_dt[,.SD[prop_area == max(prop_area)], by = id_field]
 }
 
-one_cell_dt <- one_cell_dt[mukey %in% c("183933", "1601003", "1537815")]
 #----------------------------------------------------------------------------
-
+grid10_fields_sf2 <- readRDS("./n_policy_box/Data/Grid/grid10_fields_sf2.rds")
 cell_coords <- data.table(grid10_fields_sf2[grid10_fields_sf2$id_10 == id10_n,]) %>% .[,.(X = mean(long), Y = mean(lat))]
 
 #----------------------------------------------------------------------------
@@ -96,12 +95,11 @@ if(regional_soils){
 #----------------------------------------------------------------------------
 # INITIAL SOIL FILES (WE WILL UPDATE THEM AFTER STABILIZATION)
 horizons_cell_dt <- grid10_horizons_v1_dt[mukey %in% one_cell_dt$mukey,]
-horizons_cell_dt[restriction < 60, restriction := 60] #otherwise I get an error in daily_to_yearly
-horizons_cell_dt <- horizons_cell_dt[bottom <= restriction] #limit the depth of the soil to the restriction
 horizons_cell_dt[is.na(ph), ph := 6] #a few soils didn't have ph and apsim doesn't use it
 horizons_cell2_dt <- calc_apsim_variables(horizons_cell_dt)
 horizons_cell2_dt[,XF_maize := 1]
-horizons_cell2_dt[ksat >= 1000, ksat := 990]
+horizons_cell2_dt[bottom >= restriction, XF_maize := 0.01] #limit the depth of the soil to the restriction
+horizons_cell2_dt[ksat >= 1000, ksat := 990] #get a warning if higher than 1000
 horizons_cell2_dt[OC==0, OC := 0.001]
 horizons_cell2_dt <- cbind(horizons_cell2_dt,cell_coords)
 make_apsoils_toolbox(data_soils = horizons_cell2_dt, badge_name = 'soils_vr_value', path = directory, crops = tolower(c("Maize","Soybean")))
