@@ -98,6 +98,10 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
       }
     }
     #-------------------------
+    # Reset initial N
+    horizons_dt[,no3 := 0]
+    horizons_dt[,nh4 := 0]
+    #-------------------------
     # Correct the sw to be less than DUL
     
     if(TRUE){
