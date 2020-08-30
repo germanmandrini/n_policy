@@ -8,7 +8,7 @@
 
 no_cores <- detectCores() * 7/8
 
-cl <- makeCluster(no_cores,type='SOCK')
+cl <- parallel::makeCluster(no_cores,type='SOCK')
 
 #===================================
 # parallelized simulations 
@@ -331,7 +331,7 @@ keep <- c('keep', 'apsim_create_files', 'instructions', 'directory', 'codes_fold
 # if(unique(instructions$type) == 'YC'){ keep <- append(keep, 'initial_conditions' )}
 # # #rm(list = ls()[!ls() %in% keep])
 
-clusterExport(cl, varlist = keep, envir=environment())
+parallel::clusterExport(cl, varlist = keep, envir=environment())
 
 
 results.list <- parallel::parLapply(cl, 1:nrow(instructions), function(x) apsim_create_files(x))

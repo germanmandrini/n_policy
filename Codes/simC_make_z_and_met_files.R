@@ -92,7 +92,7 @@ saveRDS(weather_cell.dt, paste(folder_name, '/weather_z_cell', id10_n, '_dt.rds'
 
 # make_met_files_paralell <- function(weather_cell.dt, directory){
 no_cores <- detectCores() *7/8
-cl <- makeCluster(no_cores,type='SOCK')
+cl <- parallel::makeCluster(no_cores,type='SOCK')
 
 #===================================
 # parallelized simulations 
@@ -159,7 +159,7 @@ make_met_files <- function(z_n, weather_cell.dt, directory = directory){
 
 keep <- c('keep', 'make_met_files','id10_n', 'weather_cell.dt', 'directory')
 
-clusterExport(cl, varlist = keep, envir=environment())
+parallel::clusterExport(cl, varlist = keep, envir=environment())
 
 z_seq <- unique(weather_cell.dt$z)
 results.list <- parallel::parLapply(cl, z_seq, function(x) make_met_files(x, weather_cell.dt, directory))

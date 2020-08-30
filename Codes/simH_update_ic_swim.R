@@ -45,8 +45,8 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     
     horizons_dt[,names(horizons_dt):= lapply(.SD, as.numeric), .SDcols = names(horizons_dt)]
 
-    horizons_dt[,Finert := round(inert_c/(hum_c + biom_c),4)]
     #------------------------------------------------------------------------------------
+    horizons_dt[,Finert := round(inert_c/(hum_c + biom_c),4)]
     horizons_dt[,Fbiom := round(biom_c/(hum_c-inert_c),4)]
     horizons_dt[,Finert := ifelse(oc == 0 & Finert == 0, 1, Finert)]  #correction for deep layers
     horizons_dt[,Fbiom := ifelse(Fbiom > 1 | Finert == 1, 0, Fbiom)]  #correction for deep layers
@@ -54,16 +54,10 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     horizons_dt <- horizons_dt[,.(layer, oc, no3, nh4, sw, Finert, Fbiom)]
     
     #-------------------------
-    if(FALSE){#this was used in batch 88
+    if(TRUE){#this was used in batch 88
       # Correct the n deep to target    
-      #batch 52
-      # n_mean_target <- c(1, 30, 70)[instructions_tmp$region]
-      #batch 53
-      # if(instructions_tmp$batch >= 53){n_mean_target <- c(5, 30, 30)[instructions_tmp$region]}
-      #batch 54
-      #n_mean_target <- c(5, 45, 60)[instructions_tmp$region]
-      #batch 55
-      n_target <- c(sample(0:4, 1), sample(5:10, 1), sample(2:40, 1))[instructions_tmp$region] #add some randomness
+      # n_target <- c(sample(10:20, 1), sample(1:10, 1), sample(10:30, 1))[instructions_tmp$region] #add some randomness
+      n_target <- c(sample(25:30, 1), sample(1:1, 1), sample(40:50, 1))[instructions_tmp$region] #add some randomness
       
       no3_target <- n_target * (sum(horizons_dt$no3) / (sum(horizons_dt$no3) + sum(horizons_dt$nh4))) 
       nh4_target <- n_target * (sum(horizons_dt$nh4) / (sum(horizons_dt$no3) + sum(horizons_dt$nh4)))
@@ -99,8 +93,10 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
     }
     #-------------------------
     # Reset initial N
-    horizons_dt[,no3 := 0]
-    horizons_dt[,nh4 := 0]
+    horizons_dt[,Fbiom := c(0.12, 0.08, 0.04, 0.04, 0.03, 0.01,0.01, 0.01, 0.01,0.01)]
+    horizons_dt[,Finert := c(0.4, 0.40, 0.420, 0.46, 0.56, 0.72, 0.80,0.80, 0.92, 0.98)]
+    # horizons_dt[,no3 := 0]
+    # horizons_dt[,nh4 := 0]
     #-------------------------
     # Correct the sw to be less than DUL
     

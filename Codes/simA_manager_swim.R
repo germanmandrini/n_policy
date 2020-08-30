@@ -40,7 +40,7 @@ water_n = 'swat'
 
 if(server|cpsc){
   id10_n = 791
-  batch_n = '95'
+  batch_n = '105'
 }else{
   id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
   batch_n = as.numeric(commandArgs(trailingOnly=TRUE)[2])
