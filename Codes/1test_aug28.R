@@ -18,7 +18,7 @@ regional_test <- T
 #Merge all files
 # batch_n = 19Y
 two_batches_yc_dt  <- data.table()
-for(batch_n in c(89)){
+for(batch_n in c(94, 95)){
   # batch_n = 87
   # print(batch_n)
   multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
@@ -72,6 +72,7 @@ for(batch_n in c(89)){
   two_batches_yc_dt <- rbind(two_batches_yc_dt, one_batch_dt, fill = T)
 }
 
+two_batches_yc_dt <- two_batches_yc_dt[id_10 %in% unique(one_batch_dt$id_10)]
 
 if(FALSE){
   batch_n = 88
@@ -100,7 +101,7 @@ if(regional_test){
 two_batches_state_dt[,Y_max := max(Y_corn), by = .(region, batch)]
 two_batches_state_dt[,Y_rel := Y_corn/Y_max]
 two_batches_state_dt[,region := factor(region)]
-two_batches_state_dt[N_fert == 0][order(-region)]
+two_batches_state_dt[N_fert == 0][order(batch, -region)]
 # state_agg_dt[,L1_rel := L1/max(L1), by = region]
 # state_agg_dt[,L2_rel := L2/max(L2), by = region]
 two_batches_state_dt[,batch := factor(batch)]

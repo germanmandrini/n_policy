@@ -85,8 +85,10 @@ source(paste0(codes_folder, '/n_policy_git/Codes/simC_make_z_and_met_files.R'))
 #----------------------------------------------------------------------------
 # Get the regional soils
 if(regional_soils){
-  one_cell_dt <- one_cell_dt[c(1,1),]
-  one_cell_dt[,id_field := c(1,2)]
+  # one_cell_dt <- one_cell_dt[c(1,1),]
+  # one_cell_dt[,id_field := c(1,2)]
+  one_cell_dt <- one_cell_dt[1,]
+  one_cell_dt[,id_field := 1]
   one_cell_dt[,mukey := region]
   grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/average_regions_soils_dt.rds")
   grid10_horizons_v1_dt <- grid10_horizons_v1_dt[bottom <=200] #make soils to only 150 cm
