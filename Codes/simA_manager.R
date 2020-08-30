@@ -67,9 +67,9 @@ for(id10_n in id10_seq){
   
   #RUN ALL APSIM FILES
   start2 <- Sys.time()
-  "C:/Users/germanm2/Documents/n_policy_git/Codes/simE_run_files.R"
+  "C:/Users/germanm2/Documents/n_policy_git/Codes/simF_run_files.R"
   "./n_policy_git/Codes/simF_run_files.R"
-  source(paste0(codes_folder, '/n_policy_git/Codes/simE_run_files.R'))
+  source(paste0(codes_folder, '/n_policy_git/Codes/simF_run_files.R'))
   
   #MERGE ALL THE OUTPUT
   start3 <- Sys.time()
