@@ -18,7 +18,7 @@ regional_test <- T
 #Merge all files
 # batch_n = 19Y
 two_batches_yc_dt  <- data.table()
-for(batch_n in c(94, 95)){
+for(batch_n in c(105, 106)){
   # batch_n = 87
   # print(batch_n)
   multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
@@ -196,7 +196,7 @@ two_batches_eonr_dt[,region := factor(region)]
   theme(legend.title =  element_blank(),
         axis.text=element_text(size=14))+
   facet_wrap(region~batch, 
-             ncol =1 ,
+             ncol =2 ,
              #scales="free",
              strip.position = "left"))
 
@@ -225,10 +225,12 @@ ggplot(last_batch_eonr_dt) +
   geom_boxplot(aes(x = factor(region), y = n_deep_v5))
 
 # Summarize all columns
-last_batch_eonr_dt[,region := as.numeric(region)]
+# last_batch_eonr_dt[,region := as.numeric(region)]
 cols_num <- sapply(last_batch_eonr_dt, is.numeric)
+cols_num[names(cols_num)== 'region'] <- T
 last_batch_eonr_dt2 <- last_batch_eonr_dt[,..cols_num]
 last_batch_eonr_dt2[, lapply(.SD, mean, na.rm = T), by = region][order(region)]
+
 #==================================================================================================================================
 # Low yields
 last_batch_eonr_dt[Y_corn < 5000]
@@ -251,7 +253,6 @@ ggplot(last_batch_eonr_dt, aes(lai_v5 , fill = region    )) + #geom_bar(aes(y = 
 
 # =========================================================================================================================================================
 #Planting dates
-
 dates_sowing_dt <- last_batch_eonr_dt[,.(eonr = mean(eonr),
                                             Y_corn = mean(Y_corn),
                                             .N), by = .(region, day_sow)][order(region, day_sow)]
@@ -301,20 +302,21 @@ grid.arrange(plot_1, plot_2 ,nrow=1)
 # =========================================================================================================================================================
 # INITIAL CONDITIONS 
 #MERGE FILES
-multiple_files <- list.files("./n_policy_box/Data/initial_conditions_74_swat", full.names = T)
+multiple_files <- list.files("./n_policy_box/Data/initial_conditions_98_swat", full.names = T)
 # multiple_files <- list.files('S:/Bioinformatics Lab/germanm2/n_policy_box_58/Data/initial_conditions_58', full.names = T)
 # multiple_files <- multiple_files[sample(x = 1:7735,size = 300, replace = F)]
 length(multiple_files)
 
-registerDoParallel(detectCores()*0.5) # register the cluster
+# registerDoParallel(detectCores()*0.5) # register the cluster
 # registerDoParallel(cores = 10)
 output_list = foreach(file_n = multiple_files, .combine = "c", .packages = c("data.table")) %do% {
   # file_n <- multiple_files[1]
   tmp_dt <- readRDS(file_n)
-  # cols <- names(tmp_dt)[1:82]
+  # cols <- names(tmp_dt)[1:91]
+  cols <- c("sim_name", "id_10", "mukey", "z", "n_deep", 'surfaceom_c', 'surfaceom_n', 'surfaceom_wt')
   # tmp_dt <- rbind(tmp_dt[year == 2001 & day == 1 & !is.na(Y), c(cols), with = F], tmp_dt[year == 2010 & month == 12 & day == 365, c(cols), with = F])
-  # tmp_dt <- tmp_dt[year == 2009 & month == 12 & day == 365, c(cols), with = F]
-  tmp_dt <- tmp_dt[year == 2001 & month == 1 & day == 1 & !is.na(Y)]
+  tmp_dt <- tmp_dt[year == 2009 & month == 12 & day == 365, c(cols), with = F]
+  # tmp_dt <- tmp_dt[year == 2001 & month == 1 & day == 1 & !is.na(Y)]
   
   list(tmp_dt)
 }#end of dopar loop
@@ -341,7 +343,9 @@ initial_conditions_dt[oc_8 > 10]
 cols_num <- sapply(initial_conditions_dt, is.numeric)
 cols_num[names(cols_num)=='region'] <- TRUE
 initial_conditions_dt2 <- initial_conditions_dt[,..cols_num]
+initial_conditions_dt2[,surfaceom_cn :=surfaceom_c/surfaceom_n]
 initial_conditions_dt2[, lapply(.SD, mean), by = region][order(region)]
+
 
 #Beautiful density plot
 initial_conditions_dt[,region := factor(region)]
@@ -405,13 +409,13 @@ yc_region_eonr_dt3[,.(n_deep_ini = mean(n_deep_ini)), by = region]
 # =========================================================================================================================================================
 # YC OUTPUT EVALUATION
 #MERGE FILES
-multiple_files <- list.files("./n_policy_box/Data/yc_output_86_swat", full.names = T)
+multiple_files <- list.files("./n_policy_box/Data/yc_output_97_swat", full.names = T)
 
 length(multiple_files)
 
-registerDoParallel(detectCores()*0.5) # register the cluster
+# registerDoParallel(detectCores()*0.5) # register the cluster
 # registerDoParallel(cores = 10)
-output_list = foreach(file_n = multiple_files, .combine = "c", .packages = c("data.table")) %dopar% {
+output_list = foreach(file_n = multiple_files, .combine = "c", .packages = c("data.table")) %do% {
   # file_n <- multiple_files[1]
   tmp_dt <- readRDS(file_n)
   names(tmp_dt)
@@ -428,7 +432,7 @@ output_list = foreach(file_n = multiple_files, .combine = "c", .packages = c("da
   
 }#end of dopar loop
 
-stopImplicitCluster()
+# stopImplicitCluster()
   
 yc_output_dt <- rbindlist(output_list)
 #Add regions
@@ -444,22 +448,54 @@ sapply(regions_dt, class)
 regions_dt[,id_10 := as.character(id_10)]
 yc_output_dt <- merge(yc_output_dt, regions_dt, by = 'id_10')
 
-yc_output_dt[oc_8 > 10]
 # Summarize all columns
 
 cols_num <- sapply(yc_output_dt, is.numeric)
 cols_num[names(cols_num)=='region'] <- TRUE
 yc_output_dt2 <- yc_output_dt[,..cols_num]
-yc_output_dt2[, lapply(.SD, mean), by = region][order(region)]
-
-
+yc_output_dt3 <- yc_output_dt2[, lapply(.SD, mean), by = region][order(region)]
 
 #Beautiful density plot
 yc_output_dt2[,region := factor(region)]
 ggplot(yc_output_dt2) +
   geom_density(aes(x = n_deep, color = region))
 
-grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/average_regions_soils_dt.rds")
+# grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/average_regions_soils_dt.rds")
+
+#Work with variables that are layers
+  
+variables_layers <- names(yc_output_dt3)[grepl('_[0-9]+$', names(yc_output_dt3))]
+
+layers_numbers <- sort(as.numeric(unique(gsub(pattern = '_', replacement = '', 
+                                              stringr::str_extract_all(string = variables_layers, pattern = '_[0-9]+$', simplify = TRUE)))))
+
+variables_layers_unique <- c("oc", "biom_c", "hum_c", "inert_c", "no3", "nh4", "sw")
+
+output_list = foreach(region_n = unique(yc_output_dt3$region), .combine = "c") %do% {
+  # region_n = unique(yc_output_dt3$region)[1]
+  horizons_dt <- data.table(region = region_n,
+                            layer = layers_numbers)
+  for( var_n in variables_layers_unique){
+    # var_n = 'oc'
+    var_n_seq <- paste(var_n, layers_numbers, sep = '_')
+    
+    horizons_dt <- cbind(horizons_dt, data.table(t(yc_output_dt3[region == region_n, var_n_seq, with=FALSE]))) %>% 
+      setnames(., 'V1', var_n)
+  } #end var_n loop
+  
+  list(horizons_dt)
+  
+}#end region loop
+horizons_dt <- rbindlist(output_list)
+
+# horizons_dt[,names(horizons_dt):= lapply(.SD, as.numeric), .SDcols = names(horizons_dt)]
+
+horizons_dt[,Finert := round(inert_c/(hum_c + biom_c),4)]
+horizons_dt[,Fbiom := round(biom_c/(hum_c-inert_c),4)]
+horizons_dt[,Finert := ifelse(oc == 0 & Finert == 0, 1, Finert)]  #correction for deep layers
+horizons_dt[,Fbiom := ifelse(Fbiom > 1 | Finert == 1, 0, Fbiom)]  #correction for deep layers
+horizons_dt[]
+
 
 
 # =========================================================================================================================================================
