@@ -11,7 +11,7 @@ update_ic <- function(base_doc, instructions_tmp, initial_conditions, initial_re
   if(TRUE){#this was used in batch 88
   # Correct the n deep to target    
   # n_target <- c(sample(10:20, 1), sample(1:10, 1), sample(10:30, 1))[instructions_tmp$region] #add some randomness
-    n_target <- c(sample(25:30, 1), sample(1:1, 1), sample(40:50, 1))[instructions_tmp$region] #add some randomness
+    n_target <- c(sample(20:25, 1), sample(15:20, 1), sample(25:40, 1))[instructions_tmp$region] #add some randomness
     horizons_dt[,no3 := n_target * no3_frac]
     horizons_dt[,nh4 := 0]
     

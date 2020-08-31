@@ -15,7 +15,7 @@ if(server){
   codes_folder <- getwd()
   test_small <- F #only one soil and one z
   regional_test <- T #makes rates every 25
-  regional_soils <- T #uses regional soils
+  regional_soils <- F#uses regional soils
 }else if(cpsc){
   setwd('C:/Users/germanm2/Box Sync/My_Documents')
   codes_folder <-'C:/Users/germanm2/Documents'
@@ -40,7 +40,7 @@ water_n = 'swat'
 
 if(server|cpsc){
   id10_n = 1212
-  batch_n = '106'
+  batch_n = '116'
 }else{
   id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
   batch_n = as.numeric(commandArgs(trailingOnly=TRUE)[2])
@@ -103,7 +103,7 @@ for(id10_n in id10_seq){
   if(!file.exists(folder_name)){dir.create(folder_name, recursive = TRUE)}
   saveRDS(time_track_tmp, paste0(folder_name,'/time_track_',id10_n,'.rds'))
   
-  # unlink(directory, recursive = TRUE)
+  unlink(directory, recursive = TRUE)
 }# end id10_n loop
 #}#end batch_n loop
 
