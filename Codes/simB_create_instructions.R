@@ -93,8 +93,11 @@ if(regional_soils){
 
 #----------------------------------------------------------------------------
 # CREATE SOIL FILES
-source('./n_policy_git/APssurgo_master/calc_apsim_variables_onesoil.R')
-source('./n_policy_git/APssurgo_master/make_apsoils_toolbox.R')
+source(paste0(codes_folder, '/n_policy_git/APssurgo_master/calc_apsim_variables_onesoil.R'))
+"C:/Users/germanm2/Documents/n_policy_git/APssurgo_master/calc_apsim_variables_onesoil.R"
+
+source(paste0(codes_folder, '/n_policy_git/APssurgo_master/make_apsoils_toolbox.R'))
+"C:/Users/germanm2/Documents/n_policy_git/APssurgo_master/make_apsoils_toolbox.R"
 region_n = one_cell_dt$region[1]
 
 horizons_cell_dt <- grid10_horizons_v1_dt[mukey %in% one_cell_dt$mukey,]
@@ -133,10 +136,21 @@ if(any(one_cell_dt$id_field %in% c(2,4))){
 
 instructions <- rbind(instructions1, instructions2) %>% setcolorder(c('id_10',  'mukey', 'z'))
 instructions <- merge(instructions, horizons_cell2_dt[, .(watertable = mean(watertable)), by = mukey], by = 'mukey')
-
 instructions[,batch := batch_n]
 instructions[,water := water_n]
 
+#---------------------------------------------------------------
+# N by region, and same by field and z combination
+z_count <- length(unique(instructions$z))
+# n_target_vector <- list(sample(80:100, z_count, replace = T), 
+#                         sample(10:20, z_count, replace = T),
+#                         sample(35:40, z_count, replace = T))[[region_n]] #Make this for each field x z combination
+n_target_vector <- list(sample(60:120, z_count, replace = T), 
+                        sample(1:30, z_count, replace = T),
+                        sample(15:60, z_count, replace = T))[[region_n]] #Make this for each field x z combination
+instructions[,n_target := n_target_vector[z]]
+
+#---------------------------------------------------------------
 # if(regional_test) {instructions <- instructions[z %in% c(2,3,6,7,13,14,15,16,24,25,28,29)]}
 if(test_small) {instructions <- instructions[1,]}
 print(instructions )

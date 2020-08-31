@@ -184,11 +184,11 @@ apsim_create_files <- function(i){
   }#end if swat
   #-----------------------------------------------------------------------------------------------
   # 3 - Update the Initial Conditions
-  # "C:/Users/germanm2/Documents/n_policy_git/Codes/simE_update_ic.R"
-  # "./n_policy_git/Codes/simE_update_ic.R"
-  # source(paste0(codes_folder, '/n_policy_git/Codes/simE_update_ic.R')) #simplified version
-  # #The initial residue assumes an alternation. Can be improved for account for other types of rotations
-  # base_doc <- update_ic(base_doc, instructions_tmp, initial_residue = crop_seq[2]) 
+  "C:/Users/germanm2/Documents/n_policy_git/Codes/simE_update_ic.R"
+  "./n_policy_git/Codes/simE_update_ic.R"
+  source(paste0(codes_folder, '/n_policy_git/Codes/simE_update_ic.R')) #simplified version
+  #The initial residue assumes an alternation. Can be improved for account for other types of rotations
+  base_doc <- update_ic(base_doc, instructions_tmp)
 
   #--- Set the rate for the stab period ---#
   x <- xml_find_all(base_doc, ".//manager/ui/fert_amount_stab")
