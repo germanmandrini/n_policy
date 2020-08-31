@@ -18,7 +18,7 @@ regional_test <- T
 #Merge all files
 # batch_n = 19Y
 two_batches_yc_dt  <- data.table()
-for(batch_n in c(114, 115)){
+for(batch_n in c(123, 124)){
   # batch_n = 87
   # print(batch_n)
   multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
