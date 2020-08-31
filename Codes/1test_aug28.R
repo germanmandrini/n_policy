@@ -18,7 +18,7 @@ regional_test <- T
 #Merge all files
 # batch_n = 19Y
 two_batches_yc_dt  <- data.table()
-for(batch_n in c(105, 106)){
+for(batch_n in c(123, 124)){
   # batch_n = 87
   # print(batch_n)
   multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
@@ -409,7 +409,7 @@ yc_region_eonr_dt3[,.(n_deep_ini = mean(n_deep_ini)), by = region]
 # =========================================================================================================================================================
 # YC OUTPUT EVALUATION
 #MERGE FILES
-multiple_files <- list.files("./n_policy_box/Data/yc_output_97_swat", full.names = T)
+multiple_files <- list.files("./n_policy_box/Data/yc_output_115_swat", full.names = T)
 
 length(multiple_files)
 
@@ -420,7 +420,7 @@ output_list = foreach(file_n = multiple_files, .combine = "c", .packages = c("da
   tmp_dt <- readRDS(file_n)
   names(tmp_dt)
   tmp_dt2 <- tmp_dt[year == 2010 & day == 1 & !is.na(Y)]
-  tmp_dt2[,N_fert := lapply(strsplit(as.character(sim_name), split="_"), "[", 6) ]
+  tmp_dt2[,N_fert := lapply(strsplit(as.character(sim_name), split="_"), "[", 5) ]
   tmp_dt3 <- tmp_dt2[N_fert == 0]
   # table(tmp_dt$z)
   # names(tmp_dt)
@@ -454,11 +454,15 @@ cols_num <- sapply(yc_output_dt, is.numeric)
 cols_num[names(cols_num)=='region'] <- TRUE
 yc_output_dt2 <- yc_output_dt[,..cols_num]
 yc_output_dt3 <- yc_output_dt2[, lapply(.SD, mean), by = region][order(region)]
-
+yc_output_dt3[order(-region)]
+yc_output_dt2$n_deep
 #Beautiful density plot
-yc_output_dt2[,region := factor(region)]
-ggplot(yc_output_dt2) +
-  geom_density(aes(x = n_deep, color = region))
+yc_output_dt[,region := factor(region)]
+yc_output_dt[,n_deep := as.numeric(n_deep)]
+yc_output_dt[,.(n_deep = mean(n_deep)), by = region]
+
+ggplot(data = yc_output_dt) +
+  geom_density(aes(x = n_deep, color = region)) #
 
 # grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/average_regions_soils_dt.rds")
 

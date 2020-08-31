@@ -43,9 +43,6 @@ if(FALSE){ #test if regions are correct
   comp_dt[region.x != region]# has to be empty
 }
 
-source('./n_policy_box/Data/APssurgo_master/R/calc_apsim_variables_onesoil.R')
-source('./n_policy_box/Data/APssurgo_master/R/make_apsoils_toolbox.R')
-
 if(server){
   directory <- paste('/home/germanm2/apsim_temp/n_policy/batch_', batch_n, '/cell', id10_n, sep = '')
 }else if(cpsc){
@@ -68,7 +65,7 @@ if(FALSE & test_small){
 }
 
 # Select largest mukey by field
-if(FALSE & server & regional_soils){
+if(TRUE & server & !regional_soils){
   one_cell_dt <- one_cell_dt[,.SD[prop_area == max(prop_area)], by = id_field]
 }
 
@@ -95,14 +92,16 @@ if(regional_soils){
 }
 
 #----------------------------------------------------------------------------
-# INITIAL SOIL FILES (WE WILL UPDATE THEM AFTER STABILIZATION)
+# CREATE SOIL FILES
+source('./n_policy_git/APssurgo_master/calc_apsim_variables_onesoil.R')
+source('./n_policy_git/APssurgo_master/make_apsoils_toolbox.R')
+region_n = one_cell_dt$region[1]
+
 horizons_cell_dt <- grid10_horizons_v1_dt[mukey %in% one_cell_dt$mukey,]
 horizons_cell_dt[is.na(ph), ph := 6] #a few soils didn't have ph and apsim doesn't use it
-horizons_cell2_dt <- calc_apsim_variables(horizons_cell_dt)
-horizons_cell2_dt[,XF_maize := 1]
-horizons_cell2_dt[bottom >= restriction, XF_maize := 0.01] #limit the depth of the soil to the restriction
-horizons_cell2_dt[ksat >= 1000, ksat := 990] #get a warning if higher than 1000
-horizons_cell2_dt[OC==0, OC := 0.001]
+horizons_cell2_dt <- calc_apsim_variables(horizons_cell_dt, region_n)
+horizons_cell2_dt[bottom >= restriction, XF_maize := 0] #limit the depth of the soil to the restriction
+
 horizons_cell2_dt <- cbind(horizons_cell2_dt,cell_coords)
 make_apsoils_toolbox(data_soils = horizons_cell2_dt, badge_name = 'soils_vr_value', path = directory, crops = tolower(c("Maize","Soybean")))
 

@@ -184,11 +184,11 @@ apsim_create_files <- function(i){
   }#end if swat
   #-----------------------------------------------------------------------------------------------
   # 3 - Update the Initial Conditions
-  "C:/Users/germanm2/Documents/n_policy_git/Codes/simE_update_ic.R"
-  "./n_policy_git/Codes/simE_update_ic.R"
-  source(paste0(codes_folder, '/n_policy_git/Codes/simE_update_ic.R')) #simplified version
-  #The initial residue assumes an alternation. Can be improved for account for other types of rotations
-  base_doc <- update_ic(base_doc, instructions_tmp, initial_residue = crop_seq[2]) 
+  # "C:/Users/germanm2/Documents/n_policy_git/Codes/simE_update_ic.R"
+  # "./n_policy_git/Codes/simE_update_ic.R"
+  # source(paste0(codes_folder, '/n_policy_git/Codes/simE_update_ic.R')) #simplified version
+  # #The initial residue assumes an alternation. Can be improved for account for other types of rotations
+  # base_doc <- update_ic(base_doc, instructions_tmp, initial_residue = crop_seq[2]) 
 
   #--- Set the rate for the stab period ---#
   x <- xml_find_all(base_doc, ".//manager/ui/fert_amount_stab")
@@ -207,7 +207,7 @@ apsim_create_files <- function(i){
   #--- Set the N rate for the trial period ---#
   N_rates <- seq(0, 320, 10)
   if(test_small) {N_rates <- 160}
-  if(regional_test){N_rates <- c(0, seq(16, 270, 28))}
+  if(regional_test){N_rates <- c(0, seq(16, 150, 28), seq(150, 200, 10), seq(212, 270, 28))}
   # if(regional_test){N_rates <- 160}
   # N_rates <- seq(0, 300, 25)
   # N_rates <- c(0,260)
