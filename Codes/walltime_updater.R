@@ -18,7 +18,8 @@ id_10_walltime_dt <- grid10_soils_dt4[,.N, by = .(id_10, mukey, z_type)] #number
 id_10_walltime_dt2 <- id_10_walltime_dt[,.N, by = .(id_10)][order(N)] 
 id_10_walltime_dt2[,dur := N*6]
 
-id_failed <- c(866, 27, 1061, 1251, 939, 949, 242, 748, 1124, 516, 815, 918, 18, 1505, 359)
+id_failed <- c(1337, 941, 795)
+
 id_10_walltime_dt2[id_10 %in% id_failed, dur := N*10]
 
 id_10_walltime_dt2 <- id_10_walltime_dt2[id_10 %in% id_failed]
