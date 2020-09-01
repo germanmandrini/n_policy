@@ -65,7 +65,7 @@ if(FALSE & test_small){
 }
 
 # Select largest mukey by field
-if(TRUE & server & !regional_soils){
+if(FALSE & server & !regional_soils){
   one_cell_dt <- one_cell_dt[,.SD[prop_area == max(prop_area)], by = id_field]
 }
 
@@ -94,6 +94,7 @@ if(regional_soils){
 #----------------------------------------------------------------------------
 # CREATE SOIL FILES
 source(paste0(codes_folder, '/n_policy_git/APssurgo_master/calc_apsim_variables_onesoil.R'))
+'./n_policy_git/APssurgo_master/calc_apsim_variables_onesoil.R'
 "C:/Users/germanm2/Documents/n_policy_git/APssurgo_master/calc_apsim_variables_onesoil.R"
 
 source(paste0(codes_folder, '/n_policy_git/APssurgo_master/make_apsoils_toolbox.R'))
@@ -141,13 +142,12 @@ instructions[,water := water_n]
 
 #---------------------------------------------------------------
 # N by region, and same by field and z combination
+set.seed(1)
 z_count <- length(unique(instructions$z))
-# n_target_vector <- list(sample(80:100, z_count, replace = T), 
-#                         sample(10:20, z_count, replace = T),
-#                         sample(35:40, z_count, replace = T))[[region_n]] #Make this for each field x z combination
-n_target_vector <- list(sample(60:120, z_count, replace = T), 
-                        sample(1:30, z_count, replace = T),
-                        sample(15:60, z_count, replace = T))[[region_n]] #Make this for each field x z combination
+n_target_vector <- list(sample(70:110, z_count, replace = T), #South
+                        sample(10:30, z_count, replace = T),  #Central
+                        sample(15:60, z_count, replace = T))[[region_n]] #North
+
 instructions[,n_target := n_target_vector[z]]
 
 #---------------------------------------------------------------
