@@ -40,7 +40,7 @@ water_n = 'swat'
 
 if(server|cpsc){
   id10_n = 29
-  batch_n = '138'
+  batch_n = '141'
 }else{
   id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
   batch_n = as.numeric(commandArgs(trailingOnly=TRUE)[2])
@@ -48,8 +48,10 @@ if(server|cpsc){
 
 
 id10_seq <- c(1214, 1332, 1488, 970, 894, 663, 219, 39, 45)
-id10_seq <- c(1500, 1245, 1156, 596, 797, 576, 286, 52, 253)
-# id10_seq <- c(1426, 1212)
+
+id10_seq <- c(1214, 1332, 1488)
+# id10_seq <- c(1500, 1245, 1156, 596, 797, 576, 286, 52, 253)
+# id10_seq <- c(1500, 596,52)
 # id10_seq <- c(1069, 513, 53)
 # for(batch_n in c('89_105', '89_110', '89_115')){
 for(id10_n in id10_seq){
@@ -85,8 +87,10 @@ for(id10_n in id10_seq){
   './n_policy_git/Codes/simH_daily_to_yearly.R'
   source(paste0(codes_folder, '/n_policy_git/Codes/simH_daily_to_yearly.R'))
   
+  # 1332 1444930 24
+  if(id10_n != 1332){
   unlink(directory, recursive = TRUE)
-  
+  }
   start5 <- Sys.time()
   
   time_track_tmp <- data.table(id_10 = id10_n,

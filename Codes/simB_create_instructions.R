@@ -144,12 +144,12 @@ instructions[,water := water_n]
 # N by region, and same by field and z combination
 set.seed(1)
 z_count <- length(unique(instructions$z))
-n_target_vector <- list(sample(80:90, z_count, replace = T), #South
-                        sample(70:90, z_count, replace = T),  #Central
+n_target_vector <- list(sample(85:95, z_count, replace = T), #South
+                        sample(65:80, z_count, replace = T),  #Central
                         sample(70:80, z_count, replace = T))[[region_n]] #North
-
-instructions[,n_target := n_target_vector[z]]
-
+n_target_dt <- data.table(z = unique(instructions$z),
+                          n_target= n_target_vector)
+instructions <- merge(instructions, n_target_dt, by = 'z')
 #---------------------------------------------------------------
 # if(regional_test) {instructions <- instructions[z %in% c(2,3,6,7,13,14,15,16,24,25,28,29)]}
 if(test_small) {instructions <- instructions[1,]}

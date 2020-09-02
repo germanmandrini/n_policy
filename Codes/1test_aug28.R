@@ -18,7 +18,7 @@ regional_test <- T
 #Merge all files
 # batch_n = 19Y
 two_batches_yc_dt  <- data.table()
-for(batch_n in c(137, 138)){
+for(batch_n in c(140, 141)){
   # batch_n = 87
   # print(batch_n)
   multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
@@ -235,8 +235,6 @@ two_batches_eonr_dt[,region := factor(region)]
              #scales="free",
              strip.position = "left"))
 
-ggplot(two_batches_eonr_dt) + geom_boxplot(aes(x = factor(batch), y = eonr))
-
 # ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
 #        filename = paste0("./n_policy_box/Data/batches_tests/", batch_n, "_eonr_plot.jpg"), width = 5, height = 5,
 #        units = 'in')
@@ -444,7 +442,7 @@ yc_region_eonr_dt3[,.(n_deep_ini = mean(n_deep_ini)), by = region]
 # =========================================================================================================================================================
 # YC OUTPUT EVALUATION
 #MERGE FILES
-multiple_files <- list.files("./n_policy_box/Data/yc_output_115_swat", full.names = T)
+multiple_files <- list.files("./n_policy_box/Data/yc_output_140_swat", full.names = T)
 
 length(multiple_files)
 
