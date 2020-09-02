@@ -18,7 +18,7 @@ regional_test <- T
 #Merge all files
 # batch_n = 19Y
 two_batches_yc_dt  <- data.table()
-for(batch_n in c(126, 127)){
+for(batch_n in c(137, 138)){
   # batch_n = 87
   # print(batch_n)
   multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
@@ -68,16 +68,16 @@ for(batch_n in c(126, 127)){
   one_batch_dt[,region_lab := NULL]
   one_batch_dt[,batch := batch_n]
   
-  saveRDS(one_batch_dt, paste0("./n_policy_box/Data/files_rds/one_batch_dt_batch", batch_n, ".rds"))
+  # saveRDS(one_batch_dt, paste0("./n_policy_box/Data/files_rds/one_batch_dt_batch", batch_n, ".rds"))
   two_batches_yc_dt <- rbind(two_batches_yc_dt, one_batch_dt, fill = T)
 }
 
 # two_batches_yc_dt <- two_batches_yc_dt[id_10 %in% unique(one_batch_dt$id_10)]
 
-if(FALSE){
-  batch_n = 88
-  two_batches_yc_dt <- readRDS( paste0("./n_policy_box/Data/files_rds/one_batch_dt_batch", batch_n, ".rds"))
-}
+# if(FALSE){
+#   batch_n = 88
+#   two_batches_yc_dt <- readRDS( paste0("./n_policy_box/Data/files_rds/one_batch_dt_batch", batch_n, ".rds"))
+# }
 # yc_yearly_dt <-readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
 # areas_dt[,region := factor(region)]
 # yc_yearly_dt <- merge(yc_yearly_dt, areas_dt, by = c('region','id_10', 'mukey'))
@@ -150,6 +150,41 @@ ggplot(data = data_dt) +
   facet_wrap(region~.) 
 
 data_dt[,.(Y_corn = median(Y_corn)), .(source, region)][order(source, -region)]
+
+# # Explore SOuth low yields
+# grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/grid10_horizons_v1_dt.rds")
+# low_south <- two_batches_eonr_dt[region == '1-South']
+# low_south <- merge(low_south, grid10_horizons_v1_dt[,.(mukey, restriction)], by = 'mukey')
+# low_south[Y_corn < 5000]
+# summary(low_south$root_depth)
+# 
+# low_south[restriction < 150 & water_table_fw ]
+# 
+# ggplot(data = low_south) +
+#     geom_point(aes(y = root_depth, x = restriction    ))
+# 
+# paste(names(low_south), collapse = ', ')
+# 
+# 
+# pred_vars <- c('dul_dep', 'll15_dep', 'water_table_year', 'root_depth', 'whc', 'day_sow', 
+#                'water_table_fw', 'day_v5', 'sw_dep_v5', 'biomass_v5', 'surfaceom_wt_v5', 'root_wt_v5', 
+#                'lai_v5', 'oc_20cm_v5', 'oc_40cm_v5', 'n_20cm_v5', 'n_40cm_v5', 'n_60cm_v5', 'n_deep_v5', 
+#                'esw_pct_v5', 'water_table_v5', 'stages_cnt', 'swdef_photo', 'swdef_expan', 'swdef_pheno',
+#                'end_crop', 'sand_40cm', 'om_40cm', 'clay_40cm', 'rain_30', 'rain_60', 'rain_90', 't_max_30', 't_max_60',
+#                't_max_90', 't_min_30', 't_min_60', 't_min_90', 'restriction') #'LAI_max', 
+# 
+# TrainSet_eonr2 <- low_south[,c('LAI_max', pred_vars), with = FALSE]
+# TrainSet_eonr2[,Y_corn_cat := ifelse(Y_corn > 5000,1,0)]
+# best.m = 6
+# library(randomForest)
+# rf2_eonr <- randomForest(LAI_max ~ ., data = TrainSet_eonr2,
+#                          importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
+# 
+# varImpPlot(rf2_eonr, type=2)
+
+
+
+
 # =========================================================================================================================================================
 # CREATE THE REGIONAL MINIMUM MODEL - OK
 Yld_response_threshold <- 0  

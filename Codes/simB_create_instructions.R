@@ -5,7 +5,7 @@ library(XML)
 
 grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
 
-# sample(grid10_soils_dt4[region == 3]$id_10,5)
+# sample(grid10_soils_dt4[region == 3]$id_10,3)
 grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/grid10_horizons_v1_dt.rds")
 grid10_horizons_v1_dt <- grid10_horizons_v1_dt[bottom <= 200] #make soils to only 150 cm
 
@@ -65,7 +65,7 @@ if(FALSE & test_small){
 }
 
 # Select largest mukey by field
-if(FALSE & server & !regional_soils){
+if(TRUE & server & !regional_soils){
   one_cell_dt <- one_cell_dt[,.SD[prop_area == max(prop_area)], by = id_field]
 }
 
@@ -81,7 +81,7 @@ source(paste0(codes_folder, '/n_policy_git/Codes/simC_make_z_and_met_files.R'))
 
 #----------------------------------------------------------------------------
 # Get the regional soils
-if(regional_soils){
+if(server & regional_soils){
   # one_cell_dt <- one_cell_dt[c(1,1),]
   # one_cell_dt[,id_field := c(1,2)]
   one_cell_dt <- one_cell_dt[1,]
@@ -104,7 +104,7 @@ region_n = one_cell_dt$region[1]
 horizons_cell_dt <- grid10_horizons_v1_dt[mukey %in% one_cell_dt$mukey,]
 horizons_cell_dt[is.na(ph), ph := 6] #a few soils didn't have ph and apsim doesn't use it
 horizons_cell2_dt <- calc_apsim_variables(horizons_cell_dt, region_n)
-horizons_cell2_dt[bottom >= restriction, XF_maize := 0] #limit the depth of the soil to the restriction
+# horizons_cell2_dt[bottom >= restriction, XF_maize := 0] #limit the depth of the soil to the restriction
 
 horizons_cell2_dt <- cbind(horizons_cell2_dt,cell_coords)
 make_apsoils_toolbox(data_soils = horizons_cell2_dt, badge_name = 'soils_vr_value', path = directory, crops = tolower(c("Maize","Soybean")))
@@ -144,9 +144,9 @@ instructions[,water := water_n]
 # N by region, and same by field and z combination
 set.seed(1)
 z_count <- length(unique(instructions$z))
-n_target_vector <- list(sample(70:110, z_count, replace = T), #South
-                        sample(10:30, z_count, replace = T),  #Central
-                        sample(15:60, z_count, replace = T))[[region_n]] #North
+n_target_vector <- list(sample(80:90, z_count, replace = T), #South
+                        sample(70:90, z_count, replace = T),  #Central
+                        sample(70:80, z_count, replace = T))[[region_n]] #North
 
 instructions[,n_target := n_target_vector[z]]
 

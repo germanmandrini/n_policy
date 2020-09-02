@@ -79,6 +79,7 @@ calc_apsim_variables <- function(horizons_cell_dt, region_n){
     horizon$EnrBcoeff	<- 0.2
   
     limit_roots <- c(150,200,200)[region_n]
+    
     horizon$XF_maize <- ifelse(horizon$bottom <= limit_roots,1,0.1)# ifelse(horizon$center<=150,1,0) Changed by gm on 2/28/2019
     
     horizon$KL_maize <-	ifelse(horizon$center<=20,0.08,0.09*exp(-0.007*horizon$center))
@@ -111,19 +112,19 @@ calc_apsim_variables <- function(horizons_cell_dt, region_n){
     #                                       ifelse(horizon$center<60,0.0216-0.0002*horizon$center,
     #                                              ifelse(horizon$center<=300,0.01,0))))) #(0-1)
   
-    if(region_n == 1){
+    if(region_n == 1){ #South
       # horizon$FBiom = c(0.12, 0.08, 0.04, 0.04, 0.03, 0.01,0.01, 0.01, 0.01,0.01)
       # horizon$FInert = c(0.4, 0.40, 0.420, 0.46, 0.56, 0.72, 0.80,0.80, 0.92, 0.98)
-      horizon$FBiom = c(0.02, 0.01, 0.005, 0.005, 0.001, 0.001,0.001, 0.001, 0.001,0.001)
+      horizon$FBiom = c(0.015, 0.01, 0.005, 0.005, 0.001, 0.001,0.001, 0.001, 0.001,0.001)
       horizon$FInert = c(0.75, 0.8, 0.8, 0.85, 0.85, 0.9, 0.98,0.98, 0.99, 0.99)
       
-    }else if(region_n == 2){
-      horizon$FBiom = c(0.08, 0.03, 0.03, 0.03, 0.02, 0.01,0.01, 0.01, 0.01,0.01)
-      horizon$FInert = c(0.45, 0.45, 0.5, 0.5, 0.56, 0.72, 0.80,0.80, 0.92, 0.98)
+    }else if(region_n == 2){ #Central
+      horizon$FBiom = c(0.02, 0.01, 0.01, 0.01, 0.01, 0.005,0.005, 0.005, 0.001,0.001)
+      horizon$FInert = c(0.7, 0.7, 0.75, 0.75, 0.8, 0.85, 0.9,0.9, 0.95, 0.99)
 
-    }else if(region_n == 3){
-      horizon$FBiom = c(0.12, 0.08, 0.06, 0.04, 0.03, 0.01,0.01, 0.01, 0.01,0.01)
-      horizon$FInert = c(0.4, 0.40, 0.420, 0.46, 0.5, 0.7, 0.80,0.80, 0.92, 0.98)
+    }else if(region_n == 3){ #North
+      horizon$FBiom = c(0.06, 0.03, 0.03, 0.025, 0.02, 0.01,0.01, 0.005, 0.005, 0.001)
+      horizon$FInert = c(0.5, 0.53, 0.55, 0.6, 0.65, 0.7, 0.80,0.80, 0.92, 0.98)
     }
     
     

@@ -216,7 +216,8 @@ make_yearly_summary <- function(file_n){
       horizons_cell_dt <- grid10_horizons_v1_dt[mukey == unique(daily_yc_dt2$mukey)]
       horizons_cell_dt2 <- horizons_cell_dt[bottom <= 40, .(sand_40cm = mean(sand),
                                                             om_40cm = mean(om),
-                                                           clay_40cm = mean(clay))]
+                                                           clay_40cm = mean(clay), 
+                                                           restriction = mean(restriction))]
       
       #=====================================================================================================#
       # V5 data
