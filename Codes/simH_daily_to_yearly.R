@@ -73,31 +73,7 @@ make_yearly_summary <- function(file_n){
       
       weather_cell_dt2 <- weather_cell_dt[z == z_n]
       
-      #=====================================================================================================#
-      # Frozen
-      names(daily_yc_dt2)
-      make_it_dt <- daily_yc_dt2[,.(id_10, mukey, z, year,day, sim_name, stage_name, 
-                                   paddock.maize.lai,  LeafNo, paddock.maize.swdef_photo, paddock.maize.swdef_expan, paddock.maize.swdef_pheno)][year== 2010]
       
-      make_it_dt[,id_10:= as.integer(id_10)]
-      make_it_dt[,z:= as.integer(z)]
-      
-      # make_it_dt <- merge(make_it_dt, 
-      #                     weather_cell_dt2[,.(id_10, year, day, maxt,  mint, z )], 
-      #                     by = c('id_10', 'z', 'year', 'day'))
-      
-      # make_it_dt <- make_it_dt[sim_name == '259_942156_SMM_A2_YC_110']
-      # make_it_dt[stage_name != 'nocrop']
-      
-      
-      #max lai, stages
-      make_it_dt2 <- make_it_dt[, .(LAI_max = max(paddock.maize.lai),
-                     stages_cnt = length(unique(stage_name)),
-                     swdef_photo = mean(paddock.maize.swdef_photo),
-                     swdef_expan = mean(paddock.maize.swdef_expan),
-                     swdef_pheno = mean(paddock.maize.swdef_pheno),
-                     end_crop = any(stage_name == 'end_crop')),
-                 by = sim_name]
       #frozen
       # make_it_dt2 <- merge(make_it_dt2, make_it_dt[LeafNo > 5, .(frost_temp = min(mint)), by = sim_name], by = 'sim_name')
       
@@ -115,15 +91,23 @@ make_yearly_summary <- function(file_n){
                       Y_corn = max(Y, na.rm = T)/0.85,
                      #leach_no3 = sum(leach_no3),
                      N_fert = sum(fertiliser),
+                     n_uptake = sum(n_total_uptake)*10,
                      dul_dep = max(dul_dep),
                      ll15_dep = max(ll15_dep),
                      water_table_year = mean(water_table),
                      root_depth = max(paddock.maize.root_depth),
-                     whc = max(dul_dep) - max(ll15_dep)), by = .(id_10, mukey, z, water, sim_name, year)]
+                     whc = max(dul_dep) - max(ll15_dep),
+                     LAI_max = max(paddock.maize.lai),
+                     stages_cnt = length(unique(stage_name)),
+                     end_crop = any(stage_name == 'end_crop')), by = .(id_10, mukey, z, water, sim_name, year)]
       
       #Add previous yield
       # prev_yield <- initial_conditions_dt[z == z_n] %>% .[,.(Y_prev = max(Y, na.rm = T)/0.87), by = .(id_10, mukey, z)]
       # yearly_data <- merge(yearly_data[year == 2010], prev_yield, by = c('id_10', 'mukey','z'))
+      
+      #Add initial N
+      n_initial_dt <- daily_yc_dt2[year == 2010 & day == 1 & !is.na(n_deep),.(sim_name, n_initial = n_deep)]
+      yearly_data <- merge(yearly_data, n_initial_dt, by = c('sim_name'))
       
       #Add soy yield
       soy_yield <- daily_yc_dt2[year == 2011,.(Y_soy = max(Y, na.rm = T)/0.87), by = .(id_10, mukey, z, sim_name)]
@@ -135,8 +119,12 @@ make_yearly_summary <- function(file_n){
       
       #Add water_table for stages around flowering
       # daily_yc_dt2[year == 2010 & stage_name != 'nocrop', .(paddock.maize.stage = round(mean(paddock.maize.stage)),0), by = .(stage_name)] #explore stages
-      water_table_dt <- daily_yc_dt2[year == 2010 & stage_name != 'nocrop' & paddock.maize.stage >= 6 & paddock.maize.stage <= 8, .(water_table_fw = mean(water_table))]
-      yearly_data <- cbind(yearly_data, water_table_dt)
+      flowering_dt <- daily_yc_dt2[year == 2010 & stage_name != 'nocrop' & paddock.maize.stage >= 6 & paddock.maize.stage <= 8, 
+                                     .(water_table_fw = mean(water_table),
+                                       swdef_photo_fw = mean(paddock.maize.swdef_photo),
+                                       swdef_expan_fw = mean(paddock.maize.swdef_expan),
+                                       swdef_pheno_fw = mean(paddock.maize.swdef_pheno))]
+      yearly_data <- cbind(yearly_data, flowering_dt)
     
       
       #=====================================================================================================#
@@ -252,8 +240,7 @@ make_yearly_summary <- function(file_n){
       
       names(v5_data) <- paste0(str_replace(names(v5_data), pattern = 'paddock.maize.', replacement = ''), '_v5')
       setnames(v5_data, 'sim_name_v5', 'sim_name')
-      summary_tmp1 <- merge(yearly_data, v5_data, by = 'sim_name') %>% 
-        merge(make_it_dt2, by = 'sim_name') %>% cbind(horizons_cell_dt2)
+      summary_tmp1 <- merge(yearly_data, v5_data, by = 'sim_name') %>% cbind(horizons_cell_dt2)
       
       #=====================================================================================================#
       # WEATHER FILES

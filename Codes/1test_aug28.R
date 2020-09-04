@@ -17,8 +17,12 @@ regional_test <- T
 #======================================================================================
 #Merge all files
 # batch_n = 19Y
+folders <- list.dirs("./n_policy_box/Data", full.names = F )[str_detect(pattern = 'yc_output_summary', string = list.dirs("./n_policy_box/Data" ))]
+batches <- sort(as.numeric(sapply(strsplit(folders, split="_"), "[", 4) ), decreasing = T)[1:2]
+print(batches)
+# batches[2] <- 142
 two_batches_yc_dt  <- data.table()
-for(batch_n in c(140, 141)){
+for(batch_n in sort(batches)){
   # batch_n = 87
   # print(batch_n)
   multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
@@ -72,8 +76,22 @@ for(batch_n in c(140, 141)){
   two_batches_yc_dt <- rbind(two_batches_yc_dt, one_batch_dt, fill = T)
 }
 
-# two_batches_yc_dt <- two_batches_yc_dt[id_10 %in% unique(one_batch_dt$id_10)]
+# paste(two_batches_yc_dt[,.N, by = .(region, id_10)][,.SD[sample(.N, 3)],by = region]$id_10, collapse = ', ')
+two_batches_yc_dt <- two_batches_yc_dt[id_10 %in% unique(one_batch_dt$id_10) &
+                                         mukey %in% unique(one_batch_dt$mukey)]
+# id_10_v <- c( 43,807,1362)
+# two_batches_yc_dt <- two_batches_yc_dt[id_10 %in% id_10_v]
 
+comp <- merge(two_batches_yc_dt[batch == min(batch), .(sim_name, Y_corn1 = Y_corn)] , 
+              two_batches_yc_dt[batch == max(batch), .(sim_name, Y_corn2 = Y_corn)], by = 'sim_name')
+
+ggplot(comp) + 
+  geom_point(aes(x = Y_corn1, y =Y_corn2))+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + 
+  ylim(0, 18000)+ xlim(0, 18000) +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14,face="bold"))+
+  ggtitle('Cluster vs Server') +
+  theme_bw()
 # if(FALSE){
 #   batch_n = 88
 #   two_batches_yc_dt <- readRDS( paste0("./n_policy_box/Data/files_rds/one_batch_dt_batch", batch_n, ".rds"))
@@ -89,10 +107,10 @@ for(batch_n in c(140, 141)){
 # yc_yearly_dt <- yc_yearly_batches_dt
 if(regional_test){
   two_batches_state_dt  <- two_batches_yc_dt[,.(Y_corn = mean(Y_corn),
-                                   L = mean(L)), by = .(N_fert, region, batch)][order(region)]
+                                                L = mean(L)), by = .(N_fert, region, batch)][order(region)]
 }else{
-  two_batches_state_dt  <- two_batches_yc_dt(data_dt = yc_yearly_dt, variables = c('Y_corn', 'Y_soy', 'L1','L2'), 
-                                      weight = 'area_ha', by_c = c('N_fert', 'region', 'batch'))# %>% .[,-'area_ha']
+  two_batches_state_dt  <- aggrea(data_dt = yc_yearly_dt, variables = c('Y_corn', 'Y_soy', 'L1','L2'), 
+                                  weight = 'area_ha', by_c = c('N_fert', 'region', 'batch'))# %>% .[,-'area_ha']
 }
 
 # yc_yearly_dt <- yc_yearly_batches_dt[batch %in% c(13,17)]
@@ -102,21 +120,20 @@ two_batches_state_dt[,Y_max := max(Y_corn), by = .(region, batch)]
 two_batches_state_dt[,Y_rel := Y_corn/Y_max]
 two_batches_state_dt[,region := factor(region)]
 two_batches_state_dt[N_fert == 0][order(batch, -region)]
-# state_agg_dt[,L1_rel := L1/max(L1), by = region]
-# state_agg_dt[,L2_rel := L2/max(L2), by = region]
+
 two_batches_state_dt[,batch := factor(batch)]
 
 (plot_1 <- ggplot(data = two_batches_state_dt) + 
-  geom_line(aes(x = N_fert, y = Y_rel, color = region, linetype = batch)) +
-  # geom_line(aes(x = N_fert, y = L1_rel, linetype = "N Leaching", color = region)) +
-  #geom_hline(yintercept = baselevel_yld, linetype = 'dashed', color = 'grey', size = 1)+
-  # geom_vline(xintercept = baselevel_nfert, linetype = 'dashed', color = 'grey', size = 1)+
-  labs(y = 'Corn Yield (kg/ha)',
-       x = 'Corn N rate (kg/ha)',
-       colour = "Region") +
-  # scale_y_continuous(sec.axis = sec_axis(~./200, name = "Corn N leaching (kg/ha)", breaks = seq(30,80,5), labels = seq(30,80,5))) +
-  # scale_linetype_manual(values = c("dashed", "solid"))+
-  theme_bw())
+    geom_line(aes(x = N_fert, y = Y_rel, color = region, linetype = batch)) +
+    # geom_line(aes(x = N_fert, y = L1_rel, linetype = "N Leaching", color = region)) +
+    #geom_hline(yintercept = baselevel_yld, linetype = 'dashed', color = 'grey', size = 1)+
+    # geom_vline(xintercept = baselevel_nfert, linetype = 'dashed', color = 'grey', size = 1)+
+    labs(y = 'Corn Yield (kg/ha)',
+         x = 'Corn N rate (kg/ha)',
+         colour = "Region") +
+    # scale_y_continuous(sec.axis = sec_axis(~./200, name = "Corn N leaching (kg/ha)", breaks = seq(30,80,5), labels = seq(30,80,5))) +
+    # scale_linetype_manual(values = c("dashed", "solid"))+
+    theme_bw())
 
 
 (plot_2 <- ggplot(data = two_batches_state_dt) + 
@@ -181,9 +198,38 @@ data_dt[,.(Y_corn = median(Y_corn)), .(source, region)][order(source, -region)]
 #                          importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
 # 
 # varImpPlot(rf2_eonr, type=2)
+#---------------------------------------------
+# N Balance
+n_eonr_dt <- two_batches_eonr_dt[batch == max(batch), .(n_initial = mean(n_initial), 
+                                                        n_uptake_eonr = mean(n_uptake)), by = region ]
 
+n_zero_dt <- two_batches_yc_dt[batch == max(batch) & N_fert == 0, .(n_uptake_zero = mean(n_uptake)), by = region ]
 
+n_balance_dt <- merge(n_eonr_dt, n_zero_dt, by = 'region')
+n_balance_dt[,n_biom := n_uptake_zero - n_initial]
+n_balance_dt[,n_fert := n_uptake_eonr - n_uptake_zero]
+n_balance_dt[,n_zero_rel := n_uptake_zero/n_uptake_eonr]
+n_balance_dt[]
+n_balance_long_dt <- melt(n_balance_dt, id.vars = 'region', measure.vars = c("n_initial", "n_biom", "n_fert"))
 
+ggplot(data=n_balance_long_dt, aes(x=region, y=value, fill=variable)) +
+  geom_bar(stat="identity")
+#----------------------------------------------------------------
+# N uptake yield curve
+n_uptake_dt <- two_batches_yc_dt[, .(Y_corn = mean(Y_corn), 
+                                     n_uptake_eonr = mean(n_uptake)), by = .(batch, region, N_fert) ]
+n_uptake_dt[, batch := factor(batch)]
+(plot_1 <- ggplot(data = n_uptake_dt) + 
+    geom_line(aes(x = N_fert, y = Y_corn, color = region, linetype = batch)) +
+    # geom_line(aes(x = N_fert, y = L1_rel, linetype = "N Leaching", color = region)) +
+    #geom_hline(yintercept = baselevel_yld, linetype = 'dashed', color = 'grey', size = 1)+
+    # geom_vline(xintercept = baselevel_nfert, linetype = 'dashed', color = 'grey', size = 1)+
+    labs(y = 'Corn Yield (kg/ha)',
+         x = 'N Uptake (kg/ha)',
+         colour = "Region") +
+    # scale_y_continuous(sec.axis = sec_axis(~./200, name = "Corn N leaching (kg/ha)", breaks = seq(30,80,5), labels = seq(30,80,5))) +
+    # scale_linetype_manual(values = c("dashed", "solid"))+
+    theme_bw())
 
 # =========================================================================================================================================================
 # CREATE THE REGIONAL MINIMUM MODEL - OK
@@ -226,14 +272,14 @@ two_batches_eonr_dt[,region := factor(region)]
 
 (plot_1 <- ggplot(two_batches_eonr_dt, aes(eonr_bin , fill = region    )) + #geom_bar(aes(y = (..count..)/sum(..count..)))+
     geom_bar(aes( y=..count../tapply(..count.., ..fill.. ,sum)[..fill..]))+
-  labs(x= 'N fert (kg/ha)', y = "relative frequencies")+
-  theme_bw()+
-  theme(legend.title =  element_blank(),
-        axis.text=element_text(size=14))+
-  facet_wrap(region~batch, 
-             ncol =2 ,
-             #scales="free",
-             strip.position = "left"))
+    labs(x= 'N fert (kg/ha)', y = "relative frequencies")+
+    theme_bw()+
+    theme(legend.title =  element_blank(),
+          axis.text=element_text(size=14))+
+    facet_wrap(region~batch, 
+               ncol =2 ,
+               #scales="free",
+               strip.position = "left"))
 
 # ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
 #        filename = paste0("./n_policy_box/Data/batches_tests/", batch_n, "_eonr_plot.jpg"), width = 5, height = 5,
@@ -287,16 +333,16 @@ ggplot(last_batch_eonr_dt, aes(lai_v5 , fill = region    )) + #geom_bar(aes(y = 
 # =========================================================================================================================================================
 #Planting dates
 dates_sowing_dt <- last_batch_eonr_dt[,.(eonr = mean(eonr),
-                                            Y_corn = mean(Y_corn),
-                                            .N), by = .(region, day_sow)][order(region, day_sow)]
+                                         Y_corn = mean(Y_corn),
+                                         .N), by = .(region, day_sow)][order(region, day_sow)]
 dates_sowing_dt[,region := factor(region)]
 dates_sowing_dt[]
 
 plot_1 <- grid.arrange(
-        ggplot(dates_sowing_dt, aes(x = day_sow, y = eonr, color = region)) +
-          geom_path(),
-        ggplot(dates_sowing_dt, aes(x = day_sow, y = Y_corn, color = region)) +
-          geom_path())
+  ggplot(dates_sowing_dt, aes(x = day_sow, y = eonr, color = region)) +
+    geom_path(),
+  ggplot(dates_sowing_dt, aes(x = day_sow, y = Y_corn, color = region)) +
+    geom_path())
 
 yc_yearly_dt_eonr_dt[Y_soy == 0][,.N, region]
 yc_yearly_dt_eonr_dt[Y_prev  == 0][,.N, region]
@@ -311,9 +357,9 @@ yc_yearly_dt_eonr_dt2 <- merge(yc_yearly_dt_eonr_dt, dates_dt, by = 'day_sow')
 yc_yearly_dt_eonr_dt2[,region := factor(region)]
 
 plot_2 <- ggplot(yc_yearly_dt_eonr_dt2[batch== 19], aes(Date, color = region)) + geom_bar()+facet_wrap(region~., 
-                                                                                         ncol = 1,
-                                                                                         #scales="free",
-                                                                                         strip.position = "left")
+                                                                                                       ncol = 1,
+                                                                                                       #scales="free",
+                                                                                                       strip.position = "left")
 
 grid.arrange(plot_1, plot_2 ,nrow=1)
 
@@ -466,7 +512,7 @@ output_list = foreach(file_n = multiple_files, .combine = "c", .packages = c("da
 }#end of dopar loop
 
 # stopImplicitCluster()
-  
+
 yc_output_dt <- rbindlist(output_list)
 #Add regions
 grid10_soils_dt4 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt4.rds")
@@ -500,7 +546,7 @@ ggplot(data = yc_output_dt) +
 # grid10_horizons_v1_dt <- readRDS("./n_policy_box/Data/Grid/average_regions_soils_dt.rds")
 
 #Work with variables that are layers
-  
+
 variables_layers <- names(yc_output_dt3)[grepl('_[0-9]+$', names(yc_output_dt3))]
 
 layers_numbers <- sort(as.numeric(unique(gsub(pattern = '_', replacement = '', 
@@ -561,7 +607,7 @@ second_batch_dt_dt_eonr_dt <- second_batch_dt[, .SD[ P == max( P)], by = .(id_10
 setnames(second_batch_dt_dt_eonr_dt, 'N_fert', 'eonr')
 
 batch_comp_dt <- merge(first_batch_dt_eonr_dt[,.(region, id_10, mukey, z, Y_corn, eonr, n_deep_v5,biomass_n_v5)],
-      second_batch_dt_dt_eonr_dt[,.(region, id_10, mukey, z, Y_corn, eonr, n_deep_v5,biomass_n_v5)], by = c('region', 'id_10', 'mukey', 'z'), suffixes = c("_1", "_2"))
+                       second_batch_dt_dt_eonr_dt[,.(region, id_10, mukey, z, Y_corn, eonr, n_deep_v5,biomass_n_v5)], by = c('region', 'id_10', 'mukey', 'z'), suffixes = c("_1", "_2"))
 
 
 # Pred vs obs plot  

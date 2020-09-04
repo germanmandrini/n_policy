@@ -14,13 +14,13 @@ if(server){
   setwd('~')
   codes_folder <- getwd()
   test_small <- F #only one soil and one z
-  regional_test <- T #makes rates every 25
+  regional_test <- F #makes rates every 25
   regional_soils <- F#uses regional soils
 }else if(cpsc){
   setwd('C:/Users/germanm2/Box Sync/My_Documents')
   codes_folder <-'C:/Users/germanm2/Documents'
   test_small <- F
-  regional_test <- T #makes rates every 25
+  regional_test <- F #makes rates every 25
   regional_soils <- F #uses regional soils
 }else{
   # setwd('/projects/aces/germanm2/')
@@ -39,17 +39,16 @@ if(server){
 water_n = 'swat'
 
 if(server|cpsc){
-  id10_n = 29
-  batch_n = '141'
+  id10_n = 43
+  batch_n = '145'
 }else{
   id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
   batch_n = as.numeric(commandArgs(trailingOnly=TRUE)[2])
 }
 
 
-id10_seq <- c(1214, 1332, 1488, 970, 894, 663, 219, 39, 45)
-
-id10_seq <- c(1214, 1332, 1488)
+# id10_seq <- c(1214, 1332, 1488, 970, 894, 663, 219, 39, 45, 43, 807, 1362)
+id10_seq <- c(1362)
 # id10_seq <- c(1500, 1245, 1156, 596, 797, 576, 286, 52, 253)
 # id10_seq <- c(1500, 596,52)
 # id10_seq <- c(1069, 513, 53)
@@ -58,7 +57,7 @@ for(id10_n in id10_seq){
   # id10_n = id10_seq[1]
   print(id10_n)
   print(batch_n)
-
+  
   # CREATE ALL FILES
   start1 <- Sys.time()
   "C:/Users/germanm2/Documents/n_policy_git/Codes/simB_create_instructions.R"
@@ -77,7 +76,7 @@ for(id10_n in id10_seq){
   "C:/Users/germanm2/Documents/n_policy_git/Codes/simG_merge_results.R"
   "./n_policy_git/Codes/simG_merge_results.R"
   source(paste0(codes_folder, '/n_policy_git/Codes/simG_merge_results.R'))
-
+  
   start4 <- Sys.time()
   
   #MAKE YEARLY SUMMARY
@@ -87,10 +86,8 @@ for(id10_n in id10_seq){
   './n_policy_git/Codes/simH_daily_to_yearly.R'
   source(paste0(codes_folder, '/n_policy_git/Codes/simH_daily_to_yearly.R'))
   
-  # 1332 1444930 24
-  if(id10_n != 1332){
   unlink(directory, recursive = TRUE)
-  }
+  
   start5 <- Sys.time()
   
   time_track_tmp <- data.table(id_10 = id10_n,
@@ -108,7 +105,7 @@ for(id10_n in id10_seq){
   if(!file.exists(folder_name)){dir.create(folder_name, recursive = TRUE)}
   saveRDS(time_track_tmp, paste0(folder_name,'/time_track_',id10_n,'.rds'))
   
-
+  
 }# end id10_n loop
 #}#end batch_n loop
 
