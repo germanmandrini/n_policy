@@ -20,10 +20,9 @@ regional_test <- T
 folders <- list.dirs("./n_policy_box/Data", full.names = F )[str_detect(pattern = 'yc_output_summary', string = list.dirs("./n_policy_box/Data" ))]
 batches <- sort(as.numeric(sapply(strsplit(folders, split="_"), "[", 4) ), decreasing = T)[1:2]
 print(batches)
-# batches[2] <- 142
 two_batches_yc_dt  <- data.table()
 for(batch_n in sort(batches)){
-  # batch_n = 87
+  # batch_n = 141
   # print(batch_n)
   multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
   print(length(multiple_files))
@@ -76,11 +75,14 @@ for(batch_n in sort(batches)){
   two_batches_yc_dt <- rbind(two_batches_yc_dt, one_batch_dt, fill = T)
 }
 
+# batch141_dt <- readRDS(paste0("./n_policy_box/Data/files_rds/one_batch_dt_batch141.rds"))
+# two_batches_yc_dt <- rbind(two_batches_yc_dt, batch141_dt, fill = T)
+
 # paste(two_batches_yc_dt[,.N, by = .(region, id_10)][,.SD[sample(.N, 3)],by = region]$id_10, collapse = ', ')
-two_batches_yc_dt <- two_batches_yc_dt[id_10 %in% unique(one_batch_dt$id_10) &
-                                         mukey %in% unique(one_batch_dt$mukey)]
+two_batches_yc_dt <- two_batches_yc_dt[sim_name %in% unique(one_batch_dt$sim_name)]
 # id_10_v <- c( 43,807,1362)
 # two_batches_yc_dt <- two_batches_yc_dt[id_10 %in% id_10_v]
+two_batches_yc_dt[,.N, by = batch]
 
 comp <- merge(two_batches_yc_dt[batch == min(batch), .(sim_name, Y_corn1 = Y_corn)] , 
               two_batches_yc_dt[batch == max(batch), .(sim_name, Y_corn2 = Y_corn)], by = 'sim_name')
@@ -92,6 +94,7 @@ ggplot(comp) +
         axis.title=element_text(size=14,face="bold"))+
   ggtitle('Cluster vs Server') +
   theme_bw()
+
 # if(FALSE){
 #   batch_n = 88
 #   two_batches_yc_dt <- readRDS( paste0("./n_policy_box/Data/files_rds/one_batch_dt_batch", batch_n, ".rds"))
@@ -200,16 +203,17 @@ data_dt[,.(Y_corn = median(Y_corn)), .(source, region)][order(source, -region)]
 # varImpPlot(rf2_eonr, type=2)
 #---------------------------------------------
 # N Balance
-n_eonr_dt <- two_batches_eonr_dt[batch == max(batch), .(n_initial = mean(n_initial), 
-                                                        n_uptake_eonr = mean(n_uptake)), by = region ]
+n_eonr_dt <- two_batches_eonr_dt[, .(n_initial = mean(n_initial), 
+                                                        n_uptake_eonr = mean(n_uptake)), by = .(batch, region) ]
 
-n_zero_dt <- two_batches_yc_dt[batch == max(batch) & N_fert == 0, .(n_uptake_zero = mean(n_uptake)), by = region ]
+n_zero_dt <- two_batches_yc_dt[ N_fert == 0, .(n_uptake_zero = mean(n_uptake)), by = .(batch, region) ]
 
-n_balance_dt <- merge(n_eonr_dt, n_zero_dt, by = 'region')
+n_balance_dt <- merge(n_eonr_dt, n_zero_dt, by = c('batch', 'region'))
 n_balance_dt[,n_biom := n_uptake_zero - n_initial]
 n_balance_dt[,n_fert := n_uptake_eonr - n_uptake_zero]
 n_balance_dt[,n_zero_rel := n_uptake_zero/n_uptake_eonr]
 n_balance_dt[]
+
 n_balance_long_dt <- melt(n_balance_dt, id.vars = 'region', measure.vars = c("n_initial", "n_biom", "n_fert"))
 
 ggplot(data=n_balance_long_dt, aes(x=region, y=value, fill=variable)) +
@@ -219,8 +223,20 @@ ggplot(data=n_balance_long_dt, aes(x=region, y=value, fill=variable)) +
 n_uptake_dt <- two_batches_yc_dt[, .(Y_corn = mean(Y_corn), 
                                      n_uptake_eonr = mean(n_uptake)), by = .(batch, region, N_fert) ]
 n_uptake_dt[, batch := factor(batch)]
-(plot_1 <- ggplot(data = n_uptake_dt) + 
-    geom_line(aes(x = N_fert, y = Y_corn, color = region, linetype = batch)) +
+plot_1 <- ggplot(data = n_uptake_dt) + 
+    geom_line(aes(x = n_uptake_eonr, y = N_fert, color = region, linetype = batch)) +
+    # geom_line(aes(x = N_fert, y = L1_rel, linetype = "N Leaching", color = region)) +
+    #geom_hline(yintercept = baselevel_yld, linetype = 'dashed', color = 'grey', size = 1)+
+    # geom_vline(xintercept = baselevel_nfert, linetype = 'dashed', color = 'grey', size = 1)+
+    labs(y = 'N Uptake (kg/ha)',
+         x = 'N Fert (kg/ha)',
+         colour = "Region") +
+    # scale_y_continuous(sec.axis = sec_axis(~./200, name = "Corn N leaching (kg/ha)", breaks = seq(30,80,5), labels = seq(30,80,5))) +
+    # scale_linetype_manual(values = c("dashed", "solid"))+
+    theme_bw()
+
+plot_2 <- ggplot(data = n_uptake_dt) + 
+    geom_line(aes(x = n_uptake_eonr, y = Y_corn, color = region, linetype = batch)) +
     # geom_line(aes(x = N_fert, y = L1_rel, linetype = "N Leaching", color = region)) +
     #geom_hline(yintercept = baselevel_yld, linetype = 'dashed', color = 'grey', size = 1)+
     # geom_vline(xintercept = baselevel_nfert, linetype = 'dashed', color = 'grey', size = 1)+
@@ -229,7 +245,19 @@ n_uptake_dt[, batch := factor(batch)]
          colour = "Region") +
     # scale_y_continuous(sec.axis = sec_axis(~./200, name = "Corn N leaching (kg/ha)", breaks = seq(30,80,5), labels = seq(30,80,5))) +
     # scale_linetype_manual(values = c("dashed", "solid"))+
-    theme_bw())
+    theme_bw()
+grid.arrange(plot_1, plot_2)
+
+yield_curves_dt <- two_batches_yc_dt[mukey == 173918  & z == 23]
+yield_curves_dt[, batch := factor(batch)]
+
+grid.arrange(ggplot(data = yield_curves_dt) + 
+               geom_line(aes(x = N_fert, y = n_uptake, linetype = batch)),
+             ggplot(data = yield_curves_dt) + 
+               geom_line(aes(x = n_uptake, y = Y_corn, linetype = batch)))
+
+
+
 
 # =========================================================================================================================================================
 # CREATE THE REGIONAL MINIMUM MODEL - OK
@@ -249,7 +277,7 @@ if(!regional_test){
   model_minimum_ok <- TrainSet_RMM[,.(P = mean(P)), by = .(batch, region, N_fert)] %>% 
     .[, .SD[ P == max( P)], by = .(batch, region)] %>% .[,.(batch, region, eonr_pred = N_fert)]
 }
-model_minimum_ok[]
+model_minimum_ok[order(batch)]
 #======================================================================================
 #EONR frecuency
 # yc_yearly_dt2 <- yc_yearly_dt#[batch %in% c(33,34)]
