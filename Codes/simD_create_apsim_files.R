@@ -248,7 +248,6 @@ keep <- c('keep', 'apsim_create_files', 'instructions', 'directory', 'codes_fold
 
 parallel::clusterExport(cl, varlist = keep, envir=environment())
 
-
 results.list <- parallel::parLapply(cl, 1:nrow(instructions), function(x) apsim_create_files(x))
 
 # instructions <- rbindlist(results.list, fill = TRUE)

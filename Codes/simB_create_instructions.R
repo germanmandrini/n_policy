@@ -72,7 +72,9 @@ if(TRUE & server){
   one_cell_dt <- one_cell_dt[ area_ha == max( area_ha)][1] 
   one_cell_dt[,id_field := 1]
 }
-
+if(FALSE & server){
+  one_cell_dt <- one_cell_dt[mukey == 179673]
+}
 #----------------------------------------------------------------------------
 grid10_fields_sf2 <- readRDS("./n_policy_box/Data/Grid/grid10_fields_sf2.rds")
 cell_coords <- data.table(grid10_fields_sf2[grid10_fields_sf2$id_10 == id10_n,]) %>% .[,.(X = mean(long), Y = mean(lat))]
@@ -102,6 +104,7 @@ source(paste0(codes_folder, '/n_policy_git/APssurgo_master/calc_apsim_variables_
 "C:/Users/germanm2/Documents/n_policy_git/APssurgo_master/calc_apsim_variables_onesoil.R"
 
 source(paste0(codes_folder, '/n_policy_git/APssurgo_master/make_apsoils_toolbox.R'))
+'./n_policy_git/APssurgo_master/make_apsoils_toolbox.R'
 "C:/Users/germanm2/Documents/n_policy_git/APssurgo_master/make_apsoils_toolbox.R"
 region_n = one_cell_dt$region[1]
 
@@ -151,14 +154,17 @@ z_count <- length(unique(instructions$z))
 n_target_vector <- list(sample(39:40, z_count, replace = T), #South
                         sample(39:40, z_count, replace = T),  #Central
                         sample(39:40, z_count, replace = T))[[region_n]] #North
+
 n_target_dt <- data.table(z = unique(instructions$z),
                           n_target= n_target_vector)
 instructions <- merge(instructions, n_target_dt, by = 'z')
 #---------------------------------------------------------------
 # if(regional_test) {instructions <- instructions[z %in% c(2,3,6,7,13,14,15,16,24,25,28,29)]}
 if(test_small) {instructions <- instructions[1,]}
+if(FALSE) {instructions <- instructions[z==23,]}
 print(instructions )
 "C:/Users/germanm2/Documents/n_policy_git/Codes/simD_create_apsim_files.R"
 "./n_policy_git/Codes/simD_create_apsim_files.R"
 source(paste0(codes_folder, '/n_policy_git/Codes/simD_create_apsim_files.R'))
+
 
