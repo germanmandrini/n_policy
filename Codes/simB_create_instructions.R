@@ -68,13 +68,11 @@ if(FALSE & test_small){
 if(FALSE & server & !regional_soils){
   one_cell_dt <- one_cell_dt[,.SD[prop_area == max(prop_area)], by = id_field]
 }
-if(TRUE & server){
+if(FALSE & server){
   one_cell_dt <- one_cell_dt[ area_ha == max( area_ha)][1] 
   one_cell_dt[,id_field := 1]
 }
-if(FALSE & server){
-  one_cell_dt <- one_cell_dt[mukey == 179673]
-}
+
 #----------------------------------------------------------------------------
 grid10_fields_sf2 <- readRDS("./n_policy_box/Data/Grid/grid10_fields_sf2.rds")
 cell_coords <- data.table(grid10_fields_sf2[grid10_fields_sf2$id_10 == id10_n,]) %>% .[,.(X = mean(long), Y = mean(lat))]

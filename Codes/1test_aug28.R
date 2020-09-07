@@ -249,7 +249,9 @@ plot_2 <- ggplot(data = n_uptake_dt) +
     theme_bw()
 grid.arrange(plot_1, plot_2)
 
-yield_curves_dt <- two_batches_yc_dt[id_10 == 43 & mukey == 173918 & z == 23]
+
+sample_n = two_batches_yc_dt[sample(1:nrow(two_batches_yc_dt),1)]
+yield_curves_dt <- two_batches_yc_dt[id_10 == sample_n$id_10 & mukey == sample_n$mukey & z == sample_n$z]
 yield_curves_dt[, batch := factor(batch)]
 
 grid.arrange(ggplot(data = yield_curves_dt) + 
@@ -266,11 +268,6 @@ Nuptake_40 <- yield_curves_dt[Y_rel >= 0.65, .SD[ N_fert == min( N_fert)], by = 
 Nuptake_dt <- merge(Nuptake_95, Nuptake_40, by = c('batch'))
 Nuptake_dt[,mrtn_rate := n_uptake95 - n_uptake40]
 Nuptake_dt[]
-
-
-
-two_batches_state_dt[,region := factor(region)]
-two_batches_state_dt[N_fert == 0][order(batch, -region)]
 
 # =========================================================================================================================================================
 # CREATE THE REGIONAL MINIMUM MODEL - OK
