@@ -123,8 +123,8 @@ calc_apsim_variables <- function(horizons_cell_dt, region_n){
       horizon$FInert = c(0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75,0.80, 0.92, 0.98)
       
     }else if(region_n == 3){ #North
-      horizon$FBiom = c(0.10, 0.09, 0.08, 0.07, 0.04,0.02, 0.01, 0.01, 0.005, 0.001)
-      horizon$FInert = c(0.4, 0.45, 0.47, 0.48, 0.49, 0.5, 0.55,0.75, 0.9, 0.98)
+      horizon$FBiom = c(0.08, 0.06, 0.05, 0.03, 0.03, 0.01, 0.01, 0.005, 0.001, 0.001)
+      horizon$FInert = c(0.4, 0.55, 0.6, 0.7, 0.75, 0.8, 0.9,0.95, 0.98, 0.99)
     }
     
     

@@ -13,13 +13,20 @@ codes_folder <-'C:/Users/germanm2/Documents'
 
 time_track_walltime_dt <- readRDS("./n_policy_box/Data/files_rds/time_track_walltime_dt.rds")
 
-id_failed <- c(719)
+id_failed <- c(536, 577, 682, 66, 701, 754) 
+id_failed <- c(953,922,1032,1106,1268,1338,190,20,23,256)
+id_north <- c( 16, 19, 21, 27, 33, 34, 43, 44, 53, 119, 121, 128, 134, 137, 145, 177, 191, 199, 204, 206, 209, 214, 258, 360, 361, 372, 377, 379, 456, 461)
 
-time_track_walltime_dt[id_10 %in% id_failed, dur := N*10]
+id_north2 <- c(77, 93, 116, 135, 154, 187, 210, 364, 370, 371, 380, 381, 382, 388, 393)
+time_track_walltime_dt <- time_track_walltime_dt[id_10 %in% c(id_north2)]
 
+time_track_walltime_dt[id_10 %in% id_failed, dur := dur + 20]
 time_track_walltime_dt <- time_track_walltime_dt[id_10 %in% id_failed]
 
-write.table(time_track_walltime_dt[,.(id_10, dur)], paste0('./n_policy_git/time_track_walltime_dt.txt'), row.names = F, col.names = F)
+
+
+
+write.table(time_track_walltime_dt[,.(id_10, dur)], paste0(codes_folder, '/n_policy_git/time_track_walltime_dt.txt'), row.names = F, col.names = F)
 
 #---------------------------------------------------------------------------
 
@@ -140,8 +147,8 @@ if(FALSE){ #Update using timetrack
   source('./Codes_useful/R.libraries.R')
   
   files_time <- list.files('S:/Bioinformatics Lab/germanm2/n_policy_cameron/time_track',full.names = T, recursive = T)
-  files_time <- list.files('./n_policy_box/Data/time_track_129/',full.names = T, recursive = T)
-  
+  files_time <- list.files('./n_policy_box/Data/time_track_141/',full.names = T, recursive = T)
+  length(files_time)
   
   results_list <- list()
   for(file_n in files_time){
@@ -174,10 +181,12 @@ if(FALSE){ #Update using timetrack
   
   setnames(time_track_walltime_dt, 'dur5', 'dur')
   
-  write.table(time_track_walltime_dt[,.(id_10, dur)], paste0('./n_policy_git/time_track_walltime_dt.txt'), row.names = F, col.names = F)
-  
-  
-  
+  write.table(time_track_walltime_dt[,.(id_10, dur)], paste0(codes_folder, '/n_policy_git/time_track_walltime_dt.txt'), row.names = F, col.names = F)
+  saveRDS(time_track_walltime_dt, "./n_policy_box/Data/files_rds/time_track_walltime_dt.rds")
+  # missing_dt <- time_track_walltime_dt2[!id_10 %in% time_track_walltime_dt$id_10]
+  # missing_dt[,dur := dur +20]
+  # time_track_walltime_dt <- rbind(time_track_walltime_dt, missing_dt)
+  # time_track_walltime_dt <- time_track_walltime_dt[,.(id_10, mukey_n, dur)][order(dur) ]
   
   id_10_walltime_dt <- readRDS("./n_policy_box/Data/files_rds/id_10_walltime_dt.rds")
   comp_dt <- merge(id_10_walltime_dt, time_track_walltime_dt, by = 'id_10')

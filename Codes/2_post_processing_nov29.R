@@ -14,7 +14,7 @@ source('./n_policy_git/Codes/parameters.R')
 #DATA CLEANING & QUALITY CONTROL
 if(FALSE){
   # batch_n = 56
-  batch_n = 88
+  batch_n = 147
   library("foreach")
   library("doParallel")
   print(batch_n)
@@ -65,6 +65,7 @@ if(FALSE){
   regions_dt <- data.table(grid10_tiles_sf6) %>% .[,.N,.(id_10, region)] %>% .[,-'N']
   yc_yearly_dt <- merge(yc_yearly_dt[,-'region'], regions_dt[,.(id_10, region)], by = 'id_10')
   yc_yearly_dt[,region := factor(region)]
+  
   #------------------------------------------------------------------------------------
   MAKE ESW
   #------------------------------------------------------------------------------------
@@ -88,11 +89,7 @@ if(FALSE){
   
   yc_yearly_dt2a <- yc_yearly_dt[lai_v5 >= yc_yearly_dt[Y_corn > 0, min(lai_v5)]] #lai thereshold = lowest lai where Y_corn was positive
   # Assumption: if the lai is too low, the farmer will not apply the rate and will plant soybean
-  yc_yearly_dt2a[id_10 == 259 & mukey == 942156 & N_fert==160] #very high leaching
-  hist(yc_yearly_dt2a$L1)
-  summary(yc_yearly_dt2a$L1)
-  yc_yearly_dt2a[L1 > 500]
-  
+
   #Dont do it
   yc_yearly_dt2a <- yc_yearly_dt
   #------------------------------------------------------------------------------------
@@ -138,7 +135,6 @@ if(FALSE){
   yearly_eonr_dt2 <- yearly_eonr_dt[,.(Y_corn = mean(Y_corn), 
                                        L = mean(L),
                                        N_fert = mean(N_fert),
-                                       Y_prev = mean(Y_prev),
                                        Y_soy = mean(Y_soy),
                                  n_deep_v5 = mean(n_deep_v5),
                                  n_deep_v5_max = max(n_deep_v5)), by = .(id_10, mukey)] #z is out
@@ -146,7 +142,6 @@ if(FALSE){
   summary(yearly_eonr_dt2$Y_corn)
   summary(yearly_eonr_dt2$L)
   summary(yearly_eonr_dt2$N_fert)
-  summary(yearly_eonr_dt2$Y_prev)
   summary(yearly_eonr_dt2$Y_soy)
   summary(yearly_eonr_dt2$n_deep_v5)
   summary(yearly_eonr_dt2$n_deep_v5_max)
@@ -160,7 +155,7 @@ if(FALSE){
   yearly_eonr_dt2[N_fert < 40]
   
   #Remove mukeys that have low yield (farmers would not plant or APSIM is not simulating well)
-  qc_control <- yearly_eonr_dt2[Y_corn < 7000 | L > 200 | N_fert < 60 | Y_prev < 2000]
+  qc_control <- yearly_eonr_dt2[Y_corn < 7000 | L > 100 | N_fert < 60 | Y_soy < 2000]
   
   remove_this <- filter_dt_in_dt(yc_yearly_dt2c, filter_dt = qc_control[,.(id_10, mukey)])
   yc_yearly_dt2d <- yc_yearly_dt2c[-remove_this]
