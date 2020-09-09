@@ -100,7 +100,7 @@ grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
     set.seed(512)
     stations_by_region_dt <- grid10_soils_dt5[,.N, .(region, id_10, id_field)][,.N, region]
     stations_by_region_dt[,prop := N/sum(N)]
-    stations_by_region_dt[,station := round(120*prop)]
+    stations_by_region_dt[,station := round(10*prop)]
     stations_by_region_dt[,sum(station)] == 120
     
     stations_dt <- data.table()
@@ -112,6 +112,7 @@ grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
       stations_dt <- rbind(stations_dt, candidates_region_dt[id_10 %in% id_10_sample])
     }
     stations_dt[,.N, region]
+    length(unique(stations_dt$id_10))
     #-------------------
     #Remove fields that are stations
     remove_this <- filter_dt_in_dt(grid10_soils_dt5, filter_dt = unique(stations_dt[,.(id_10, id_field)]))
@@ -125,8 +126,8 @@ grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
     rm(reg_model_stuff)
   }
 
-candidates_dt2 <- candidates_dt[id_10 %in% unique(stations_dt$id_10) & id_field %in% c(1,2)]
-stations_dt <- candidates_dt2
+# candidates_dt2 <- candidates_dt[id_10 %in% unique(stations_dt$id_10) & id_field %in% c(1,2)]
+# stations_dt <- candidates_dt2
 # saveRDS(stations_dt, "./n_policy_box/Data/files_rds/stations_lovely.rds")
 
 # EXPLORE THE DATA-------------------
@@ -158,9 +159,7 @@ grid.arrange(
   ggplot(eonr_explore_dt) +
     geom_boxplot(aes(x = set, y = Y_corn)),
   ggplot(eonr_explore_dt) +
-    geom_boxplot(aes(x = set, y =  n_deep_v5)),
-  ggplot(eonr_explore_dt) +
-    geom_boxplot(aes(x = set, y =  Y_prev))
+    geom_boxplot(aes(x = set, y =  n_deep_v5)), ncol = 2
 )
 
 ggplot(eonr_explore_dt) +
@@ -224,7 +223,7 @@ plot_1 <- ggplot(data = TrainSet_eonr, aes(x = n_0_60cm_v5, y = eonr)) +
 plot_2 <- ggplot(data = TrainSet_eonr, aes(x = t_min_30, y = eonr)) + 
   geom_point() + geom_smooth(formula = 'y ~ x', method = lm)
 
-plot_3 <- ggplot(data = TrainSet_eonr, aes(x = Y_prev, y = eonr)) + 
+plot_3 <- ggplot(data = TrainSet_eonr, aes(x = swdef_expan_fw, y = eonr)) + 
   geom_point() + geom_smooth(formula = 'y ~ x', method = lm)
 
 plot_4 <- ggplot(data = TrainSet_eonr, aes(x = rain_90, y = eonr)) + 
@@ -240,8 +239,8 @@ hist(TrainSet_eonr$eonr)
 
 #---------------
 #Compare soy vs corn yield in mukeys that had the both crops the same year
-soy_dt <- TrainSet_eonr[,.(id_10, mukey, z, Y_soy = Y_prev)]
-soy_dt[,z := as.numeric(z)-1]
+soy_dt <- TrainSet_eonr[,.(id_10, mukey, z, Y_soy)]
+soy_dt[,z := as.numeric(z)+1]
 corn_dt <- TrainSet_eonr[,.(id_10, mukey, z, Y_corn)]
 corn_dt[,z := as.numeric(z)]
 yield_test <- merge(soy_dt, corn_dt, by = c('id_10', 'mukey', 'z'))

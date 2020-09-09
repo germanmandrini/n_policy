@@ -18,11 +18,11 @@ regional_test <- T
 #Merge all files
 # batch_n = 19Y
 folders <- list.dirs("./n_policy_box/Data", full.names = F )[str_detect(pattern = 'yc_output_summary', string = list.dirs("./n_policy_box/Data" ))]
-batches <- sort(as.numeric(sapply(strsplit(folders, split="_"), "[", 4) ), decreasing = T)[1:2]
+batches <- sort(as.numeric(sapply(strsplit(folders, split="_"), "[", 4) ), decreasing = T)[1]
 print(batches)
 two_batches_yc_dt  <- data.table()
 for(batch_n in sort(batches)){
-  # batch_n = 142
+  # batch_n = 147
   # print(batch_n)
   multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
   print(length(multiple_files))
@@ -74,6 +74,13 @@ for(batch_n in sort(batches)){
   # saveRDS(one_batch_dt, paste0("./n_policy_box/Data/files_rds/one_batch_dt_batch", batch_n, ".rds"))
   two_batches_yc_dt <- rbind(two_batches_yc_dt, one_batch_dt, fill = T)
 }
+id_north <- c( 16, 19, 21, 27, 33, 34, 43, 44, 53, 119, 121, 128, 134, 137, 145, 177, 191, 199, 204, 206, 209, 214, 258, 360, 361, 372, 377, 379, 456, 461)
+two_batches_yc_dt <- two_batches_yc_dt[!id_10 %in% id_north]
+
+id_north2 <- c(77, 93, 116, 135, 154, 187, 210, 364, 370, 371, 380, 381, 382, 388, 393)
+
+
+paste(id_north2, collapse = ', ')
 
 # batch141_dt <- readRDS(paste0("./n_policy_box/Data/files_rds/one_batch_dt_batch141.rds"))
 # two_batches_yc_dt <- rbind(two_batches_yc_dt, batch141_dt, fill = T)
@@ -315,7 +322,7 @@ two_batches_eonr_dt[,region := factor(region)]
     theme(legend.title =  element_blank(),
           axis.text=element_text(size=14))+
     facet_wrap(region~batch, 
-               ncol =2 ,
+               ncol =1 ,
                #scales="free",
                strip.position = "left"))
 
