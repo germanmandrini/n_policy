@@ -48,7 +48,7 @@ hist(TrainSet2$n_0_60cm_v5)
 
 pred_vars <- c("rain_30", "rain_60", "rain_90",
                "t_max_30", "t_max_60", "t_max_90", "t_min_30", "t_min_60",
-               "t_min_90", "Y_prev", 'Y_corn_lt_avg', "day_sow", "day_v5", "lai_v5",
+               "t_min_90", 'Y_corn_lt_avg', "day_sow", "day_v5", "lai_v5",
                "whc",  "oc_20cm_v5", "sw_dep_v5", "n_0_60cm_v5",  "surfaceom_wt_v5", "sand_40cm", "clay_40cm") #"root_wt_v5",, "n_deep_v5", "esw_pct_v5", 
 
 saveRDS(pred_vars, "./n_policy_box/Data/files_rds/pred_vars.rds")
@@ -111,13 +111,21 @@ for(ratio_n in ratio_seq){
   # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
   best.m = 6
   
-  rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2[,c('eonr', pred_vars), with = FALSE],
+  rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2,
                            importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
  
   varImpPlot(rf2_eonr, type=2)
   plot(rf2_eonr)
   name_model = paste0('rf2')
   small_model_list[[name_model]] <- rf2_eonr
+  
+  if(FALSE){
+    # Add the results to the prediction set to use in python (first we need to run 4a_fields_splitter)
+    prediction_set_aggregated_dt <- readRDS("./n_policy_box/Data/files_rds/prediction_set_aggregated_dt.rds")
+    prediction_set_aggregated_dt[,eonr_pred_rf := ceiling(predict(rf2_eonr, prediction_set_aggregated_dt)/10)*10]
+    saveRDS(prediction_set_aggregated_dt, "./n_policy_box/Data/files_rds/prediction_set_aggregated_dt.rds")
+  }
+  
   
   # =========================================================================================================================================================
   #Call python to build the CNN

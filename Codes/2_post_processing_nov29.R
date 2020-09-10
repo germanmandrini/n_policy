@@ -146,13 +146,14 @@ if(FALSE){
   summary(yearly_eonr_dt2$n_deep_v5)
   summary(yearly_eonr_dt2$n_deep_v5_max)
   
-  hist(yearly_eonr_dt2$Y_corn)
-  hist(yearly_eonr_dt2$n_deep_v5)
-  hist(yearly_eonr_dt2$N_fert)
+  grid.arrange(
+    ggplot(yearly_eonr_dt2, aes(Y_corn)) + stat_ecdf(geom = "point"),
+    ggplot(yearly_eonr_dt2, aes(L)) + stat_ecdf(geom = "point"),
+    ggplot(yearly_eonr_dt2, aes(N_fert)) + stat_ecdf(geom = "point"),
+    ggplot(yearly_eonr_dt2, aes(Y_soy)) + stat_ecdf(geom = "point")
+  )
   
-  hist(yearly_eonr_dt2[n_deep_v5 > 300]$n_deep_v5)
-  hist(yearly_eonr_dt2[N_fert < 100]$N_fert)
-  yearly_eonr_dt2[N_fert < 40]
+  ggplot(yearly_eonr_dt2)+geom_point(aes(x = Y_corn, y = Y_soy))+ ggtitle("Soy and Corn correlation")
   
   #Remove mukeys that have low yield (farmers would not plant or APSIM is not simulating well)
   qc_control <- yearly_eonr_dt2[Y_corn < 7000 | L > 100 | N_fert < 60 | Y_soy < 2000]
@@ -160,13 +161,16 @@ if(FALSE){
   remove_this <- filter_dt_in_dt(yc_yearly_dt2c, filter_dt = qc_control[,.(id_10, mukey)])
   yc_yearly_dt2d <- yc_yearly_dt2c[-remove_this]
   length(unique(yc_yearly_dt2d$id_10))
+  
   yc_yearly_dt2d[,.N, by = .(id_10, mukey, z)][,.N, by = .(id_10, mukey)]$N %>% table() #of z by mukey, has to be 5 or 10
   
   #------------------------------------------------------------------------------------
   # REMOVE MUKEYS THAT DID NOT HAVE ALL THE RUNS (ROTATIONS OR Z ARE MISSING)
+  yc_yearly_dt2d[,.N, by = .(id_10, mukey, z)][N < 25]
+  yc_yearly_dt2d[,.N, by = .(id_10, mukey, z)][,.N, by = .(id_10, mukey)][N < 14]
+  
   missing_ids_dt <- yc_yearly_dt2d[,.N, by = .(id_10, mukey, z)][N > 25] #at least x rates
   missing_ids_dt2 <- missing_ids_dt[,.N, by = .(id_10, mukey)][N >= 14][,ok := 1] #at least x z
-  missing_ids_dt[,.N, by = .(id_10, mukey)][N < 14]
   # missing_ids_dt3 <- missing_ids_dt2[,.N, by = .(id_10, mukey)][N ==2][,-'N'][,ok := 1] #both prev_crop
   
   length(unique(missing_ids_dt$id_10))

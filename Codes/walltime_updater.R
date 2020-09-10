@@ -6,7 +6,7 @@ library(dplyr)
 #setwd('/projects/aces/germanm2/')
 setwd('C:/Users/germanm2/Box Sync/My_Documents') #CPSC
 codes_folder <-'C:/Users/germanm2/Documents'
-
+codes_folder <-'~'
 
 #---------------------------------------------------------------------------
 
@@ -15,6 +15,8 @@ time_track_walltime_dt <- readRDS("./n_policy_box/Data/files_rds/time_track_wall
 
 id_failed <- c(536, 577, 682, 66, 701, 754) 
 id_failed <- c(953,922,1032,1106,1268,1338,190,20,23,256)
+id_failed <- c(390,103,180,248,346,425,542,605,669,718,755,816,889,932,994) 
+id_failed <- c(624, 979, 110,220,428,319,491,496,505,606,616,640,668,679 )
 id_north <- c( 16, 19, 21, 27, 33, 34, 43, 44, 53, 119, 121, 128, 134, 137, 145, 177, 191, 199, 204, 206, 209, 214, 258, 360, 361, 372, 377, 379, 456, 461)
 
 id_north2 <- c(77, 93, 116, 135, 154, 187, 210, 364, 370, 371, 380, 381, 382, 388, 393)
@@ -39,6 +41,9 @@ write.table(time_track_walltime_dt[,.(id_10, dur)], paste0(codes_folder, '/n_pol
 id_10_walltime_dt <- readRDS("./n_policy_box/Data/files_rds/id_10_walltime_dt.rds")
 # id_10_walltime_dt <- readRDS("./n_policy_box/Data/files_rds/time_track_walltime_dt.rds")
 id_10_walltime_dt <- id_10_walltime_dt[!id_10 %in% unique(two_batches_yc_dt$id_10)]
+id_10_walltime_dt <- id_10_walltime_dt[id_10 %in% id_failed]
+time_track_walltime_dt <-id_10_walltime_dt
+
 id_10_walltime_dt[,dur := N*6]
 id_10_walltime_dt[N>5,dur := N*5]
 id_10_walltime_dt[N>7,dur := N*4]

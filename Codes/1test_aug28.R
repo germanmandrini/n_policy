@@ -26,7 +26,8 @@ for(batch_n in sort(batches)){
   # print(batch_n)
   multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
   print(length(multiple_files))
-  
+  list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T, )
+
   # registerDoParallel(36) # register the cluster
   registerDoParallel(cores = 20)
   output_list = foreach(file_n = multiple_files, .combine = "c", .packages = c("data.table")) %dopar% {
@@ -75,7 +76,8 @@ for(batch_n in sort(batches)){
   two_batches_yc_dt <- rbind(two_batches_yc_dt, one_batch_dt, fill = T)
 }
 
-id_north <- c( 16, 19, 21, 27, 33, 34, 43, 44, 53, 119, 121, 128, 134, 137, 145, 177, 191, 199, 204, 206, 209, 214, 258, 360, 361, 372, 377, 379, 456, 461,
+id_north <- c( 16, 19, 21, 27, 33, 34, 43, 44, 53, 119, 121, 128, 134, 137, 145, 177, 191, 
+               199, 204, 206, 209, 214, 258, 360, 361, 372, 377, 379, 456, 461,
                77, 93, 116, 135, 154, 187, 210, 364, 370, 371, 380, 381, 382, 388, 393)
 two_batches_yc_dt <- two_batches_yc_dt[!id_10 %in% id_north]
 

@@ -1,15 +1,10 @@
-# https://machinelearningmastery.com/pytorch-tutorial-develop-deep-learning-models/
-# https://colab.research.google.com/github/rpi-techfundamentals/website_spring_2020/blob/master/content/notebooks/20-deep-learning1/06-regression-bh-pytorch.ipynb#scrollTo=xD9PhAU7hoqT
-#!pip install torchvision
-import numpy as np
-import pandas as pd
-import pyreadr
-import scipy
-#Define the model 
 import torch
-import torch.nn as nn
+import numpy as np
+from torch import nn,optim
+from torch.utils.data import Dataset, DataLoader
+import pyreadr
 import torch.nn.functional as F
-from sklearn.utils import shuffle
+import matplotlib.pyplot as plt 
 from torch.autograd import Variable
 
 

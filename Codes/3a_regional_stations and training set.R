@@ -100,7 +100,7 @@ grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
     set.seed(512)
     stations_by_region_dt <- grid10_soils_dt5[,.N, .(region, id_10, id_field)][,.N, region]
     stations_by_region_dt[,prop := N/sum(N)]
-    stations_by_region_dt[,station := round(10*prop)]
+    stations_by_region_dt[,station := round(120*prop)]
     stations_by_region_dt[,sum(station)] == 120
     
     stations_dt <- data.table()
@@ -293,18 +293,21 @@ grid10_region <- grid10_tiles_sf6 %>% group_by(region) %>% summarise()
 library(smoothr)
 area_thresh <- units::set_units(10*10+10, km^2)
 grid10_region2 <- fill_holes(grid10_region, threshold = area_thresh)
+grid10_region2$labels <- c('1-South', '2-Central', '3-North')
 # grid10_region_by_hand <- sf::read_sf('./n_policy_box/Data/shapefiles/grid10_region_by_hand.shp')
 # grid10_region_by_hand <- st_transform(grid10_region_by_hand, crs = st_crs(stations_sf))
 
+tm_shape(grid10_region2) + tm_borders(lwd = 4, col = 'darkgreen') + tm_text('labels', bg.color='yellow')
 
-(fields_map_clean <- tm_shape(grid10_tiles_sf6) + tm_borders() +
-    tm_shape(grid10_region2) + tm_borders(lwd = 4, col = 'darkgreen') +
-    tm_shape(stations_single_sf) + tm_dots(size = 0.3, col = 'blue', shape = 24) +
+(fields_map_clean <- tm_shape(grid10_tiles_sf6) + tm_polygons('region') +
+    tm_shape(stations_single_sf) + tm_dots(size = 0.3, col = 'darkblue', shape = 24) +
     tm_shape(regularfields_sf) + tm_dots(size = 0.04) +
+    tm_shape(grid10_region2) + tm_borders(lwd = 4, col = 'darkgreen') + tm_text('labels', bg.color='white')+
     tm_layout(legend.text.size = 0.7,
               # main.title = 'Final fields map',
               main.title.position = "center",
-              main.title.size = 1))
+              main.title.size = 1)+
+    tm_legend(show=FALSE))
 
 tmap_save(fields_map_clean, filename = "./n_policy_box/Data/figures/fields_map_and_stations.pdf", height = 8, width = 6)  
 
