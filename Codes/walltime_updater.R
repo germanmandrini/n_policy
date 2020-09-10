@@ -38,8 +38,12 @@ write.table(time_track_walltime_dt[,.(id_10, dur)], paste0(codes_folder, '/n_pol
 
 id_10_walltime_dt <- readRDS("./n_policy_box/Data/files_rds/id_10_walltime_dt.rds")
 # id_10_walltime_dt <- readRDS("./n_policy_box/Data/files_rds/time_track_walltime_dt.rds")
-
-
+id_10_walltime_dt <- id_10_walltime_dt[!id_10 %in% unique(two_batches_yc_dt$id_10)]
+id_10_walltime_dt[,dur := N*6]
+id_10_walltime_dt[N>5,dur := N*5]
+id_10_walltime_dt[N>7,dur := N*4]
+id_10_walltime_dt[N>10,dur := N*5]
+time_track_walltime_dt <- id_10_walltime_dt[order(dur)]
 
 write.table(id_10_walltime_dt[,.(id_10, dur)], paste0(codes_folder,'/n_policy_git/id_10_walltime.txt'), row.names = F, col.names = F)
 #---------------------------------------------------------------------------
