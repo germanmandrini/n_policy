@@ -145,6 +145,7 @@ if(FALSE){
   baselevel_P <- perfomances_dt4[policy == 'ratio_5' & NMS == 'static', P ]
   # perfomances_dt4[,S := P - baselevel_P]
   perfomances_dt4[,net_balance := P - baselevel_P + G]
+  perfomances_dt4[policy == 'ratio_5']
   # perfomances_dt4[,ag_cost := P  + G]
   saveRDS(perfomances_dt4, "./n_policy_box/Data/files_rds/perfomances_dt4.rds")
   

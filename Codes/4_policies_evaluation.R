@@ -39,7 +39,7 @@ library("doParallel")
 # https://cran.r-project.org/web/packages/reticulate/vignettes/calling_python.html
 library(reticulate)
 use_condaenv('GEOANN', conda = '/opt/anaconda3/condabin/conda')
-source_python("./n_policy_git/Codes/3c_cnn_functions.py")
+source_python("./n_policy_git/Codes/3c_cnn_functions_sep10.py")
 
 
 reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
@@ -66,10 +66,7 @@ testing_set_dt[, region := factor(region)]
 testing_set_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z, N_fert)]$area_ha %>% summary()
 
 names(reg_model_stuff)
-reg_model_stuff$ratio_5$minimum_ok
-reg_model_stuff$fee_0$minimum_ok
 training_z <- reg_model_stuff$training_z
-
 prediction_set_aggregated_dt <- prediction_set_aggregated_dt[!z %in% training_z]
 testing_set_dt <- testing_set_dt[!z %in% training_z]
 
@@ -129,10 +126,17 @@ for(policy_n in policies_ratios){
   #===================================================================================================================
   # 3) PREDICT CNN
   # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
+  # source_python("./n_policy_git/Codes/3c_cnn_functions_sep10.py")
   prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n, pred_vars) %>% data.table()
   
   prediction_set_aggregated_dt2[,eonr_pred := ceiling(eonr_pred/10)*10] %>%
     .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))]
+  
+  ggplot(prediction_set_aggregated_dt2[sample(1:nrow(prediction_set_aggregated_dt2), 1000)]) + 
+    geom_point(aes(x = eonr_pred_rf, y= eonr_pred))+ 
+    theme(aspect.ratio=1) + coord_fixed() + geom_abline() + ylim(0, 260)+ xlim(0, 260) +
+    theme(axis.text=element_text(size=12),
+          axis.title=element_text(size=14,face="bold"))
   
   #---------------------------------------------------------------------------
   # PERFORMANCE EVALUATION

@@ -56,7 +56,7 @@ def build_cnn(TrainSet_eonr2_df, policy, pred_vars):
     cols = len(pred_vars)
 
     # Create our model 
-    model = Net(cols)
+    model = Net(cols, p=0.1)
     model.train()
 
     torch.manual_seed(0)
@@ -74,16 +74,17 @@ def build_cnn(TrainSet_eonr2_df, policy, pred_vars):
 def predict_cnn(prediction_set_aggregated_df, policy, pred_vars):
     #Load the saved model
     #policy = 'ratio_5'
+    cols = len(pred_vars)
+    model_load = Net(cols)
     path = '/home/germanm2/n_policy_box/Data/files_rds/cnn_models/'+ policy + '.pth'
-    net_load = Net(21, 100, 1)
-    net_load.load_state_dict(torch.load(path))
-    net_load.eval()
-    net_load.state_dict()
+    model_load.load_state_dict(torch.load(path))
+    model_load.eval()
+    model_load.state_dict()
     X_pred = prediction_set_aggregated_df[pred_vars]
     X_pred=X_pred.values
     X_pred
     X = Variable(torch.FloatTensor(X_pred)) 
-    y_pred = net_load(X) #This outputs the value for regression
+    y_pred = model_load(X) #This outputs the value for regression
     y_pred=y_pred.data[:,0].numpy()
     y_pred
     prediction_set_aggregated_df['eonr_pred'] = y_pred

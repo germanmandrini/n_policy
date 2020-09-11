@@ -156,7 +156,7 @@ if(FALSE){
   ggplot(yearly_eonr_dt2)+geom_point(aes(x = Y_corn, y = Y_soy))+ ggtitle("Soy and Corn correlation")
   
   #Remove mukeys that have low yield (farmers would not plant or APSIM is not simulating well)
-  qc_control <- yearly_eonr_dt2[Y_corn < 7000 | L > 100 | N_fert < 60 | Y_soy < 2000]
+  qc_control <- yearly_eonr_dt2[Y_corn < 7000 | L > 120 | N_fert < 60 | Y_soy < 2000]
   
   remove_this <- filter_dt_in_dt(yc_yearly_dt2c, filter_dt = qc_control[,.(id_10, mukey)])
   yc_yearly_dt2d <- yc_yearly_dt2c[-remove_this]

@@ -16,7 +16,7 @@ time_track_walltime_dt <- readRDS("./n_policy_box/Data/files_rds/time_track_wall
 id_failed <- c(536, 577, 682, 66, 701, 754) 
 id_failed <- c(953,922,1032,1106,1268,1338,190,20,23,256)
 id_failed <- c(390,103,180,248,346,425,542,605,669,718,755,816,889,932,994) 
-id_failed <- c(624, 979, 110,220,428,319,491,496,505,606,616,640,668,679 )
+id_failed <- c(624, 979, 110,220,428,319,491,496,505,606,616,640,668,679,123,297,306,1117 )
 id_north <- c( 16, 19, 21, 27, 33, 34, 43, 44, 53, 119, 121, 128, 134, 137, 145, 177, 191, 199, 204, 206, 209, 214, 258, 360, 361, 372, 377, 379, 456, 461)
 
 id_north2 <- c(77, 93, 116, 135, 154, 187, 210, 364, 370, 371, 380, 381, 382, 388, 393)
@@ -25,7 +25,8 @@ time_track_walltime_dt <- time_track_walltime_dt[id_10 %in% c(id_north2)]
 time_track_walltime_dt[id_10 %in% id_failed, dur := dur + 20]
 time_track_walltime_dt <- time_track_walltime_dt[id_10 %in% id_failed]
 
-
+time_track_walltime_dt <- time_track_walltime_dt[!id_10 %in% unique(two_batches_yc_dt$id_10)]
+time_track_walltime_dt[, dur := dur + 20]
 
 
 write.table(time_track_walltime_dt[,.(id_10, dur)], paste0(codes_folder, '/n_policy_git/time_track_walltime_dt.txt'), row.names = F, col.names = F)

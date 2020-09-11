@@ -155,7 +155,7 @@ output_list = foreach(j = fields_seq, .combine = "c", .packages = c("data.table"
 }#end of dopar loop
 
 stopImplicitCluster()
-
+length(output_list) == nrow(fields_list_dt)
 
 #---------------------
 # Split the sets in two list
@@ -167,7 +167,7 @@ for(i in 1:length(output_list)){
   prediction_set_aggregated_list[[i]] <- output_list[[i]][["prediction_set_aggregated"]]
 }
 
-
+length(prediction_set_aggregated_list)
 prediction_set_aggregated_dt <- rbindlist(prediction_set_aggregated_list)
 testing_set_dt <- rbindlist(testing_set_list)
 
