@@ -105,7 +105,9 @@ for(ratio_n in ratio_seq){
   
   TrainSet_eonr2 <- TrainSet_eonr[,c('eonr', pred_vars), with = FALSE]
   
-  # saveRDS(TrainSet_eonr2, "./n_policy_box/Data/files_rds/TrainSet_eonr2.rds") #for python
+  if(ratio_n == 5){
+    saveRDS(TrainSet_eonr2, "./n_policy_box/Data/files_rds/TrainSet_eonr2.rds") #for python
+  }
   # =========================================================================================================================================================
     # RF Model 2------------------------
   # mtry <- tuneRF(TrainSet_eonr2[,c(pred_vars), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
@@ -121,7 +123,7 @@ for(ratio_n in ratio_seq){
   name_model = paste0('rf2')
   small_model_list[[name_model]] <- rf2_eonr
   
-  if(FALSE){
+  if(ratio_n == 5){
     # Add the results to the prediction set to use in python (first we need to run 4a_fields_splitter)
     prediction_set_aggregated_dt <- readRDS("./n_policy_box/Data/files_rds/prediction_set_aggregated_dt.rds")
     prediction_set_aggregated_dt[,eonr_pred_rf := ceiling(predict(rf2_eonr, prediction_set_aggregated_dt)/10)*10]

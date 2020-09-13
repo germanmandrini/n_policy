@@ -287,6 +287,9 @@ if(!regional_test){
   model_minimum_ok <- TrainSet_RMM[,.(P = mean(P)), by = .(batch, region, N_fert)] %>% 
     .[, .SD[ P == max( P)], by = .(batch, region)] %>% .[,.(batch, region, eonr_pred = N_fert)]
 }
+
+#North: lower than 148
+#Central: higher than 148
 model_minimum_ok[order(batch)]
 #======================================================================================
 #EONR frecuency
@@ -327,6 +330,9 @@ two_batches_eonr_dt[,region := factor(region)]
 last_batch_eonr_dt <- two_batches_eonr_dt[batch == max(batch)]
 last_batch_eonr_dt[,z := as.numeric(z)] 
 
+ggplot(two_batches_eonr_dt) +
+  geom_density(aes(x = n_deep_v5, color = factor(region), linetype = factor(batch)))
+
 ggplot(last_batch_eonr_dt) + geom_boxplot(aes(x = factor(z), y = eonr))
 
 ggplot(last_batch_eonr_dt) + geom_boxplot(aes(x = factor(z), y = Y_corn))+
@@ -340,6 +346,8 @@ ggplot(last_batch_eonr_dt) +
 
 ggplot(last_batch_eonr_dt) + 
   geom_boxplot(aes(x = factor(region), y = n_deep_v5))
+
+
 
 # Summarize all columns
 # last_batch_eonr_dt[,region := as.numeric(region)]
