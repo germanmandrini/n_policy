@@ -159,6 +159,7 @@ names(supp.labs) <- c("mrtn", "simulated")
          colour = "Region") +
     # scale_y_continuous(sec.axis = sec_axis(~./200, name = "Corn N leaching (kg/ha)", breaks = seq(30,80,5), labels = seq(30,80,5))) +
     # scale_linetype_manual(values = c("dashed", "solid"))+
+    xlim(0, 250) +
     theme_bw()+
     facet_wrap(source~., labeller = labeller(source = supp.labs))+
     theme(strip.background =element_rect(fill="white"),
@@ -186,6 +187,7 @@ mrtn_dt[prop < 0, prop := 0]
 mrtn_dt[,source := 'mrtn']
 mrtn_dt[,bin := gsub(pattern = 'Bar', replacement = '', x = bin)]
 mrtn_dt[,bin := as.numeric(bin) +1]
+
 #---------------------------------------------------------------------------------------
 # Load simulated data
 simulated_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
@@ -243,7 +245,7 @@ ggsave(plot = plot_1,
        
 # =========================================================================================================================================================
 # CREATE THE REGIONAL MINIMUM MODEL - OK
-Yld_response_threshold <- 0  
+Yld_response_threshold <- 100  
 simulated_dt[, Yld_response := max(Y_corn) - min(Y_corn), by = .( id_10, mukey,z)]
 simulated_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
 TrainSet_RMM <- simulated_dt[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 

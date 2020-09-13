@@ -145,7 +145,7 @@ ggplot(eonr_explore_dt) + geom_boxplot(aes(x = factor(z), y = eonr))
 
 # training_z <- sort(sample(1:30, 15))
 # training_z <- c(2,  3,  4,  6, 10, 11, 16, 20, 22, 23, 24, 25, 26, 28, 29)
-training_z <- c(1:10)
+training_z <- c(1:14)
 
 # training_z <- sort(sample(1:30, 15))
 
@@ -296,8 +296,6 @@ grid10_region2 <- fill_holes(grid10_region, threshold = area_thresh)
 grid10_region2$labels <- c('1-South', '2-Central', '3-North')
 # grid10_region_by_hand <- sf::read_sf('./n_policy_box/Data/shapefiles/grid10_region_by_hand.shp')
 # grid10_region_by_hand <- st_transform(grid10_region_by_hand, crs = st_crs(stations_sf))
-
-tm_shape(grid10_region2) + tm_borders(lwd = 4, col = 'darkgreen') + tm_text('labels', bg.color='yellow')
 
 (fields_map_clean <- tm_shape(grid10_tiles_sf6) + tm_polygons('region') +
     tm_shape(stations_single_sf) + tm_dots(size = 0.3, col = 'darkblue', shape = 24) +

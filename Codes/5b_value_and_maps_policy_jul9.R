@@ -160,7 +160,7 @@ saveRDS(W_peak_dt, "./n_policy_box/Data/files_rds/W_peak_dt.rds")
 #==========================================================================
 # RATIO CHART 2
 
-plot_dt <- perfomances_dt4[policy_name == 'ratio' ] 
+plot_dt <- perfomances_dt4[policy_name == 'ratio' & NMS %in% c('static', 'dynamic1') ] 
 
 # Total G collections in IL
 if(FALSE){
@@ -295,7 +295,7 @@ plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn')]
 
 grid.arrange(plot_1, plot_2, nrow = 1)
 ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
-       filename = "./n_policy_box/Data/figures/ratio_all_vars.jpg", width = 979/300*3, height = 1042/300*3,
+       filename = "./n_policy_box/Data/figures/ratio_all_vars.pdf", width = 979/300*3, height = 1042/300*3,
        units = 'in')
 #==========================================================================
 # LRED CHART

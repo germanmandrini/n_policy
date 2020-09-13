@@ -68,7 +68,7 @@ if(FALSE & test_small){
 if(FALSE & server & !regional_soils){
   one_cell_dt <- one_cell_dt[,.SD[prop_area == max(prop_area)], by = id_field]
 }
-if(FALSE & server){
+if(TRUE & server){
   one_cell_dt <- one_cell_dt[ area_ha == max( area_ha)][1] 
   one_cell_dt[,id_field := 1]
 }
@@ -149,9 +149,9 @@ instructions[,water := water_n]
 # N by region, and same by field and z combination
 set.seed(1)
 z_count <- length(unique(instructions$z))
-n_target_vector <- list(sample(39:40, z_count, replace = T), #South
-                        sample(39:40, z_count, replace = T),  #Central
-                        sample(39:40, z_count, replace = T))[[region_n]] #North
+n_target_vector <- list(sample(1:60, z_count, replace = T), #South
+                        sample(1:60, z_count, replace = T),  #Central
+                        sample(1:60, z_count, replace = T))[[region_n]] #North
 
 n_target_dt <- data.table(z = unique(instructions$z),
                           n_target= n_target_vector)

@@ -49,7 +49,8 @@ hist(TrainSet2$n_0_60cm_v5)
 pred_vars <- c("rain_30", "rain_60", "rain_90",
                "t_max_30", "t_max_60", "t_max_90", "t_min_30", "t_min_60",
                "t_min_90", 'Y_corn_lt_avg', "day_sow", "day_v5", "lai_v5",
-               "whc",  "oc_20cm_v5", "sw_dep_v5", "n_0_60cm_v5",  "surfaceom_wt_v5", "sand_40cm", "clay_40cm") #"root_wt_v5",, "n_deep_v5", "esw_pct_v5", 
+               "whc",  "oc_20cm_v5", "sw_dep_v5", "n_0_60cm_v5",  "surfaceom_wt_v5", 
+               "sand_40cm", "clay_40cm") #"root_wt_v5",, "n_deep_v5", "esw_pct_v5", 
 
 saveRDS(pred_vars, "./n_policy_box/Data/files_rds/pred_vars.rds")
 

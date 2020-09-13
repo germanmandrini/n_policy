@@ -22,12 +22,11 @@ batches <- sort(as.numeric(sapply(strsplit(folders, split="_"), "[", 4) ), decre
 print(batches)
 two_batches_yc_dt  <- data.table()
 for(batch_n in sort(batches)){
-  # batch_n = 147
+  # batch_n = 148
   # print(batch_n)
   multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
   print(length(multiple_files))
-  list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T, )
-
+ 
   # registerDoParallel(36) # register the cluster
   registerDoParallel(cores = 20)
   output_list = foreach(file_n = multiple_files, .combine = "c", .packages = c("data.table")) %dopar% {
@@ -76,14 +75,8 @@ for(batch_n in sort(batches)){
   two_batches_yc_dt <- rbind(two_batches_yc_dt, one_batch_dt, fill = T)
 }
 
-id_north <- c( 16, 19, 21, 27, 33, 34, 43, 44, 53, 119, 121, 128, 134, 137, 145, 177, 191, 
-               199, 204, 206, 209, 214, 258, 360, 361, 372, 377, 379, 456, 461,
-               77, 93, 116, 135, 154, 187, 210, 364, 370, 371, 380, 381, 382, 388, 393)
-two_batches_yc_dt <- two_batches_yc_dt[!id_10 %in% id_north]
-
-
-# batch141_dt <- readRDS(paste0("./n_policy_box/Data/files_rds/one_batch_dt_batch141.rds"))
-# two_batches_yc_dt <- rbind(two_batches_yc_dt, batch141_dt, fill = T)
+batch148_dt <- readRDS(paste0("./n_policy_box/Data/files_rds/one_batch_dt_batch148.rds"))
+two_batches_yc_dt <- rbind(two_batches_yc_dt, batch148_dt, fill = T)
 
 # paste(two_batches_yc_dt[,.N, by = .(region, id_10)][,.SD[sample(.N, 3)],by = region]$id_10, collapse = ', ')
 two_batches_yc_dt <- two_batches_yc_dt[sim_name %in% unique(one_batch_dt$sim_name)]
@@ -322,7 +315,7 @@ two_batches_eonr_dt[,region := factor(region)]
     theme(legend.title =  element_blank(),
           axis.text=element_text(size=14))+
     facet_wrap(region~batch, 
-               ncol =1 ,
+               ncol =2 ,
                #scales="free",
                strip.position = "left"))
 

@@ -40,7 +40,7 @@ water_n = 'swat'
 
 if(server|cpsc){
   id10_n = 1362
-  batch_n = '147'
+  batch_n = '150'
 }else{
   id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
   batch_n = as.numeric(commandArgs(trailingOnly=TRUE)[2])
@@ -48,8 +48,8 @@ if(server|cpsc){
 
 
 # id10_seq <- c(1214, 1332, 1488, 970, 894, 663, 219, 39, 45, 43, 807, 1362)
-# id10_seq <- c(39, 663, 1488)
-id10_seq <- c(1214, 1332, 970, 894, 219, 45, 43, 807, 1362)
+id10_seq <- c(39, 663, 1488)
+# id10_seq <- c(1214, 1332, 970, 894, 219, 45, 43, 807, 1362)
 # id10_seq <- c(219, 45, 43)
 # id10_seq <- c(1500, 1245, 1156, 596, 797, 576, 286, 52, 253)
 # id10_seq <- c(1500, 596,52,1069, 513, 53)

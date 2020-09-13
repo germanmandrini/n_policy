@@ -83,7 +83,7 @@ results_list <- list()
 policies_ratios <- names(reg_model_stuff)[str_detect(names(reg_model_stuff), pattern = 'ratio_')]
 
 for(policy_n in policies_ratios){
-  # policy_n = policies_ratios[[4]]
+  # policy_n = policies_ratios[[1]]
   ratio_n <- as.numeric(str_extract(policy_n,pattern = '[0-9.]+'))
   Pn_tmp = ratio_n * Pc
   print(Pn_tmp/Pc)
@@ -113,6 +113,12 @@ for(policy_n in policies_ratios){
   
   prediction_set_aggregated_dt[,eonr_pred := ceiling(predict(reg_model_stuff[[policy_n]]$rf2, prediction_set_aggregated_dt)/10)*10]
   
+  # if(ratio_n == 5){
+  #   save_me <- copy(prediction_set_aggregated_dt)
+  #   setnames(save_me, 'eonr_pred', 'eonr_pred_rf')
+  #   saveRDS(save_me, "./n_policy_box/Data/files_rds/prediction_set_aggregated_dt.rds")
+  #   rm(save_me)
+  # }
   #---------------------------------------------------------------------------
   # PERFORMANCE EVALUATION
   testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
