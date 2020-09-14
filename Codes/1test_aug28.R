@@ -22,7 +22,7 @@ batches <- sort(as.numeric(sapply(strsplit(folders, split="_"), "[", 4) ), decre
 print(batches)
 two_batches_yc_dt  <- data.table()
 for(batch_n in sort(batches)){
-  # batch_n = 148
+  # batch_n = 150
   # print(batch_n)
   multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
   print(length(multiple_files))
@@ -44,6 +44,7 @@ for(batch_n in sort(batches)){
   table(one_batch_dt$N_fert)
   one_batch_dt[,.N, by = .(id_10, mukey, z)][,.N, by = .(id_10, mukey)]$N %>% table()#of z by mukey, has to be 30 or 15
   
+  one_batch_dt[id_10 < 300]
   # setnames(yc_yearly_dt, 
   #          c('Yld', 'Yld_soy', 'leach_1', 'leach_2' ),
   #          c('Y_corn', 'Y_soy', 'L1', 'L2'))

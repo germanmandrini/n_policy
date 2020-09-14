@@ -155,7 +155,7 @@ perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1') & NMS == 'static']
 perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1') & NMS == 'dynamic1']
 
-plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'fee', 'nred', 'target') & NMS %in% c('static', 'dynamic1') ] 
+plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'fee', 'nred', 'target') & NMS %in% c('static', 'dynamic1', 'dynamic2') ] 
 plot_dt[policy_name%in% c('nred', 'target'), policy_val  := (1-policy_val )*100]
 plot_dt[policy_name%in% c('nred', 'target')]
 

@@ -39,7 +39,7 @@ if(server){
 water_n = 'swat'
 
 if(server|cpsc){
-  id10_n = 1362
+  id10_n = 39
   batch_n = '150'
 }else{
   id10_n = as.numeric(commandArgs(trailingOnly=TRUE)[1])
