@@ -66,7 +66,7 @@ Yld_response_threshold <- 500
 # =========================================================================================================================================================
 # CREATE THE N RATIO TAX MODEL
 
-ratio_seq <- sort(c(seq(5, 20, by = 1)))
+ratio_seq <- sort(c(seq(5, 20, by = 2)))
 # ratio_seq <- sort(c(seq(5, 20, by = 5)))
 # ratio_seq <- c(5)
 set.seed(123)
@@ -100,7 +100,8 @@ for(ratio_n in ratio_seq){
   
   # =========================================================================================================================================================
   ## PREPARE THE TRAINING DATA WITH EONR ========
-  TrainSet_eonr <- TrainSet2[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
+  TrainSet_eonr <- TrainSet2[, .SD[ P == max( P)], by = .(id_10, mukey, z)] %>%
+    .[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)]
   setnames(TrainSet_eonr, 'N_fert', 'eonr')
   
   TrainSet_eonr2 <- TrainSet_eonr[,c('eonr', pred_vars), with = FALSE]
@@ -113,6 +114,7 @@ for(ratio_n in ratio_seq){
   # mtry <- tuneRF(TrainSet_eonr2[,c(pred_vars), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
   #                 stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE) # ,mtryStart = 5
   # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+  
   best.m = 6
   
   rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2,
@@ -122,12 +124,52 @@ for(ratio_n in ratio_seq){
   plot(rf2_eonr)
   name_model = paste0('rf2')
   small_model_list[[name_model]] <- rf2_eonr
+
+  if(FALSE){ #TESTS
+    library('Metrics')
+    
+    testing_set_dt <- copy(TrainSet_eonr)
+    testing_set_dt[,eonr_pred_rf := floor(predict(rf2_eonr, testing_set_dt)/10)*10]
+    setnames(testing_set_dt, 'eonr', 'eonr_12')
+    mean(testing_set_dt$eonr_pred_rf)
   
+    rmse(testing_set_dt$eonr_12, testing_set_dt$eonr_pred_rf) #23
+ 
+    validation_set_dt <- readRDS("./n_policy_box/Data/files_rds/prediction_set_aggregated_dt.rds")
+    validation_set_dt[,eonr_pred_rf := floor(predict(rf2_eonr, validation_set_dt)/10)*10]
+    rmse(validation_set_dt$eonr_12, validation_set_dt$eonr_pred_rf) #40
+    mean(validation_set_dt$eonr_pred_rf)
+    
+    plot_top <- grid.arrange(
+      ggplot(data=testing_set_dt, aes(x = eonr_12, y = eonr_pred_rf)) +
+        geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + 
+        ylim(0, 320)+ xlim(0, 320) +
+        ggtitle('Testing'),
+      
+      ggplot(data=validation_set_dt, aes(x = eonr_12, y = eonr_pred_rf)) +
+        geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + 
+        ylim(0, 320)+ xlim(0, 320) +
+        ggtitle('Validation'), ncol = 2)
+      
+    plot_bottom <- ggplot() + 
+      geom_line(data = testing_set_dt[,.(eonr_pred_rf = mean(eonr_pred_rf)), by = eonr_12], 
+                aes(x = eonr_12, y = eonr_pred_rf, colour = 'red')) +
+      geom_line(data = validation_set_dt[,.(eonr_pred_rf = mean(eonr_pred_rf)), by = eonr_12], 
+                aes(x = eonr_12, y = eonr_pred_rf, colour = 'blue')) +
+      scale_color_discrete(labels = c("testing", "validation")) +
+      theme(aspect.ratio=1) + coord_fixed() + geom_abline() + 
+      ylim(0, 320)+ xlim(0, 320)
+    
+    grid.arrange( plot_top, plot_bottom, ncol = 1)
+    
+  }
+    
   if(ratio_n == 5){
     # Add the results to the prediction set to use in python (first we need to run 4a_fields_splitter)
     prediction_set_aggregated_dt <- readRDS("./n_policy_box/Data/files_rds/prediction_set_aggregated_dt.rds")
-    prediction_set_aggregated_dt[,eonr_pred_rf := ceiling(predict(rf2_eonr, prediction_set_aggregated_dt)/10)*10]
+    prediction_set_aggregated_dt[,eonr_pred_rf := floor(predict(rf2_eonr, prediction_set_aggregated_dt)/10)*10]
     saveRDS(prediction_set_aggregated_dt, "./n_policy_box/Data/files_rds/prediction_set_aggregated_dt.rds")
+    rm(prediction_set_aggregated_dt)
   }
   
   
@@ -148,7 +190,7 @@ for(ratio_n in ratio_seq){
 # CREATE THE LEACHING FEE MODEL
 source('./n_policy_git/Codes/parameters.R')
 # fee_seq <- sort(c(seq(0, 10, by = 2)))
-fee_seq <- sort(c(seq(0, 10, by = 1)))
+fee_seq <- sort(c(seq(0, 16, by = 2)))
 # fee_seq <- c(0,4)
 length(fee_seq)
 set.seed(123)
@@ -279,7 +321,7 @@ TrainSet_nr[L > 0 & leach_base == 0, leach_rel := L/0.0001] #avoid dividing by 0
 TrainSet_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)]
 TrainSet_RMM <- TrainSet_nr[Yld_response > Yld_response_threshold]
 
-target_seq <- sort(unique(c(seq(0.7,0.89, by = 0.03), seq(0.9,1, by = 0.01))))
+target_seq <- seq(0.7,1, by = 0.05)
 # target_seq <- sort(unique(c(seq(0.7,0.89, by = 0.04), seq(0.9,1, by = 0.05))))
 
 length(target_seq)
@@ -396,7 +438,8 @@ TrainSet2_nr[L > 0 & leach_base == 0, leach_rel := L/0.0001] #avoid dividing by 
 TrainSet2_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)]
 TrainSet_RMM <- TrainSet2_nr[Yld_response > Yld_response_threshold]
 
-red_seq <- sort(unique(c(seq(0.7,0.89, by = 0.03), seq(0.9,1, by = 0.01))))
+# red_seq <- sort(unique(c(seq(0.7,0.89, by = 0.03), seq(0.9,1, by = 0.01))))
+red_seq <- seq(0.7,1, by = 0.05)
 # red_seq <- c(0.8, 0.95, 1)
 # red_seq <- c(0.85, 0.95)
 length(red_seq)

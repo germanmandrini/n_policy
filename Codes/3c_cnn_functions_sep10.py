@@ -59,15 +59,15 @@ class Net(nn.Module):
         self.drop = nn.Dropout(p=p)
         self.hidden1 = torch.nn.Linear(cols, 30)   # hidden layer
         self.hidden2 = torch.nn.Linear(30, 5)   # hidden layer
-        #self.hidden3 = torch.nn.Linear(5, 5)   # hidden layer
-        #self.hidden4 = torch.nn.Linear(5, 5)   # hidden layer
+        self.hidden3 = torch.nn.Linear(5, 5)   # hidden layer
+        self.hidden4 = torch.nn.Linear(5, 5)   # hidden layer
         self.predict = torch.nn.Linear(5, 1)   # output layer
 
     def forward(self, x):
         x = F.relu(self.drop(self.hidden1(x)))      # activation function for hidden layer
         x = F.relu(self.drop(self.hidden2(x)))      # activation function for hidden layer
-        #x = F.relu(self.drop(self.hidden3(x)))      # activation function for hidden layer
-        #x = F.relu(self.drop(self.hidden4(x)))      # activation function for hidden layer
+        x = F.relu(self.drop(self.hidden3(x)))      # activation function for hidden layer
+        x = F.relu(self.drop(self.hidden4(x)))      # activation function for hidden layer
         x = self.predict(x)             # linear output
         return x
 
