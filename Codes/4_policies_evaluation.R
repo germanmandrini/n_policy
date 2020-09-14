@@ -7,6 +7,7 @@ rm(list=ls())
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
 source('./n_policy_git/Codes/parameters.R')
+source('C:/Users/germanm2/Documents/n_policy_git/Codes/parameters.R')
 
 library("foreach")
 library("doParallel")
@@ -111,7 +112,7 @@ for(policy_n in policies_ratios){
   # 2) PREDICT WITH REGIONAL RF 2 - UR 
   # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
   
-  prediction_set_aggregated_dt[,eonr_pred := floor(predict(reg_model_stuff[[policy_n]]$rf2, prediction_set_aggregated_dt)/10)*10]
+  prediction_set_aggregated_dt[,eonr_pred := round(predict(reg_model_stuff[[policy_n]]$rf2, prediction_set_aggregated_dt)/10)*10]
   
   # if(ratio_n == 5){
   #   save_me <- copy(prediction_set_aggregated_dt)
@@ -135,7 +136,7 @@ for(policy_n in policies_ratios){
   # source_python("./n_policy_git/Codes/3c_cnn_functions_sep10.py")
   prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n, pred_vars) %>% data.table()
   
-  prediction_set_aggregated_dt2[,eonr_pred := floor(eonr_pred/10)*10] %>%
+  prediction_set_aggregated_dt2[,eonr_pred := round(eonr_pred/10)*10] %>%
     .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))]
   
   ggplot(prediction_set_aggregated_dt2[sample(1:nrow(prediction_set_aggregated_dt2), 1000)]) + 
@@ -192,7 +193,7 @@ for(policy_n in policies_fee){
   # 2) PREDICT WITH REGIONAL RF 2 - UR 
   # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
   
-  prediction_set_aggregated_dt[,eonr_pred := floor(predict(reg_model_stuff[[policy_n]]$rf2, prediction_set_aggregated_dt)/10)*10]
+  prediction_set_aggregated_dt[,eonr_pred := round(predict(reg_model_stuff[[policy_n]]$rf2, prediction_set_aggregated_dt)/10)*10]
   
   #---------------------------------------------------------------------------
   # PERFORMANCE EVALUATION
@@ -209,7 +210,7 @@ for(policy_n in policies_fee){
   # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
   prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n, pred_vars) %>% data.table()
   
-  prediction_set_aggregated_dt2[,eonr_pred := floor(eonr_pred/10)*10] %>%
+  prediction_set_aggregated_dt2[,eonr_pred := round(eonr_pred/10)*10] %>%
     .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))]
   
   #---------------------------------------------------------------------------
@@ -254,7 +255,7 @@ for(policy_n in policies_target){
   # 2) PREDICT WITH REGIONAL RF 2 - UR 
   # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
   
-  prediction_set_aggregated_dt[,eonr_pred := floor(predict(reg_model_stuff[[policy_n]]$rf2, prediction_set_aggregated_dt)/10)*10]
+  prediction_set_aggregated_dt[,eonr_pred := round(predict(reg_model_stuff[[policy_n]]$rf2, prediction_set_aggregated_dt)/10)*10]
   
   #---------------------------------------------------------------------------
   # PERFORMANCE EVALUATION
@@ -271,7 +272,7 @@ for(policy_n in policies_target){
   # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
   prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n, pred_vars) %>% data.table()
   
-  prediction_set_aggregated_dt2[,eonr_pred := floor(eonr_pred/10)*10] %>%
+  prediction_set_aggregated_dt2[,eonr_pred := round(eonr_pred/10)*10] %>%
     .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))]
   
   #---------------------------------------------------------------------------
@@ -317,7 +318,7 @@ for(policy_n in policies_nred){
   # 2) PREDICT WITH REGIONAL RF 2 - UR 
   # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
   
-  prediction_set_aggregated_dt[,eonr_pred := floor(predict(reg_model_stuff[[policy_n]]$rf2, prediction_set_aggregated_dt)/10)*10]
+  prediction_set_aggregated_dt[,eonr_pred := round(predict(reg_model_stuff[[policy_n]]$rf2, prediction_set_aggregated_dt)/10)*10]
   
   #---------------------------------------------------------------------------
   # PERFORMANCE EVALUATION
@@ -334,7 +335,7 @@ for(policy_n in policies_nred){
   # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
   prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n, pred_vars) %>% data.table()
   
-  prediction_set_aggregated_dt2[,eonr_pred := floor(eonr_pred/10)*10] %>%
+  prediction_set_aggregated_dt2[,eonr_pred := round(eonr_pred/10)*10] %>%
     .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))]
   
   #---------------------------------------------------------------------------

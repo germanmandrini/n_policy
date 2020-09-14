@@ -135,14 +135,14 @@ for(ratio_n in ratio_seq){
     library('Metrics')
     
     testing_set_dt <- copy(TrainSet_eonr)
-    testing_set_dt[,eonr_pred_rf := floor(predict(rf2_eonr, testing_set_dt)/10)*10]
+    testing_set_dt[,eonr_pred_rf := round(predict(rf2_eonr, testing_set_dt)/10)*10]
     setnames(testing_set_dt, 'eonr', 'eonr_12')
     mean(testing_set_dt$eonr_pred_rf)
   
     rmse(testing_set_dt$eonr_12, testing_set_dt$eonr_pred_rf) #23
  
     validation_set_dt <- readRDS("./n_policy_box/Data/files_rds/prediction_set_aggregated_dt.rds")
-    validation_set_dt[,eonr_pred_rf := floor(predict(rf2_eonr, validation_set_dt)/10)*10]
+    validation_set_dt[,eonr_pred_rf := round(predict(rf2_eonr, validation_set_dt)/10)*10]
     rmse(validation_set_dt$eonr_12, validation_set_dt$eonr_pred_rf) #40
     mean(validation_set_dt$eonr_pred_rf)
     
@@ -173,7 +173,7 @@ for(ratio_n in ratio_seq){
   if(ratio_n == 5){
     # Add the results to the prediction set to use in python (first we need to run 4a_fields_splitter)
     prediction_set_aggregated_dt <- readRDS("./n_policy_box/Data/files_rds/prediction_set_aggregated_dt.rds")
-    prediction_set_aggregated_dt[,eonr_pred_rf := floor(predict(rf2_eonr, prediction_set_aggregated_dt)/10)*10]
+    prediction_set_aggregated_dt[,eonr_pred_rf := round(predict(rf2_eonr, prediction_set_aggregated_dt)/10)*10]
     saveRDS(prediction_set_aggregated_dt, "./n_policy_box/Data/files_rds/prediction_set_aggregated_dt.rds")
     rm(prediction_set_aggregated_dt)
   }
@@ -276,7 +276,7 @@ for(fee_n in fee_seq){
   
   # =========================================================================================================================================================
   ## PREPARE THE TRAINING DATA WITH EONR ========
-  TrainSet2[,P := floor(P/10)]#get out of the flat zone
+  TrainSet2[,P := floor(P/10)*10]#get out of the flat zone
   TrainSet_eonr <- TrainSet2[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
   setnames(TrainSet_eonr, 'N_fert', 'eonr')
   
@@ -380,7 +380,7 @@ for(target_n in target_seq){
   ## PREPARE THE TRAINING DATA WITH EONR ========
   
   # Type I and II: cases where there are rates with L below the target
-  TrainSet_nr[,P := floor(P/10)]#get out of the flat zone
+  TrainSet_nr[,P := floor(P/10)*10]#get out of the flat zone
   TrainSet_nr_tmp1 <- TrainSet_nr[leach_rel <= target_n][order(N_fert )]
   
   #Chose the EONR below the target reduction L
@@ -432,7 +432,7 @@ set.seed(123)
 ## PREPARE THE TRAINING DATA ========
 # Part 1
 TrainSet2[, P := Y_corn * Pc - N_fert * Pn] #update profits
-TrainSet2[,P := floor(P/10)] #get out of the flat zone
+TrainSet2[,P := floor(P/10)*10] #get out of the flat zone
 
 baseline_leaching <- merge(TrainSet2, reg_model_stuff$ratio_5$minimum_ok, by = 'region') %>% 
   .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, z_type, leach_base = L)]
