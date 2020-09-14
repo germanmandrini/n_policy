@@ -1,7 +1,10 @@
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
-# setwd('C:/Users/germanm2/Box Sync/My_Documents') #CPSC
 # setwd("/home/germanm2")
+
 setwd('~')
+setwd('C:/Users/germanm2/Box Sync/My_Documents') #CPSC
+
+
 rm(list=ls())
 # corchete alt 91 []
 # llave { } alt 123 125 
@@ -12,6 +15,7 @@ library(randomForest)
 # library(ranger)
 # library(mlr)
 source('./n_policy_git/Codes/parameters.R')
+source('C:/Users/germanm2/Documents/n_policy_git/Codes/parameters.R')
 
 library(reticulate)
 use_condaenv('GEOANN', conda = '/opt/anaconda3/condabin/conda')
@@ -100,7 +104,8 @@ for(ratio_n in ratio_seq){
   
   # =========================================================================================================================================================
   ## PREPARE THE TRAINING DATA WITH EONR ========
-  TrainSet2[,P := floor(P/10)]#get out of the flat zone
+  TrainSet2[,P := floor(P/10)*10]#get out of the flat zone
+  
   TrainSet_eonr <- TrainSet2[, .SD[ P == max( P)], by = .(id_10, mukey, z)] %>%
     .[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)]
   setnames(TrainSet_eonr, 'N_fert', 'eonr')

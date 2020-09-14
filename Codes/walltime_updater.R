@@ -12,9 +12,9 @@ codes_folder <-'~'
 
 
 time_track_walltime_dt <- readRDS("./n_policy_box/Data/files_rds/time_track_walltime_dt.rds")
-time_track_walltime_dt <- time_track_walltime_dt[id_10 %in% unique(grid10_soils_dt4[region %in% c(2,3)]$id_10)]
-time_track_walltime_dt[,dur := 60]
-
+time_track_walltime_dt <- time_track_walltime_dt[id_10 %in% unique(c(699, grid10_soils_dt4[region %in% c(3)]$id_10))]
+time_track_walltime_dt[,dur := 100]
+time_track_walltime_dt[id_10 == 699, dur := 160]
 time_track_walltime_dt <- time_track_walltime_dt[order(mukey_n)]
 
 write.table(time_track_walltime_dt[,.(id_10, dur)], paste0(codes_folder, '/n_policy_git/time_track_walltime_dt.txt'), row.names = F, col.names = F)
