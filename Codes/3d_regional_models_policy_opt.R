@@ -100,6 +100,7 @@ for(ratio_n in ratio_seq){
   
   # =========================================================================================================================================================
   ## PREPARE THE TRAINING DATA WITH EONR ========
+  TrainSet2[,P := floor(P/10)]#get out of the flat zone
   TrainSet_eonr <- TrainSet2[, .SD[ P == max( P)], by = .(id_10, mukey, z)] %>%
     .[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)]
   setnames(TrainSet_eonr, 'N_fert', 'eonr')
@@ -270,6 +271,7 @@ for(fee_n in fee_seq){
   
   # =========================================================================================================================================================
   ## PREPARE THE TRAINING DATA WITH EONR ========
+  TrainSet2[,P := floor(P/10)]#get out of the flat zone
   TrainSet_eonr <- TrainSet2[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
   setnames(TrainSet_eonr, 'N_fert', 'eonr')
   
@@ -373,6 +375,7 @@ for(target_n in target_seq){
   ## PREPARE THE TRAINING DATA WITH EONR ========
   
   # Type I and II: cases where there are rates with L below the target
+  TrainSet_nr[,P := floor(P/10)]#get out of the flat zone
   TrainSet_nr_tmp1 <- TrainSet_nr[leach_rel <= target_n][order(N_fert )]
   
   #Chose the EONR below the target reduction L
@@ -424,6 +427,7 @@ set.seed(123)
 ## PREPARE THE TRAINING DATA ========
 # Part 1
 TrainSet2[, P := Y_corn * Pc - N_fert * Pn] #update profits
+TrainSet2[,P := floor(P/10)] #get out of the flat zone
 
 baseline_leaching <- merge(TrainSet2, reg_model_stuff$ratio_5$minimum_ok, by = 'region') %>% 
   .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, z_type, leach_base = L)]
