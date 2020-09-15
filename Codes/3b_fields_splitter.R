@@ -1,14 +1,15 @@
-# setwd('C:/Users/germa/Box Sync/My_Documents') #dell
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-# setwd("/home/germanm2")
-setwd('~')
 rm(list=ls())
+
+setwd('C:/Users/germa/Box Sync/My_Documents') #dell
+codes_folder <-'C:/Users/germa/Documents'#Dell
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+setwd('~')#Server
+codes_folder <-'~' #Server
 
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
-source('C:/Users/germa/Documents/n_policy_git/Codes/parameters.R')
-source('C:/Users/germanm2/Documents/n_policy_git/Codes/parameters.R')
-source('./n_policy_git/Codes/parameters.R')
+source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 
 library("foreach")
 library("doParallel")

@@ -1,19 +1,24 @@
 rm(list=ls())
 
+setwd('C:/Users/germa/Box Sync/My_Documents') #dell
+codes_folder <-'C:/Users/germa/Documents'#Dell
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+setwd('~')#Server
+codes_folder <-'~' #Server
+
+
+
 library(data.table)
 library(dplyr)
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 #setwd('/projects/aces/germanm2/')
-setwd('C:/Users/germanm2/Box Sync/My_Documents') #CPSC
-codes_folder <-'C:/Users/germanm2/Documents'
-codes_folder <-'~'
-
 #---------------------------------------------------------------------------
 
 
 time_track_walltime_dt <- readRDS("./n_policy_box/Data/files_rds/time_track_walltime_dt.rds")
-time_track_walltime_dt <- time_track_walltime_dt[id_10 %in% unique(c(699, grid10_soils_dt4[region %in% c(3)]$id_10))]
-time_track_walltime_dt[,dur := 100]
+time_track_walltime_dt <- time_track_walltime_dt[id_10 %in% unique(c(grid10_soils_dt4[region %in% c(3)]$id_10))]
+time_track_walltime_dt[,dur := 120]
 time_track_walltime_dt[id_10 == 699, dur := 160]
 time_track_walltime_dt <- time_track_walltime_dt[order(mukey_n)]
 

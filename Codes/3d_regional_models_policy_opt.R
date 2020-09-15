@@ -1,8 +1,9 @@
-# setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 rm(list=ls())
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
 
+setwd('C:/Users/germa/Box Sync/My_Documents') #dell
+codes_folder <-'C:/Users/germa/Documents'#Dell
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+codes_folder <-'C:/Users/germanm2/Documents'#CPSC
 setwd('~')#Server
 codes_folder <-'~' #Server
 
@@ -97,7 +98,7 @@ for(ratio_n in ratio_seq){
     ratio_eonr_dt <- TrainSet_eonr
   }
   # =========================================================================================================================================================
-    # RF Model 2------------------------
+  # RF Model 2------------------------
   # mtry <- tuneRF(TrainSet_eonr2[,c(pred_vars), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
   #                 stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE) # ,mtryStart = 5
   # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
@@ -106,12 +107,12 @@ for(ratio_n in ratio_seq){
   
   rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2,
                            importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
- 
+  
   varImpPlot(rf2_eonr, type=2)
   plot(rf2_eonr)
   name_model = paste0('rf2')
   small_model_list[[name_model]] <- rf2_eonr
-
+  
   if(FALSE){ #TESTS
     library('Metrics')
     
@@ -119,9 +120,9 @@ for(ratio_n in ratio_seq){
     testing_set_dt[,eonr_pred_rf := round(predict(rf2_eonr, testing_set_dt)/10)*10]
     setnames(testing_set_dt, 'eonr', 'eonr_12')
     mean(testing_set_dt$eonr_pred_rf)
-  
+    
     rmse(testing_set_dt$eonr_12, testing_set_dt$eonr_pred_rf) #23
- 
+    
     validation_set_dt <- readRDS("./n_policy_box/Data/files_rds/prediction_set_aggregated_dt.rds")
     validation_set_dt[,eonr_pred_rf := round(predict(rf2_eonr, validation_set_dt)/10)*10]
     rmse(validation_set_dt$eonr_12, validation_set_dt$eonr_pred_rf) #40
@@ -137,7 +138,7 @@ for(ratio_n in ratio_seq){
         geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + 
         ylim(0, 320)+ xlim(0, 320) +
         ggtitle('Validation'), ncol = 2)
-      
+    
     plot_bottom <- ggplot() + 
       geom_line(data = testing_set_dt[,.(eonr_pred_rf = mean(eonr_pred_rf)), by = eonr_12], 
                 aes(x = eonr_12, y = eonr_pred_rf, colour = 'red')) +
@@ -150,7 +151,7 @@ for(ratio_n in ratio_seq){
     grid.arrange( plot_top, plot_bottom, ncol = 1)
     
   }
-    
+  
   if(ratio_n == 5){
     # Add the results to the prediction set to use in python (first we need to run 4a_fields_splitter)
     prediction_set_aggregated_dt <- readRDS("./n_policy_box/Data/files_rds/prediction_set_aggregated_dt.rds")
@@ -262,7 +263,7 @@ for(fee_n in fee_seq){
   TrainSet_eonr <- TrainSet_eonr[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)]
   setnames(TrainSet_eonr, 'N_fert', 'eonr')
   
-  if(fee_n == 0){
+  if(FALSE & fee_n == 0){
     fee_eonr_dt <- TrainSet_eonr
     paired_dt <- merge(ratio_eonr_dt[,.(id_10, mukey, z, eonr_ratio = eonr)] ,
                        fee_eonr_dt[,.(id_10, mukey, z, eonr_fee = eonr)], by = c('id_10', 'mukey', 'z')) 
@@ -270,7 +271,7 @@ for(fee_n in fee_seq){
     ggplot(data=paired_dt, aes(x = eonr_ratio, y = eonr_fee)) +
       geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + 
       ylim(0, 320)+ xlim(0, 320) 
-  
+    
   }
   
   TrainSet_eonr2 <- TrainSet_eonr[,c('eonr', pred_vars), with = FALSE]
@@ -328,7 +329,7 @@ length(target_seq)
 for(target_n in target_seq){
   # target_n = 1
   policy_n = paste0('target_', target_n)
-  if(policy_n %in% names(reg_model_stuff)){next}
+  # if(policy_n %in% names(reg_model_stuff)){next}
   
   print(target_n)
   small_model_list <- list()
@@ -388,7 +389,7 @@ for(target_n in target_seq){
   TrainSet_nr_tmp <- rbind(TrainSet_nr_tmp1, TrainSet_nr_tmp2, fill = T)
   setnames(TrainSet_nr_tmp, 'N_fert', 'eonr')
   
-  if(target ==1) {
+  if(FALSE & target_n ==1) {
     target_eonr_dt <- TrainSet_nr_tmp
     paired_dt <- merge(ratio_eonr_dt[,.(id_10, mukey, z, eonr_ratio = eonr)] ,
                        target_eonr_dt[,.(id_10, mukey, z, eonr_target = eonr)], by = c('id_10', 'mukey', 'z')) 
@@ -397,7 +398,7 @@ for(target_n in target_seq){
       geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + 
       ylim(0, 320)+ xlim(0, 320) 
     
-    }
+  }
   
   
   
@@ -461,7 +462,7 @@ all_optimized_training_sets_list <- list()
 rm(Trainset_optimized_tmp)
 
 for(n_red in sort(red_seq, decreasing = T)){
-  # n_red = 1
+  # n_red = 0.7
   policy_n = paste0('nred_', n_red)
   # if(name_model %in% names(reg_model_stuff)){next}
   
@@ -508,7 +509,7 @@ for(n_red in sort(red_seq, decreasing = T)){
   
   library("foreach")
   library("doParallel")
-  registerDoParallel(30) # register the cluster
+  registerDoParallel(10) # register the cluster
   # registerDoParallel(cores = 10)
   
   TrainSet_nr_tmp_list = foreach(i = 1:nrow(soils_training), .combine = "c", .packages = c("data.table")) %dopar% {
@@ -615,7 +616,7 @@ for(n_red in sort(red_seq, decreasing = T)){
   # =========================================================================================================================================================
   #Call python to build the CNN
   #build_cnn(Trainset_optimized_tmp[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
-
+  
   #--------------------------------------------------------------------------------------------------------------
   reg_model_stuff[[policy_n]] <- small_model_list
   names(reg_model_stuff)

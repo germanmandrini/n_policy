@@ -1,12 +1,9 @@
-# setwd('C:/Users/germa/Box Sync/My_Documents') #dell
-
-# setwd("/home/germanm2")
-
 rm(list=ls())
 
-setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-codes_folder <-'C:/Users/germanm2/Documents'#CPSC
-
+# setwd('C:/Users/germa/Box Sync/My_Documents') #dell
+# codes_folder <-'C:/Users/germa/Documents'#Dell
+# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
 setwd('~')#Server
 codes_folder <-'~' #Server
 
@@ -153,7 +150,7 @@ if(FALSE){
 
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1') & NMS == 'static']
-perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1') & NMS == 'dynamic1']
+perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1') & NMS == 'dynamic2']
 
 plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'fee', 'nred', 'target') & NMS %in% c('static', 'dynamic1', 'dynamic2') ] 
 plot_dt[policy_name%in% c('nred', 'target'), policy_val  := (1-policy_val )*100]
