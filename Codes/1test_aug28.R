@@ -1,7 +1,7 @@
 rm(list=ls())
 
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+codes_folder <-'C:/Users/germanm2/Documents'#CPSC
 
 setwd('~')#Server
 codes_folder <-'~' #Server
@@ -27,8 +27,7 @@ for(batch_n in sort(batches)){
   multiple_files <- list.files(paste0("./n_policy_box/Data/yc_output_summary_", batch_n, "_swat"), full.names = T)
   print(length(multiple_files))
  
-  # registerDoParallel(36) # register the cluster
-  registerDoParallel(cores = 20)
+  registerDoParallel(cores = 6)
   output_list = foreach(file_n = multiple_files, .combine = "c", .packages = c("data.table")) %dopar% {
     # file_n <- multiple_files[1]
     tmp_dt <- readRDS(file_n)
