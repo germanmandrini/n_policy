@@ -7,7 +7,7 @@ rm(list=ls())
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
 source('./n_policy_git/Codes/parameters.R')
-source('C:/Users/germanm2/Documents/n_policy_git/Codes/parameters.R')
+# source('C:/Users/germanm2/Documents/n_policy_git/Codes/parameters.R')
 
 library("foreach")
 library("doParallel")
