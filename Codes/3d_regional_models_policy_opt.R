@@ -1,23 +1,18 @@
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
-# setwd("/home/germanm2")
-
-setwd('~')
-setwd('C:/Users/germanm2/Box Sync/My_Documents') #CPSC
-
-
 rm(list=ls())
-# corchete alt 91 []
-# llave { } alt 123 125 
-source('./Codes_useful/R.libraries.R')
-source('./Codes_useful/gm_functions.R')
+# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+
+setwd('~')#Server
+codes_folder <-'~' #Server
+
+
 
 library(randomForest)
-# library(ranger)
-# library(mlr)
-source('./n_policy_git/Codes/parameters.R')
-source('C:/Users/germanm2/Documents/n_policy_git/Codes/parameters.R')
-
 library(reticulate)
+source('./Codes_useful/R.libraries.R')
+source('./Codes_useful/gm_functions.R')
+source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 use_condaenv('GEOANN', conda = '/opt/anaconda3/condabin/conda')
 source_python("./n_policy_git/Codes/3c_cnn_functions_sep10.py")
 
@@ -25,30 +20,15 @@ source_python("./n_policy_git/Codes/3c_cnn_functions_sep10.py")
 # grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
 
 reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
-names(reg_model_stuff)
-reg_model_stuff[['ratio_5']]
-
 
 remove_list <- names(reg_model_stuff)[!names(reg_model_stuff) %in% c("full_fields", "stations", "TrainSet","training_z")]
 for(n in remove_list){
   reg_model_stuff[[n]] <- NULL
 }
 
-# stations_dt <- reg_model_stuff[['stations']]
-# full_fields_dt <- reg_model_stuff[['full_fields']]
-
-# ValidSet2 <- reg_model_stuff[['ValidSet']]
-
-# table(TrainSet2$z)
-# rm(reg_model_stuff)
-
 # =========================================================================================================================================================
 ## SET THE VARIABLES ========
 TrainSet2 <- reg_model_stuff[['TrainSet']]
-
-# TrainSet2 <- TrainSet2[z!=4]
-
-hist(TrainSet2$n_0_60cm_v5)
 
 pred_vars <- c("rain_30", "rain_60", "rain_90",
                "t_max_30", "t_max_60", "t_max_90", "t_min_30", "t_min_60",
@@ -106,14 +86,15 @@ for(ratio_n in ratio_seq){
   ## PREPARE THE TRAINING DATA WITH EONR ========
   TrainSet2[,P := floor(P/10)*10]#get out of the flat zone
   
-  TrainSet_eonr <- TrainSet2[, .SD[ P == max( P)], by = .(id_10, mukey, z)] %>%
-    .[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)]
+  TrainSet_eonr <- TrainSet2[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
+  TrainSet_eonr <- TrainSet_eonr[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)]
   setnames(TrainSet_eonr, 'N_fert', 'eonr')
   
   TrainSet_eonr2 <- TrainSet_eonr[,c('eonr', pred_vars), with = FALSE]
   
   if(ratio_n == 5){
     saveRDS(TrainSet_eonr2, "./n_policy_box/Data/files_rds/TrainSet_eonr2.rds") #for python
+    ratio_eonr_dt <- TrainSet_eonr
   }
   # =========================================================================================================================================================
     # RF Model 2------------------------
@@ -182,7 +163,7 @@ for(ratio_n in ratio_seq){
   # =========================================================================================================================================================
   #Call python to build the CNN
   # source_python("./n_policy_git/Codes/3c_cnn_functions_sep10.py")
-  build_cnn(TrainSet_eonr2[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
+  # build_cnn(TrainSet_eonr2[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
   
   # --------------------------------------
   # Save it to the big list
@@ -277,9 +258,20 @@ for(fee_n in fee_seq){
   # =========================================================================================================================================================
   ## PREPARE THE TRAINING DATA WITH EONR ========
   TrainSet2[,P := floor(P/10)*10]#get out of the flat zone
-  TrainSet_eonr <- TrainSet2[, .SD[ P == max( P)], by = .(id_10, mukey, z)] %>%
-    .[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)]
+  TrainSet_eonr <- TrainSet2[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
+  TrainSet_eonr <- TrainSet_eonr[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)]
   setnames(TrainSet_eonr, 'N_fert', 'eonr')
+  
+  if(fee_n == 0){
+    fee_eonr_dt <- TrainSet_eonr
+    paired_dt <- merge(ratio_eonr_dt[,.(id_10, mukey, z, eonr_ratio = eonr)] ,
+                       fee_eonr_dt[,.(id_10, mukey, z, eonr_fee = eonr)], by = c('id_10', 'mukey', 'z')) 
+    
+    ggplot(data=paired_dt, aes(x = eonr_ratio, y = eonr_fee)) +
+      geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + 
+      ylim(0, 320)+ xlim(0, 320) 
+  
+  }
   
   TrainSet_eonr2 <- TrainSet_eonr[,c('eonr', pred_vars), with = FALSE]
   
@@ -299,7 +291,7 @@ for(fee_n in fee_seq){
   small_model_list[[name_model]] <- rf2_eonr
   # =========================================================================================================================================================
   #Call python to build the CNN
-  build_cnn(TrainSet_eonr2[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
+  # build_cnn(TrainSet_eonr2[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
   
   
   # --------------------------------------
@@ -325,8 +317,7 @@ summary(TrainSet_nr$leach_rel)
 baseline_leaching[leach_base == 0]
 TrainSet_nr[L == 0 & leach_base == 0, leach_rel := 1] #avoid dividing by 0
 TrainSet_nr[L > 0 & leach_base == 0, leach_rel := L/0.0001] #avoid dividing by 0
-
-TrainSet_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)]
+TrainSet_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)] #show me
 TrainSet_RMM <- TrainSet_nr[Yld_response > Yld_response_threshold]
 
 target_seq <- seq(0.7,1, by = 0.05)
@@ -348,9 +339,8 @@ for(target_n in target_seq){
   
   
   ggplot(model_minimum_ok) + 
-    geom_line(aes(x = N_fert, y = leach_rel*min(model_minimum_ok$P), colour = factor(region)))+ #shift up the curve
+    geom_line(aes(x = N_fert, y = leach_rel, colour = factor(region)))+ #shift up the curve
     geom_line(aes(x = N_fert, y = P, colour = factor(region)))
-  
   
   model_minimum_ok1 <- model_minimum_ok[leach_rel <= target_n][order(N_fert )]
   
@@ -381,7 +371,7 @@ for(target_n in target_seq){
   ## PREPARE THE TRAINING DATA WITH EONR ========
   
   # Type I and II: cases where there are rates with L below the target
-  TrainSet_nr[,P := floor(P/10)*10]#get out of the flat zone
+  #TrainSet_nr[,P := floor(P/10)*10]#get out of the flat zone
   TrainSet_nr_tmp1 <- TrainSet_nr[leach_rel <= target_n][order(N_fert )]
   
   #Chose the EONR below the target reduction L
@@ -397,6 +387,20 @@ for(target_n in target_seq){
   }
   TrainSet_nr_tmp <- rbind(TrainSet_nr_tmp1, TrainSet_nr_tmp2, fill = T)
   setnames(TrainSet_nr_tmp, 'N_fert', 'eonr')
+  
+  if(target ==1) {
+    target_eonr_dt <- TrainSet_nr_tmp
+    paired_dt <- merge(ratio_eonr_dt[,.(id_10, mukey, z, eonr_ratio = eonr)] ,
+                       target_eonr_dt[,.(id_10, mukey, z, eonr_target = eonr)], by = c('id_10', 'mukey', 'z')) 
+    
+    ggplot(data=paired_dt, aes(x = eonr_ratio, y = eonr_target)) +
+      geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + 
+      ylim(0, 320)+ xlim(0, 320) 
+    
+    }
+  
+  
+  
   table(TrainSet_nr_tmp[,.N, by = .(id_10, mukey, z)]$N)
   
   TrainSet_nr_tmp[,.N, by = .(id_10, mukey, z)]
@@ -419,7 +423,7 @@ for(target_n in target_seq){
   
   # =========================================================================================================================================================
   #Call python to build the CNN
-  build_cnn(TrainSet_eonr2[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
+  #build_cnn(TrainSet_eonr2[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
   
   #----------------------------------------------------------------------------------------------------------------------
   reg_model_stuff[[policy_n]] <- small_model_list
@@ -469,7 +473,7 @@ for(n_red in sort(red_seq, decreasing = T)){
                                          weight = 'area_ha', by_c = c('region', 'N_fert')) 
   
   ggplot(model_minimum_ok) + 
-    geom_line(aes(x = N_fert, y = leach_rel*min(model_minimum_ok$P), colour = factor(region)))+ #shift up the curve
+    geom_line(aes(x = N_fert, y = leach_rel, colour = factor(region)))+ #shift up the curve
     geom_line(aes(x = N_fert, y = P, colour = factor(region)))
   
   
@@ -504,7 +508,7 @@ for(n_red in sort(red_seq, decreasing = T)){
   
   library("foreach")
   library("doParallel")
-  registerDoParallel(10) # register the cluster
+  registerDoParallel(30) # register the cluster
   # registerDoParallel(cores = 10)
   
   TrainSet_nr_tmp_list = foreach(i = 1:nrow(soils_training), .combine = "c", .packages = c("data.table")) %dopar% {
@@ -610,7 +614,7 @@ for(n_red in sort(red_seq, decreasing = T)){
   
   # =========================================================================================================================================================
   #Call python to build the CNN
-  build_cnn(Trainset_optimized_tmp[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
+  #build_cnn(Trainset_optimized_tmp[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
 
   #--------------------------------------------------------------------------------------------------------------
   reg_model_stuff[[policy_n]] <- small_model_list
