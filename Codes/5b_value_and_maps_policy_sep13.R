@@ -149,10 +149,15 @@ if(FALSE){
 }  
 
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
+<<<<<<< HEAD
 perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1') & NMS == 'static']
 perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1') & NMS == 'dynamic2']
+=======
+perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1') & NMS == 'static']
+perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1') & NMS == 'dynamic1']
+>>>>>>> 892669f3bc58640174f9f50896696199a19ed0f0
 
-plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'fee', 'nred', 'target') & NMS %in% c('static', 'dynamic1', 'dynamic2') ] 
+plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'fee', 'nred') & NMS %in% c('static', 'dynamic1') ] 
 plot_dt[policy_name%in% c('nred', 'target'), policy_val  := (1-policy_val )*100]
 plot_dt[policy_name%in% c('nred', 'target')]
 
@@ -163,13 +168,21 @@ baselevel_Y_corn <- perfomances_dt4[policy == 'ratio_5' & NMS == 'static', Y_cor
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'NMS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
                                                                                  'P', 'G', 'net_balance'))
 
-plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance'),
-                                            labels = c(expression("Fertilizer \n (N kg " * ha^"-1" *yr^"-1"* ")"), 
+plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance'),
+                                            labels = c(expression("Fertilizer \n    (N kg " * ha^"-1" *yr^"-1"* ")"), 
                                                        expression("L \n ("*'%'*" change)"),
                                                        expression("Corn Yield \n (kg N " * ha^"-1" *yr^"-1"* ")"), 
                                                        expression("Farm profits \n ($ " * ha^"-1" * yr^"-1"* ")"),
                                                        expression("Gov. collections \n ($ " * ha^"-1" * yr^"-1"* ")"),
                                                        expression("Net balance \n ($ " * ha^"-1" * yr^"-1"* ")")))]
+
+
+
+plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'fee', 'nred'),
+                                 labels = c(expression("N:Corn price"*" ratio"),
+                                            expression("Fee on L ($ " * kg^"-1" * ha^"-1"*")"),
+                                            expression("L reduction target (%"*")")))]
+
 
 # plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
 # plot_dt_long[variable == 'L', plot_name := 'b) L (% change)']
@@ -181,51 +194,86 @@ plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change
 # plot_dt_long[order(variable)]
 
 #use https://ggplot2.tidyverse.org/reference/labellers.html
-hline_dt <- data.table(unique(plot_dt_long[,.(policy_name, variable, variable_labels)]))
+hline_dt <- data.table(unique(plot_dt_long[,.(policy_name, variable, y_labels, x_labels)]))
 hline_dt[variable == 'Y_corn', y_line := baselevel_Y_corn*0.95]
 hline_dt[policy_name == 'ratio' & variable == 'Y_corn', y_label := '95% baselevel']
 
 #----
 # ADD letters outside plot (go down) https://stackoverflow.com/questions/12409960/ggplot2-annotate-outside-of-plot
-ann_text <- plot_dt_long[,.(x = min(policy_val)-5,
-                value = max(value)), by = .(policy_name, variable, variable_labels)]
-#Sort in the right order
-ann_text <- ann_text[match(c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance', 'E','W'), ann_text$variable),]
-ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)", "h)")]
+# ann_text <- plot_dt_long[,.(x = min(policy_val)-5,
+#                 value = max(value)), by = .(policy_name, variable, variable_labels)]
+# #Sort in the right order
+# ann_text <- ann_text[match(c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance', 'E','W'), ann_text$variable),]
+# ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)", "h)")]
 #----
 
 ggplot() +
   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
   # scale_colour_manual(values = c("black", "brown"))+
-  geom_line(data = plot_dt_long, aes(x = policy_val, y =  value, color = NMS)) +
+  geom_line(data = plot_dt_long, aes(x = policy_val, y =  value, color = NMS), size = 1) +
   # scale_linetype_manual(values = c("dashed", "solid"))+
   geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
-  #geom_text(data = hline_dt, aes(x = 7, y = y_line, label =y_label )) +
+  geom_text(data = hline_dt, aes(x = 5, y = y_line+50, label =y_label ), hjust = 'left', vjust = 'center') +
   # scale_color_manual(values=c("royalblue2", "tomato3"))+   
   # geom_text(data = ann_text[variable %in% unique(plot_dt_long$variable)], aes(y = value, x = x, label = lab), 
   #           hjust = 0, size = 8) +
   #   coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest
   #                   clip = 'off') +   # This keeps the labels from disappearing
-   facet_free(variable_labels~policy_name,
+   facet_free(y_labels~x_labels,
               labeller = label_parsed,
-             scales="free") 
- 
- 
- 
- +
-   facet_free()
-  scale_x_continuous(breaks = seq(5,20,1), labels = seq(5,20,1)) + 
-  xlab('N:Corn price ratio')+
-  # geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
-    theme_bw()+
-  theme(panel.grid = element_blank(), 
-        strip.background = element_blank(),
-        strip.placement = "outside",
-        panel.spacing = unit(1.5, "lines"),
-        # axis.title.x=element_blank(),
+             scales="free",
+             switch = 'x') +
+  theme_bw()+
+  theme(# panel.grid = element_blank(), 
+        strip.background.x = element_blank(),
+        strip.placement.x = "outside",
+        # panel.spacing = unit(1.5, "lines"),
+        axis.title.x=element_blank(),
         axis.title.y=element_blank(),
-        legend.position = "none",
-        plot.margin =  unit(c(2,1,1,1), "lines")))
+        legend.position = "bottom",
+        plot.margin =  unit(c(1,1,1,1), "lines")
+        )
+
+ggsave(plot = p, 
+       filename = "./n_policy_box/Data/figures/policies_multiplot.pdf", width = 831/300*3, height = 963/300*3,
+       units = 'in')
+
+
+# examine ggplot object: alignment is off
+p
+
+# convert to grob object: alignment is unchanged (i.e. still off)
+gp <- ggplotGrob(p)
+dev.off(); grid::grid.draw(gp)
+
+
+# change viewport parameters for left axis grobs
+for(i in which(grepl("axis-r", gp$layout$name))){
+  i=48
+  gp$grobs[[i]]$vp$x <- unit(0, "npc")     # originally 1npc
+  gp$grobs[[i]]$vp$valid.just <- c(0, 0.5) # originally c(1, 0.5)
+}
+
+# re-examine grob object: alignment has been corrected
+dev.off() 
+grid::grid.draw(gp)
+
+
+
+gp = ggplotGrob(p)
+grid.ls(grid.force(gp))
+
+# Edit the grob
+gp = editGrob(grid.force(gp), gPath("GRID.stripGrob", "GRID.text"), grep = TRUE, global = TRUE,
+              just = "left", x = unit(0, "npc"))
+
+# Draw it
+grid.newpage()
+grid.draw(gp)
+
+
+
+
 
 
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn')] 
