@@ -277,7 +277,8 @@ for(fee_n in fee_seq){
   # =========================================================================================================================================================
   ## PREPARE THE TRAINING DATA WITH EONR ========
   TrainSet2[,P := floor(P/10)*10]#get out of the flat zone
-  TrainSet_eonr <- TrainSet2[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
+  TrainSet_eonr <- TrainSet2[, .SD[ P == max( P)], by = .(id_10, mukey, z)] %>%
+    .[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)]
   setnames(TrainSet_eonr, 'N_fert', 'eonr')
   
   TrainSet_eonr2 <- TrainSet_eonr[,c('eonr', pred_vars), with = FALSE]
@@ -503,11 +504,11 @@ for(n_red in sort(red_seq, decreasing = T)){
   
   library("foreach")
   library("doParallel")
-  registerDoParallel(20) # register the cluster
+  registerDoParallel(10) # register the cluster
   # registerDoParallel(cores = 10)
   
   TrainSet_nr_tmp_list = foreach(i = 1:nrow(soils_training), .combine = "c", .packages = c("data.table")) %dopar% {
-    # i= 419
+    # i= 133
     print(i)
     soils_training_n <- soils_training[i]
     TrainSet2_nr_field <- filter_dt_in_dt(TrainSet2_nr, soils_training_n, return_table = T)
@@ -547,7 +548,7 @@ for(n_red in sort(red_seq, decreasing = T)){
       
       if(all(!(next_step_efficiency$L_diff < 0))){break}
       #3 - find what z can have a lower rate with the lowest hurt in P
-      decrease_me <- next_step_efficiency[L_diff < 0][P_L_efficiency == min(P_L_efficiency)]
+      decrease_me <- next_step_efficiency[L_diff < 0][P_L_efficiency == min(P_L_efficiency)][N_fert.y == max(N_fert.y)][1,] #if there is more than one with the same eff, pick the highest N rate
       next_step_rates <- opt_dt[,.(id_10, mukey, z, N_fert_new = N_fert)]
       next_step_rates[z == decrease_me$z, N_fert_new := N_fert_new-10]
       opt_dt <- merge(TrainSet2_nr_field, next_step_rates, by = c('id_10', 'mukey', 'z')) 
