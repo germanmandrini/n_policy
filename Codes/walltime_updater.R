@@ -17,7 +17,7 @@ library(dplyr)
 
 
 time_track_walltime_dt <- readRDS("./n_policy_box/Data/files_rds/time_track_walltime_dt.rds")
-time_track_walltime_dt <- time_track_walltime_dt[id_10 %in% unique(c(grid10_soils_dt4[region %in% c(3)]$id_10))]
+time_track_walltime_dt <- time_track_walltime_dt[id_10 %in% unique(c(grid10_soils_dt4[!region %in% c(3)]$id_10))]
 time_track_walltime_dt[,dur := 120]
 time_track_walltime_dt[id_10 == 699, dur := 160]
 time_track_walltime_dt <- time_track_walltime_dt[order(mukey_n)]
