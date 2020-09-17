@@ -302,312 +302,314 @@ for(fee_n in fee_seq){
 }
 
 # =========================================================================================================================================================
-# CREATE THE TARGET N LEACHING REDUCTION (ORIGINAL)
-set.seed(123)
-
-## PREPARE THE TRAINING DATA ========
-# Part 1
-TrainSet2[, P := Y_corn * Pc - N_fert * Pn] #update profits
-
-baseline_leaching <- merge(TrainSet2, reg_model_stuff$ratio_5$minimum_ok, by = 'region') %>% 
-  .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, leach_base = L)]
-
-TrainSet_nr <- merge(TrainSet2, baseline_leaching, by = c('id_10', 'mukey', 'z'))
-TrainSet_nr[,leach_rel := L/leach_base]
-summary(TrainSet_nr$leach_rel)
-baseline_leaching[leach_base == 0]
-TrainSet_nr[L == 0 & leach_base == 0, leach_rel := 1] #avoid dividing by 0
-TrainSet_nr[L > 0 & leach_base == 0, leach_rel := L/0.0001] #avoid dividing by 0
-TrainSet_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)] #show me
-TrainSet_RMM <- TrainSet_nr[Yld_response > Yld_response_threshold]
-
-target_seq <- seq(0.5,0.89, by = 0.01)
-target_seq <- sort(unique(c(seq(0.7,0.89, by = 0.03), seq(0.9,1, by = 0.01))))
-# target_seq <- sort(unique(c(seq(0.7,0.89, by = 0.04), seq(0.9,1, by = 0.05))))
-
-length(target_seq)
-
-for(target_n in target_seq){
-  # target_n = 1
-  policy_n = paste0('target_', target_n)
-  # if(policy_n %in% names(reg_model_stuff)){next}
+if(FALSE){
+  # CREATE THE TARGET N LEACHING REDUCTION (ORIGINAL)
+  set.seed(123)
   
-  print(target_n)
-  small_model_list <- list()
+  ## PREPARE THE TRAINING DATA ========
+  # Part 1
+  TrainSet2[, P := Y_corn * Pc - N_fert * Pn] #update profits
   
-  # CREATE THE REGIONAL MINIMUM MODEL
-  model_minimum_ok  <- aggregate_by_area(data_dt = TrainSet_RMM, variables = c('P','leach_rel'), 
-                                         weight = 'area_ha', by_c = c('region', 'N_fert')) 
+  baseline_leaching <- merge(TrainSet2, reg_model_stuff$ratio_5$minimum_ok, by = 'region') %>% 
+    .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, leach_base = L)]
   
+  TrainSet_nr <- merge(TrainSet2, baseline_leaching, by = c('id_10', 'mukey', 'z'))
+  TrainSet_nr[,leach_rel := L/leach_base]
+  summary(TrainSet_nr$leach_rel)
+  baseline_leaching[leach_base == 0]
+  TrainSet_nr[L == 0 & leach_base == 0, leach_rel := 1] #avoid dividing by 0
+  TrainSet_nr[L > 0 & leach_base == 0, leach_rel := L/0.0001] #avoid dividing by 0
+  TrainSet_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)] #show me
+  TrainSet_RMM <- TrainSet_nr[Yld_response > Yld_response_threshold]
   
-  ggplot(model_minimum_ok) + 
-    geom_line(aes(x = N_fert, y = leach_rel, colour = factor(region)))+ #shift up the curve
-    geom_line(aes(x = N_fert, y = P, colour = factor(region)))
+  target_seq <- seq(0.5,0.89, by = 0.01)
+  target_seq <- sort(unique(c(seq(0.7,0.89, by = 0.03), seq(0.9,1, by = 0.01))))
+  # target_seq <- sort(unique(c(seq(0.7,0.89, by = 0.04), seq(0.9,1, by = 0.05))))
   
-  model_minimum_ok1 <- model_minimum_ok[leach_rel <= target_n][order(N_fert )]
+  length(target_seq)
   
-  #Chose the EONR below the target reduction L
-  if(nrow(model_minimum_ok1)>0){
-    model_minimum_ok1 <- model_minimum_ok1[, .SD[ P == max( P)], by = .(region)] #pick the EONR
-    model_minimum_ok1 <- model_minimum_ok1[, .SD[ N_fert == min( N_fert)], by = .(region)] #in case more than one rate had the same P
-  }
-  
-  #Type III: cases where the lowest L is higher than the target. Pick the rate with lowest L
-  model_minimum_ok[,leach_rel_min := min(leach_rel), by = .(region)]
-  model_minimum_ok2 <- model_minimum_ok[leach_rel_min > target_n]
-  if(nrow(model_minimum_ok2)>0){
-    model_minimum_ok2 <- model_minimum_ok2[, .SD[ leach_rel  == min(leach_rel )], by = .(region)] #pick the lowest L
-    model_minimum_ok2 <- model_minimum_ok2[, .SD[ N_fert == min( N_fert)], by = .(region)] #in case more than one rate had the same L
-  }
-  model_minimum_ok <- rbind(model_minimum_ok1, model_minimum_ok2, fill = T) %>% .[,.(region, eonr_pred = N_fert)] %>%
-    .[order(region)]
-  
-  # model_minimum_ok <- model_minimum_ok[leach_rel >= n_red] %>%
-  #   .[, .SD[ leach_rel == min( leach_rel)], by = .(region)] %>% #select minimum leach_rel
-  #   .[, .SD[ N_fert == min( N_fert)], by = .(region)] %>% #select minimum rate in case one is repeated
-  #   .[,.(region, eonr_pred = N_fert)]
-  
-  name_model = paste0('minimum_ok')
-  small_model_list[[name_model]] <- model_minimum_ok
-  
-  ## PREPARE THE TRAINING DATA WITH EONR ========
-  
-  # Type I and II: cases where there are rates with L below the target
-  #TrainSet_nr[,P := floor(P/10)*10]#get out of the flat zone
-  TrainSet_nr_tmp1 <- TrainSet_nr[leach_rel <= target_n][order(N_fert )]
-  
-  #Chose the EONR below the target reduction L
-  TrainSet_nr_tmp1 <- TrainSet_nr_tmp1[, .SD[ P == max( P)], by = .(id_10, mukey, z)] #pick the EONR
-  TrainSet_nr_tmp1 <- TrainSet_nr_tmp1[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)] #in case more than one rate had the same P
-  
-  #Type III: cases where the lowest L is higher than the target. Pick the rate with lowest L
-  TrainSet_nr[,leach_rel_min := min(leach_rel), by = .(id_10, mukey, z)]
-  TrainSet_nr_tmp2 <- TrainSet_nr[leach_rel_min > target_n]
-  if(nrow(TrainSet_nr_tmp2)>0){
-    TrainSet_nr_tmp2 <- TrainSet_nr_tmp2[, .SD[ L == min(L)], by = .(id_10, mukey, z)] #pick the EONR
-    TrainSet_nr_tmp2 <- TrainSet_nr_tmp2[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)] #in case more than one rate had the same P
-  }
-  TrainSet_nr_tmp <- rbind(TrainSet_nr_tmp1, TrainSet_nr_tmp2, fill = T)
-  setnames(TrainSet_nr_tmp, 'N_fert', 'eonr')
-  
-  if(FALSE & target_n ==1) {
-    target_eonr_dt <- TrainSet_nr_tmp
-    paired_dt <- merge(ratio_eonr_dt[,.(id_10, mukey, z, eonr_ratio = eonr)] ,
-                       target_eonr_dt[,.(id_10, mukey, z, eonr_target = eonr)], by = c('id_10', 'mukey', 'z')) 
+  for(target_n in target_seq){
+    # target_n = 1
+    policy_n = paste0('target_', target_n)
+    # if(policy_n %in% names(reg_model_stuff)){next}
     
-    ggplot(data=paired_dt, aes(x = eonr_ratio, y = eonr_target)) +
-      geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + 
-      ylim(0, 320)+ xlim(0, 320) 
+    print(target_n)
+    small_model_list <- list()
     
-  }
-  
-  
-  
-  table(TrainSet_nr_tmp[,.N, by = .(id_10, mukey, z)]$N)
-  
-  TrainSet_nr_tmp[,.N, by = .(id_10, mukey, z)]
-  TrainSet_nr_tmp <- TrainSet_nr_tmp[,c('eonr', pred_vars), with = FALSE]
-  
-  # =========================================================================================================================================================
-  # RF Model 2------------------------
-  # mtry <- tuneRF(TrainSet_nr_tmp[,c(pred_vars), with = FALSE],TrainSet_nr_tmp$eonr, ntreeTry=1000,
-  #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
-  # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
-  
-  best.m = 6
-  
-  rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_nr_tmp[,c('eonr', pred_vars), with = FALSE],
-                           importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
-  
-  varImpPlot(rf2_eonr, type=2)
-  name_model = paste0('rf2')
-  small_model_list[[name_model]] <- rf2_eonr
-  
-  # =========================================================================================================================================================
-  #Call python to build the CNN
-  #build_cnn(TrainSet_eonr2[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
-  
-  #----------------------------------------------------------------------------------------------------------------------
-  reg_model_stuff[[policy_n]] <- small_model_list
-  names(reg_model_stuff)
-}
-
-# =========================================================================================
-# CREATE THE N LEACHING REDUCTION LONG TERM OPTIMIZATION
-set.seed(123)
-
-## PREPARE THE TRAINING DATA ========
-# Part 1
-TrainSet2[, P := Y_corn * Pc - N_fert * Pn] #update profits
-TrainSet2[,P := floor(P/10)*10] #get out of the flat zone
-
-baseline_leaching <- merge(TrainSet2, reg_model_stuff$ratio_5$minimum_ok, by = 'region') %>% 
-  .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, z_type, leach_base = L)]
-
-TrainSet2_nr <- merge(TrainSet2, baseline_leaching, by = c('id_10', 'mukey', 'z', 'z_type'))
-TrainSet2_nr[,leach_rel := L/leach_base]
-summary(TrainSet2_nr$leach_rel)
-baseline_leaching[leach_base == 0]
-TrainSet2_nr[L == 0 & leach_base == 0, leach_rel := 1] #avoid dividing by 0
-TrainSet2_nr[L > 0 & leach_base == 0, leach_rel := L/0.0001] #avoid dividing by 0
-
-TrainSet2_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)]
-TrainSet_RMM <- TrainSet2_nr[Yld_response > Yld_response_threshold]
-
-red_seq <- seq(0.5,0.89, by = 0.01)
-red_seq <- sort(unique(c(seq(0.7,0.89, by = 0.03), seq(0.9,1, by = 0.01))))
-# red_seq <- seq(0.7,1, by = 0.01)
-# red_seq <- c(0.8, 0.95, 1)
-# red_seq <- c(0.85, 0.95)
-length(red_seq)
-all_optimized_training_sets_list <- list()
-rm(Trainset_optimized_tmp)
-
-for(n_red in sort(red_seq, decreasing = T)){
-  # n_red = 0.8
-  policy_n = paste0('nred_', n_red)
-  # if(name_model %in% names(reg_model_stuff)){next}
-  
-  print(n_red)
-  small_model_list <- list()
-  
-  # CREATE THE REGIONAL MINIMUM MODEL
-  model_minimum_ok  <- aggregate_by_area(data_dt = TrainSet_RMM, variables = c('P','leach_rel'), 
-                                         weight = 'area_ha', by_c = c('region', 'N_fert')) 
-  
-  ggplot(model_minimum_ok) + 
-    geom_line(aes(x = N_fert, y = leach_rel, colour = factor(region)))+ #shift up the curve
-    geom_line(aes(x = N_fert, y = P, colour = factor(region)))
-  
-  
-  model_minimum_ok1 <- model_minimum_ok[leach_rel <= n_red][order(N_fert )]
-  
-  #Chose the EONR below the target reduction L
-  if(nrow(model_minimum_ok1)>0){
-    model_minimum_ok1 <- model_minimum_ok1[, .SD[ P == max( P)], by = .(region)] #pick the EONR
-    model_minimum_ok1 <- model_minimum_ok1[, .SD[ N_fert == min( N_fert)], by = .(region)] #in case more than one rate had the same P
-  }
-  #Type III: cases where the lowest L is higher than the target. Pick the rate with lowest L
-  model_minimum_ok[,leach_rel_min := min(leach_rel), by = .(region)]
-  model_minimum_ok2 <- model_minimum_ok[leach_rel_min > n_red]
-  if(nrow(model_minimum_ok2)>0){
-    model_minimum_ok2 <- model_minimum_ok2[, .SD[ leach_rel  == min(leach_rel )], by = .(region)] #pick the lowest L
-    model_minimum_ok2 <- model_minimum_ok2[, .SD[ N_fert == min( N_fert)], by = .(region)] #in case more than one rate had the same L
-  }
-  model_minimum_ok <- rbind(model_minimum_ok1, model_minimum_ok2, fill = T) %>% .[,.(region, eonr_pred = N_fert)] %>%
-    .[order(region)]
-  
-  # model_minimum_ok <- model_minimum_ok[leach_rel >= n_red] %>%
-  #   .[, .SD[ leach_rel == min( leach_rel)], by = .(region)] %>% #select minimum leach_rel
-  #   .[, .SD[ N_fert == min( N_fert)], by = .(region)] %>% #select minimum rate in case one is repeated
-  #   .[,.(region, eonr_pred = N_fert)]
-  
-  name_model = paste0('minimum_ok')
-  small_model_list[[name_model]] <- model_minimum_ok
-  
-  # =========================================================================================================================================================
-  # ## PREPARE THE TRAINING DATA WITH EONR ========
-  soils_training <- unique(TrainSet2_nr[,.(id_10, mukey, z_type)])
-  
-  library("foreach")
-  library("doParallel")
-  registerDoParallel(10) # register the cluster
-  # registerDoParallel(cores = 10)
-  
-  TrainSet_nr_tmp_list = foreach(i = 1:nrow(soils_training), .combine = "c", .packages = c("data.table")) %dopar% {
-    # i= 320
-    print(i)
-    soils_training_n <- soils_training[i]
-    TrainSet2_nr_field <- filter_dt_in_dt(TrainSet2_nr, soils_training_n, return_table = T)
-    leach_base_field <- filter_dt_in_dt(baseline_leaching, soils_training_n, return_table = T)
-    leach_base_sum <- sum(leach_base_field$leach_base)
+    # CREATE THE REGIONAL MINIMUM MODEL
+    model_minimum_ok  <- aggregate_by_area(data_dt = TrainSet_RMM, variables = c('P','leach_rel'), 
+                                           weight = 'area_ha', by_c = c('region', 'N_fert')) 
     
-    # if(!exists( 'Trainset_optimized_tmp')){
-    #start with the rates that maximize profits
-    opt_dt <- TrainSet2_nr_field[,.SD[P == max(P)],by = z] %>% 
-      .[,.SD[N_fert == min( N_fert)],by = z]
-    sum(opt_dt$L)/leach_base_sum
-    # }else{
-    #   #start with the rates from last optimization
-    #   opt_dt <- filter_dt_in_dt(Trainset_optimized_tmp, soils_training_n, return_table = T)
-    #   setnames(opt_dt, 'eonr', 'N_fert')
-    #   if(n_red > unique(opt_dt$target)){stop()}
-    #   opt_dt <- opt_dt[,-'target']
-    #   sum(opt_dt$L)/leach_base_sum
-    # }
     
-    #find what z can have a lower rate with the lowest hurt in P
-    hit_the_target <- sum(opt_dt$L) <= leach_base_sum * n_red
-    previous<- sum(opt_dt$L)
-    lower_than_before <- TRUE
+    ggplot(model_minimum_ok) + 
+      geom_line(aes(x = N_fert, y = leach_rel, colour = factor(region)))+ #shift up the curve
+      geom_line(aes(x = N_fert, y = P, colour = factor(region)))
     
-    while(lower_than_before & !hit_the_target){
-      #1- Lower the rates by 10 kg
-      next_step_rates <- opt_dt[,.(id_10, mukey, z, N_fert_new = N_fert)]
-      next_step_rates[, N_fert_new := ifelse(N_fert_new <= 10, 10, N_fert_new - 10)]
+    model_minimum_ok1 <- model_minimum_ok[leach_rel <= target_n][order(N_fert )]
+    
+    #Chose the EONR below the target reduction L
+    if(nrow(model_minimum_ok1)>0){
+      model_minimum_ok1 <- model_minimum_ok1[, .SD[ P == max( P)], by = .(region)] #pick the EONR
+      model_minimum_ok1 <- model_minimum_ok1[, .SD[ N_fert == min( N_fert)], by = .(region)] #in case more than one rate had the same P
+    }
+    
+    #Type III: cases where the lowest L is higher than the target. Pick the rate with lowest L
+    model_minimum_ok[,leach_rel_min := min(leach_rel), by = .(region)]
+    model_minimum_ok2 <- model_minimum_ok[leach_rel_min > target_n]
+    if(nrow(model_minimum_ok2)>0){
+      model_minimum_ok2 <- model_minimum_ok2[, .SD[ leach_rel  == min(leach_rel )], by = .(region)] #pick the lowest L
+      model_minimum_ok2 <- model_minimum_ok2[, .SD[ N_fert == min( N_fert)], by = .(region)] #in case more than one rate had the same L
+    }
+    model_minimum_ok <- rbind(model_minimum_ok1, model_minimum_ok2, fill = T) %>% .[,.(region, eonr_pred = N_fert)] %>%
+      .[order(region)]
+    
+    # model_minimum_ok <- model_minimum_ok[leach_rel >= n_red] %>%
+    #   .[, .SD[ leach_rel == min( leach_rel)], by = .(region)] %>% #select minimum leach_rel
+    #   .[, .SD[ N_fert == min( N_fert)], by = .(region)] %>% #select minimum rate in case one is repeated
+    #   .[,.(region, eonr_pred = N_fert)]
+    
+    name_model = paste0('minimum_ok')
+    small_model_list[[name_model]] <- model_minimum_ok
+    
+    ## PREPARE THE TRAINING DATA WITH EONR ========
+    
+    # Type I and II: cases where there are rates with L below the target
+    #TrainSet_nr[,P := floor(P/10)*10]#get out of the flat zone
+    TrainSet_nr_tmp1 <- TrainSet_nr[leach_rel <= target_n][order(N_fert )]
+    
+    #Chose the EONR below the target reduction L
+    TrainSet_nr_tmp1 <- TrainSet_nr_tmp1[, .SD[ P == max( P)], by = .(id_10, mukey, z)] #pick the EONR
+    TrainSet_nr_tmp1 <- TrainSet_nr_tmp1[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)] #in case more than one rate had the same P
+    
+    #Type III: cases where the lowest L is higher than the target. Pick the rate with lowest L
+    TrainSet_nr[,leach_rel_min := min(leach_rel), by = .(id_10, mukey, z)]
+    TrainSet_nr_tmp2 <- TrainSet_nr[leach_rel_min > target_n]
+    if(nrow(TrainSet_nr_tmp2)>0){
+      TrainSet_nr_tmp2 <- TrainSet_nr_tmp2[, .SD[ L == min(L)], by = .(id_10, mukey, z)] #pick the EONR
+      TrainSet_nr_tmp2 <- TrainSet_nr_tmp2[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)] #in case more than one rate had the same P
+    }
+    TrainSet_nr_tmp <- rbind(TrainSet_nr_tmp1, TrainSet_nr_tmp2, fill = T)
+    setnames(TrainSet_nr_tmp, 'N_fert', 'eonr')
+    
+    if(FALSE & target_n ==1) {
+      target_eonr_dt <- TrainSet_nr_tmp
+      paired_dt <- merge(ratio_eonr_dt[,.(id_10, mukey, z, eonr_ratio = eonr)] ,
+                         target_eonr_dt[,.(id_10, mukey, z, eonr_target = eonr)], by = c('id_10', 'mukey', 'z')) 
       
-      #2- go get the data for the lower rates
-      next_step_data <- merge(TrainSet2_nr_field, next_step_rates, by = c('id_10', 'mukey', 'z'))[N_fert == N_fert_new]
-      next_step_efficiency <- merge(opt_dt[,.(id_10, mukey, z, N_fert, P, L)],
-                                    next_step_data[,.(id_10, mukey, z, N_fert, P, L)], by = c('id_10', 'mukey', 'z'))
-      next_step_efficiency[,P_diff := P.y - P.x]
-      next_step_efficiency[,L_diff := L.y - L.x]
-      next_step_efficiency[,P_L_efficiency := P_diff/L_diff]
+      ggplot(data=paired_dt, aes(x = eonr_ratio, y = eonr_target)) +
+        geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + 
+        ylim(0, 320)+ xlim(0, 320) 
       
-      if(all(!(next_step_efficiency$L_diff < 0))){break}
-      #3 - find what z can have a lower rate with the lowest hurt in P
-      decrease_me <- next_step_efficiency[L_diff < 0][P_L_efficiency == min(P_L_efficiency)][N_fert.y == max(N_fert.y)][1,] #if there is more than one with the same eff, pick the highest N rate
-      next_step_rates <- opt_dt[,.(id_10, mukey, z, N_fert_new = N_fert)]
-      next_step_rates[z == decrease_me$z, N_fert_new := N_fert_new-10]
-      opt_dt <- merge(TrainSet2_nr_field, next_step_rates, by = c('id_10', 'mukey', 'z')) 
-      opt_dt <- opt_dt[N_fert == N_fert_new, -'N_fert_new']
-      lower_than_before <- sum(opt_dt$L) < previous
-      previous = sum(opt_dt$L)
-      # print(sum(opt_dt$L))
+    }
+    
+    
+    
+    table(TrainSet_nr_tmp[,.N, by = .(id_10, mukey, z)]$N)
+    
+    TrainSet_nr_tmp[,.N, by = .(id_10, mukey, z)]
+    TrainSet_nr_tmp <- TrainSet_nr_tmp[,c('eonr', pred_vars), with = FALSE]
+    
+    # =========================================================================================================================================================
+    # RF Model 2------------------------
+    # mtry <- tuneRF(TrainSet_nr_tmp[,c(pred_vars), with = FALSE],TrainSet_nr_tmp$eonr, ntreeTry=1000,
+    #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
+    # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+    
+    best.m = 6
+    
+    rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_nr_tmp[,c('eonr', pred_vars), with = FALSE],
+                             importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
+    
+    varImpPlot(rf2_eonr, type=2)
+    name_model = paste0('rf2')
+    small_model_list[[name_model]] <- rf2_eonr
+    
+    # =========================================================================================================================================================
+    #Call python to build the CNN
+    #build_cnn(TrainSet_eonr2[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
+    
+    #----------------------------------------------------------------------------------------------------------------------
+    reg_model_stuff[[policy_n]] <- small_model_list
+    names(reg_model_stuff)
+  }
+  
+  # =========================================================================================
+  # CREATE THE N LEACHING REDUCTION LONG TERM OPTIMIZATION
+  set.seed(123)
+  
+  ## PREPARE THE TRAINING DATA ========
+  # Part 1
+  TrainSet2[, P := Y_corn * Pc - N_fert * Pn] #update profits
+  TrainSet2[,P := floor(P/10)*10] #get out of the flat zone
+  
+  baseline_leaching <- merge(TrainSet2, reg_model_stuff$ratio_5$minimum_ok, by = 'region') %>% 
+    .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, z_type, leach_base = L)]
+  
+  TrainSet2_nr <- merge(TrainSet2, baseline_leaching, by = c('id_10', 'mukey', 'z', 'z_type'))
+  TrainSet2_nr[,leach_rel := L/leach_base]
+  summary(TrainSet2_nr$leach_rel)
+  baseline_leaching[leach_base == 0]
+  TrainSet2_nr[L == 0 & leach_base == 0, leach_rel := 1] #avoid dividing by 0
+  TrainSet2_nr[L > 0 & leach_base == 0, leach_rel := L/0.0001] #avoid dividing by 0
+  
+  TrainSet2_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)]
+  TrainSet_RMM <- TrainSet2_nr[Yld_response > Yld_response_threshold]
+  
+  red_seq <- seq(0.5,0.89, by = 0.01)
+  red_seq <- sort(unique(c(seq(0.7,0.89, by = 0.03), seq(0.9,1, by = 0.01))))
+  # red_seq <- seq(0.7,1, by = 0.01)
+  # red_seq <- c(0.8, 0.95, 1)
+  # red_seq <- c(0.85, 0.95)
+  length(red_seq)
+  all_optimized_training_sets_list <- list()
+  rm(Trainset_optimized_tmp)
+  
+  for(n_red in sort(red_seq, decreasing = T)){
+    # n_red = 0.8
+    policy_n = paste0('nred_', n_red)
+    # if(name_model %in% names(reg_model_stuff)){next}
+    
+    print(n_red)
+    small_model_list <- list()
+    
+    # CREATE THE REGIONAL MINIMUM MODEL
+    model_minimum_ok  <- aggregate_by_area(data_dt = TrainSet_RMM, variables = c('P','leach_rel'), 
+                                           weight = 'area_ha', by_c = c('region', 'N_fert')) 
+    
+    ggplot(model_minimum_ok) + 
+      geom_line(aes(x = N_fert, y = leach_rel, colour = factor(region)))+ #shift up the curve
+      geom_line(aes(x = N_fert, y = P, colour = factor(region)))
+    
+    
+    model_minimum_ok1 <- model_minimum_ok[leach_rel <= n_red][order(N_fert )]
+    
+    #Chose the EONR below the target reduction L
+    if(nrow(model_minimum_ok1)>0){
+      model_minimum_ok1 <- model_minimum_ok1[, .SD[ P == max( P)], by = .(region)] #pick the EONR
+      model_minimum_ok1 <- model_minimum_ok1[, .SD[ N_fert == min( N_fert)], by = .(region)] #in case more than one rate had the same P
+    }
+    #Type III: cases where the lowest L is higher than the target. Pick the rate with lowest L
+    model_minimum_ok[,leach_rel_min := min(leach_rel), by = .(region)]
+    model_minimum_ok2 <- model_minimum_ok[leach_rel_min > n_red]
+    if(nrow(model_minimum_ok2)>0){
+      model_minimum_ok2 <- model_minimum_ok2[, .SD[ leach_rel  == min(leach_rel )], by = .(region)] #pick the lowest L
+      model_minimum_ok2 <- model_minimum_ok2[, .SD[ N_fert == min( N_fert)], by = .(region)] #in case more than one rate had the same L
+    }
+    model_minimum_ok <- rbind(model_minimum_ok1, model_minimum_ok2, fill = T) %>% .[,.(region, eonr_pred = N_fert)] %>%
+      .[order(region)]
+    
+    # model_minimum_ok <- model_minimum_ok[leach_rel >= n_red] %>%
+    #   .[, .SD[ leach_rel == min( leach_rel)], by = .(region)] %>% #select minimum leach_rel
+    #   .[, .SD[ N_fert == min( N_fert)], by = .(region)] %>% #select minimum rate in case one is repeated
+    #   .[,.(region, eonr_pred = N_fert)]
+    
+    name_model = paste0('minimum_ok')
+    small_model_list[[name_model]] <- model_minimum_ok
+    
+    # =========================================================================================================================================================
+    # ## PREPARE THE TRAINING DATA WITH EONR ========
+    soils_training <- unique(TrainSet2_nr[,.(id_10, mukey, z_type)])
+    
+    library("foreach")
+    library("doParallel")
+    registerDoParallel(10) # register the cluster
+    # registerDoParallel(cores = 10)
+    
+    TrainSet_nr_tmp_list = foreach(i = 1:nrow(soils_training), .combine = "c", .packages = c("data.table")) %dopar% {
+      # i= 320
+      print(i)
+      soils_training_n <- soils_training[i]
+      TrainSet2_nr_field <- filter_dt_in_dt(TrainSet2_nr, soils_training_n, return_table = T)
+      leach_base_field <- filter_dt_in_dt(baseline_leaching, soils_training_n, return_table = T)
+      leach_base_sum <- sum(leach_base_field$leach_base)
+      
+      # if(!exists( 'Trainset_optimized_tmp')){
+      #start with the rates that maximize profits
+      opt_dt <- TrainSet2_nr_field[,.SD[P == max(P)],by = z] %>% 
+        .[,.SD[N_fert == min( N_fert)],by = z]
+      sum(opt_dt$L)/leach_base_sum
+      # }else{
+      #   #start with the rates from last optimization
+      #   opt_dt <- filter_dt_in_dt(Trainset_optimized_tmp, soils_training_n, return_table = T)
+      #   setnames(opt_dt, 'eonr', 'N_fert')
+      #   if(n_red > unique(opt_dt$target)){stop()}
+      #   opt_dt <- opt_dt[,-'target']
+      #   sum(opt_dt$L)/leach_base_sum
+      # }
+      
+      #find what z can have a lower rate with the lowest hurt in P
       hit_the_target <- sum(opt_dt$L) <= leach_base_sum * n_red
-      print(sum(opt_dt$L)/leach_base_sum)
-    } #end of while loop
+      previous<- sum(opt_dt$L)
+      lower_than_before <- TRUE
+      
+      while(lower_than_before & !hit_the_target){
+        #1- Lower the rates by 10 kg
+        next_step_rates <- opt_dt[,.(id_10, mukey, z, N_fert_new = N_fert)]
+        next_step_rates[, N_fert_new := ifelse(N_fert_new <= 10, 10, N_fert_new - 10)]
+        
+        #2- go get the data for the lower rates
+        next_step_data <- merge(TrainSet2_nr_field, next_step_rates, by = c('id_10', 'mukey', 'z'))[N_fert == N_fert_new]
+        next_step_efficiency <- merge(opt_dt[,.(id_10, mukey, z, N_fert, P, L)],
+                                      next_step_data[,.(id_10, mukey, z, N_fert, P, L)], by = c('id_10', 'mukey', 'z'))
+        next_step_efficiency[,P_diff := P.y - P.x]
+        next_step_efficiency[,L_diff := L.y - L.x]
+        next_step_efficiency[,P_L_efficiency := P_diff/L_diff]
+        
+        if(all(!(next_step_efficiency$L_diff < 0))){break}
+        #3 - find what z can have a lower rate with the lowest hurt in P
+        decrease_me <- next_step_efficiency[L_diff < 0][P_L_efficiency == min(P_L_efficiency)][N_fert.y == max(N_fert.y)][1,] #if there is more than one with the same eff, pick the highest N rate
+        next_step_rates <- opt_dt[,.(id_10, mukey, z, N_fert_new = N_fert)]
+        next_step_rates[z == decrease_me$z, N_fert_new := N_fert_new-10]
+        opt_dt <- merge(TrainSet2_nr_field, next_step_rates, by = c('id_10', 'mukey', 'z')) 
+        opt_dt <- opt_dt[N_fert == N_fert_new, -'N_fert_new']
+        lower_than_before <- sum(opt_dt$L) < previous
+        previous = sum(opt_dt$L)
+        # print(sum(opt_dt$L))
+        hit_the_target <- sum(opt_dt$L) <= leach_base_sum * n_red
+        print(sum(opt_dt$L)/leach_base_sum)
+      } #end of while loop
+      
+      # return the results
+      list(opt_dt)
+      
+    }#end of dopar loop
     
-    # return the results
-    list(opt_dt)
+    stopImplicitCluster()
     
-  }#end of dopar loop
+    Trainset_optimized_tmp <- rbindlist(TrainSet_nr_tmp_list, use.names=TRUE)
+    setnames(Trainset_optimized_tmp, 'N_fert', 'eonr')
+    sum(Trainset_optimized_tmp$L)/sum(Trainset_optimized_tmp$leach_base)#show me
+    
+    
+    all_optimized_training_sets_list[[length(all_optimized_training_sets_list)+1]] <- Trainset_optimized_tmp[,target := n_red]
   
-  stopImplicitCluster()
-  
-  Trainset_optimized_tmp <- rbindlist(TrainSet_nr_tmp_list, use.names=TRUE)
-  setnames(Trainset_optimized_tmp, 'N_fert', 'eonr')
-  sum(Trainset_optimized_tmp$L)/sum(Trainset_optimized_tmp$leach_base)#show me
-  
-  
-  all_optimized_training_sets_list[[length(all_optimized_training_sets_list)+1]] <- Trainset_optimized_tmp[,target := n_red]
-
-  
-  # =========================================================================================================================================================
-  # RF Model 2------------------------
-  # mtry <- tuneRF(TrainSet_nr_tmp[,c(pred_vars), with = FALSE],TrainSet_nr_tmp$eonr, ntreeTry=1000,
-  #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
-  # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
-  
-  best.m = 6
-  
-  rf2_eonr <- randomForest(eonr ~ ., data = Trainset_optimized_tmp[,c('eonr', pred_vars), with = FALSE],
-                           importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
-  
-  # plot(rf2_eonr)
-  varImpPlot(rf2_eonr, type=2)
-  name_model = paste0('rf2')
-  small_model_list[[name_model]] <- rf2_eonr
-  
-  # =========================================================================================================================================================
-  #Call python to build the CNN
-  #build_cnn(Trainset_optimized_tmp[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
-  
-  #--------------------------------------------------------------------------------------------------------------
-  reg_model_stuff[[policy_n]] <- small_model_list
-  names(reg_model_stuff)
+    
+    # =========================================================================================================================================================
+    # RF Model 2------------------------
+    # mtry <- tuneRF(TrainSet_nr_tmp[,c(pred_vars), with = FALSE],TrainSet_nr_tmp$eonr, ntreeTry=1000,
+    #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
+    # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+    
+    best.m = 6
+    
+    rf2_eonr <- randomForest(eonr ~ ., data = Trainset_optimized_tmp[,c('eonr', pred_vars), with = FALSE],
+                             importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
+    
+    # plot(rf2_eonr)
+    varImpPlot(rf2_eonr, type=2)
+    name_model = paste0('rf2')
+    small_model_list[[name_model]] <- rf2_eonr
+    
+    # =========================================================================================================================================================
+    #Call python to build the CNN
+    #build_cnn(Trainset_optimized_tmp[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
+    
+    #--------------------------------------------------------------------------------------------------------------
+    reg_model_stuff[[policy_n]] <- small_model_list
+    names(reg_model_stuff)
+  }
+  saveRDS(all_optimized_training_sets_list, "./n_policy_box/Data/files_rds/all_optimized_training_sets_list.rds")
 }
-saveRDS(all_optimized_training_sets_list, "./n_policy_box/Data/files_rds/all_optimized_training_sets_list.rds")
 # =========================================================================================================================================================
 names(reg_model_stuff)
 

@@ -14,7 +14,7 @@ source('./n_policy_git/Codes/parameters.R')
 #DATA CLEANING & QUALITY CONTROL
 if(FALSE){
   # batch_n = 56
-  batch_n = 150
+  batch_n = 151
   library("foreach")
   library("doParallel")
   print(batch_n)

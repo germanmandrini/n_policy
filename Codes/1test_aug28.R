@@ -18,7 +18,7 @@ regional_test <- T
 #Merge all files
 # batch_n = 19Y
 folders <- list.dirs("./n_policy_box/Data", full.names = F )[str_detect(pattern = 'yc_output_summary', string = list.dirs("./n_policy_box/Data" ))]
-batches <- sort(as.numeric(sapply(strsplit(folders, split="_"), "[", 4) ), decreasing = T)[1]
+batches <- sort(as.numeric(sapply(strsplit(folders, split="_"), "[", 4) ), decreasing = T)[1:2]
 print(batches)
 two_batches_yc_dt  <- data.table()
 for(batch_n in sort(batches)){
@@ -75,8 +75,8 @@ for(batch_n in sort(batches)){
   two_batches_yc_dt <- rbind(two_batches_yc_dt, one_batch_dt, fill = T)
 }
 
-batch148_dt <- readRDS(paste0("./n_policy_box/Data/files_rds/one_batch_dt_batch148.rds"))
-two_batches_yc_dt <- rbind(two_batches_yc_dt, batch148_dt, fill = T)
+batch150_dt <- readRDS(paste0("./n_policy_box/Data/files_rds/one_batch_dt_batch150.rds"))
+two_batches_yc_dt <- rbind(two_batches_yc_dt, batch150_dt, fill = T)
 
 # paste(two_batches_yc_dt[,.N, by = .(region, id_10)][,.SD[sample(.N, 3)],by = region]$id_10, collapse = ', ')
 two_batches_yc_dt <- two_batches_yc_dt[sim_name %in% unique(one_batch_dt$sim_name)]
@@ -330,7 +330,7 @@ two_batches_eonr_dt[,region := factor(region)]
 last_batch_eonr_dt <- two_batches_eonr_dt[batch == max(batch)]
 last_batch_eonr_dt[,z := as.numeric(z)] 
 
-ggplot(two_batches_eonr_dt) +
+ggplot(two_batches_eonr_dt[n_deep_v5<100]) +
   geom_density(aes(x = n_deep_v5, color = factor(region), linetype = factor(batch)))
 
 ggplot(last_batch_eonr_dt) + geom_boxplot(aes(x = factor(z), y = eonr))

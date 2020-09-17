@@ -27,7 +27,7 @@ if(FALSE){
   perfomances_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of treatments (policy sublevels x NMS). SHould be all equal
   table(perfomances_dt$NMS) #obs by NMS. SHould be all equal
   
-  perfomances_dt[NMS == 'dynamic', NMS := 'dynamic1']
+  perfomances_dt[,.N,policy_name]
   summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NMS, z)]$area_ha)
   
   #-------------------------------------------------------------------------
@@ -146,7 +146,7 @@ if(FALSE){
   # perfomances_dt4[,ag_cost := P  + G]
   
   #Clean the nred (it has a delay in the recommendations)
-  perfomances_dt4[policy_name %in% c('nred') & NMS == 'dynamic1' ]
+  perfomances_dt4[policy_name %in% c('cut') & NMS == 'dynamic1' ]
   ggplot(perfomances_dt4[policy_name %in% c('nred') & NMS == 'dynamic1' ])+
     geom_point(aes(x=L_change, y=policy_val))
   
@@ -161,17 +161,13 @@ if(FALSE){
 
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 
-perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1') & NMS == 'static']
-perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1') & NMS == 'dynamic1']
+perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1', 'cut_1') & NMS == 'static']
+perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1', 'cut_1') & NMS == 'dynamic1']
 
-
-
-plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'fee', 'nred', 'target') & NMS %in% c('static', 'dynamic1') ] 
+plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'fee', 'nred', 'cut') & NMS %in% c('static', 'dynamic1') ] 
 plot_dt[policy_name%in% c('nred', 'target'), policy_val  := (1-policy_val )*100]
-plot_dt[policy_name%in% c('nred') & NMS == 'dynamic1' & policy_val > 15, policy_val  := -round(L_change) ]
-plot_dt[policy_name%in% c('nred') & NMS == 'dynamic1' & policy_val > 15]
-
-plot_dt[policy_name%in% c('nred', 'target')]
+# plot_dt[policy_name%in% c('nred') & NMS == 'dynamic1' & policy_val > 15, policy_val  := -round(L_change) ]
+# plot_dt[policy_name%in% c('nred') & NMS == 'dynamic1' & policy_val > 15]
 
 baselevel_L <- perfomances_dt4[policy == 'ratio_5' & NMS == 'static', L]
 baselevel_Y_corn <- perfomances_dt4[policy == 'ratio_5' & NMS == 'static', Y_corn ]
@@ -181,8 +177,8 @@ plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'NMS'), me
                                                                                  'P', 'G', 'net_balance'))
 
 plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance'),
-                                            labels = c(expression("Fertilizer \n    (N kg " * ha^"-1" *yr^"-1"* ")"), 
-                                                       expression("L ("*'%'*" change)"),
+                                            labels = c(expression("N Fertilizer \n (N kg " * ha^"-1" *yr^"-1"* ")"), 
+                                                       expression("N Leaching\n ("*'%'*" change)"),
                                                        expression("Corn Yield \n (kg N " * ha^"-1" *yr^"-1"* ")"), 
                                                        expression("Farm profits \n ($ " * ha^"-1" * yr^"-1"* ")"),
                                                        expression("Gov. collections \n ($ " * ha^"-1" * yr^"-1"* ")"),
@@ -190,10 +186,10 @@ plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_c
 
 
 
-plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'fee', 'nred'),
+plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'fee', 'cut'),
                                  labels = c(expression("N:Corn price"*" ratio"),
                                             expression("Fee on L ($ " * kg^"-1" * ha^"-1"*")"),
-                                            expression("L reduction target (%"*")")))]
+                                            expression("N reduction (%"*")")))]
 
 
 # plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']

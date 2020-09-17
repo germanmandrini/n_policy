@@ -78,7 +78,7 @@ grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
 #   rm(reg_model_stuff)
 # }
 #======================================================================================
-  if(FALSE){
+  if(TRUE){
     fields_cnt <- grid10_soils_dt5[,.N, by = .(id_10, id_field)] %>% .[,.(field_cnt = .N), by = id_10]
     
     grid10_soils_dt5 <- merge(grid10_soils_dt5, fields_cnt, by = 'id_10')
