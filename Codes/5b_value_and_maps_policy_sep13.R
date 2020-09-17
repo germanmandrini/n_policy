@@ -15,7 +15,7 @@ source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 "~/n_policy_git/Codes/parameters.R"
 
 # source('./Codes_useful/gm_functions.R')
-if(FALSE){
+if(TRUE){
   grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds") 
   grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
   grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
@@ -27,7 +27,6 @@ if(FALSE){
   perfomances_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of treatments (policy sublevels x NMS). SHould be all equal
   table(perfomances_dt$NMS) #obs by NMS. SHould be all equal
   
-  perfomances_dt[,.N,policy_name]
   summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NMS, z)]$area_ha)
   
   #-------------------------------------------------------------------------
@@ -72,7 +71,7 @@ if(FALSE){
   perfomances_dt2 <- perfomances_dt2[order(id_10, z,id_field, NMS)]
   
   saveRDS(perfomances_dt2, "./n_policy_box/Data/files_rds/perfomances_dt2.rds") #for 5d_pdf.R
-  perfomances_dt2 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt2.rds") 
+  # perfomances_dt2 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt2.rds") 
   
   #-------------------------------------------------------------------------
   # AGGREGATE THE DATA TO CELL X Z LEVEL CONSIDERING THE AREA
@@ -137,12 +136,7 @@ if(FALSE){
   #Calculate net_balance
   baselevel_P <- perfomances_dt4[policy == 'ratio_5' & NMS == 'static', P ]
   perfomances_dt4[,net_balance := P - baselevel_P + G]
-  
-  #Clean the nred (it has a delay in the recommendations)
-  perfomances_dt4[policy_name %in% c('cut') & NMS == 'dynamic1' ]
-  ggplot(perfomances_dt4[policy_name %in% c('nred') & NMS == 'dynamic1' ])+
-    geom_point(aes(x=L_change, y=policy_val))
-  
+
   # perfomances_dt4 <- perfomances_dt4[!policy %in% c('nred_0.8')] 
   # perfomances_dt4[policy_name %in% c('nred') & NMS == 'dynamic1' & policy_val <= 0.8]
   # perfomances_dt4[policy_name %in% c('nred') & NMS == 'dynamic1' & policy_val <= 0.8, policy_val := policy_val + 0.05 ]
@@ -152,7 +146,7 @@ if(FALSE){
   
 }  
 
-perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
+#perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 
 perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1', 'cut_1') & NMS == 'static']
 perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1', 'cut_1') & NMS == 'dynamic1']

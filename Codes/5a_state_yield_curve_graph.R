@@ -1,7 +1,7 @@
 rm(list=ls())
 
-setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
 
 setwd('~')#Server
 codes_folder <-'~' #Server
@@ -109,4 +109,4 @@ p3 <- grid.arrange(arrangeGrob(plot_1 + theme(legend.position="none"),
 print(p3)
 
 
-ggsave(p3, filename = "./n_policy_box/Data/figures/state_response_curve_both.jpg", width = 10, height =  4, units = 'in')
+ggsave(p3, filename = "./n_policy_box/Data/figures/state_response_curve_both.pdf", width = 10, height =  4, units = 'in')
