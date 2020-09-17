@@ -153,6 +153,10 @@ n_target_vector <- list(sample(1:60, z_count, replace = T), #South
                         sample(1:60, z_count, replace = T),  #Central
                         sample(1:60, z_count, replace = T))[[region_n]] #North
 
+n_target_vector <- list(sample(c(1:10,50:60), z_count, replace = T), #South
+                        sample(c(1:20,40:60), z_count, replace = T),  #Central
+                        sample(c(1:20,50:66), z_count, replace = T))[[region_n]] #North
+
 n_target_dt <- data.table(z = unique(instructions$z),
                           n_target= n_target_vector)
 instructions <- merge(instructions, n_target_dt, by = 'z')

@@ -144,21 +144,33 @@ if(FALSE){
   perfomances_dt4[,net_balance := P - baselevel_P + G]
   perfomances_dt4[policy == 'ratio_5']
   # perfomances_dt4[,ag_cost := P  + G]
+  
+  #Clean the nred (it has a delay in the recommendations)
+  perfomances_dt4[policy_name %in% c('nred') & NMS == 'dynamic1' ]
+  ggplot(perfomances_dt4[policy_name %in% c('nred') & NMS == 'dynamic1' ])+
+    geom_point(aes(x=L_change, y=policy_val))
+  
+  # perfomances_dt4 <- perfomances_dt4[!policy %in% c('nred_0.8')] 
+  # perfomances_dt4[policy_name %in% c('nred') & NMS == 'dynamic1' & policy_val <= 0.8]
+  # perfomances_dt4[policy_name %in% c('nred') & NMS == 'dynamic1' & policy_val <= 0.8, policy_val := policy_val + 0.05 ]
+  # perfomances_dt4[,policy := paste0(policy_name, '_', policy_val)]
+  
   saveRDS(perfomances_dt4, "./n_policy_box/Data/files_rds/perfomances_dt4.rds")
   
 }  
 
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
-<<<<<<< HEAD
-perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1') & NMS == 'static']
-perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1') & NMS == 'dynamic2']
-=======
+
 perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1') & NMS == 'static']
 perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1') & NMS == 'dynamic1']
->>>>>>> 892669f3bc58640174f9f50896696199a19ed0f0
 
-plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'fee', 'nred') & NMS %in% c('static', 'dynamic1') ] 
+
+
+plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'fee', 'nred', 'target') & NMS %in% c('static', 'dynamic1') ] 
 plot_dt[policy_name%in% c('nred', 'target'), policy_val  := (1-policy_val )*100]
+plot_dt[policy_name%in% c('nred') & NMS == 'dynamic1' & policy_val > 15, policy_val  := -round(L_change) ]
+plot_dt[policy_name%in% c('nred') & NMS == 'dynamic1' & policy_val > 15]
+
 plot_dt[policy_name%in% c('nred', 'target')]
 
 baselevel_L <- perfomances_dt4[policy == 'ratio_5' & NMS == 'static', L]
@@ -170,7 +182,7 @@ plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'NMS'), me
 
 plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance'),
                                             labels = c(expression("Fertilizer \n    (N kg " * ha^"-1" *yr^"-1"* ")"), 
-                                                       expression("L \n ("*'%'*" change)"),
+                                                       expression("L ("*'%'*" change)"),
                                                        expression("Corn Yield \n (kg N " * ha^"-1" *yr^"-1"* ")"), 
                                                        expression("Farm profits \n ($ " * ha^"-1" * yr^"-1"* ")"),
                                                        expression("Gov. collections \n ($ " * ha^"-1" * yr^"-1"* ")"),
@@ -207,7 +219,7 @@ hline_dt[policy_name == 'ratio' & variable == 'Y_corn', y_label := '95% baseleve
 # ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)", "h)")]
 #----
 
-ggplot() +
+(p <- ggplot() +
   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
   # scale_colour_manual(values = c("black", "brown"))+
   geom_line(data = plot_dt_long, aes(x = policy_val, y =  value, color = NMS), size = 1) +
@@ -232,11 +244,32 @@ ggplot() +
         axis.title.y=element_blank(),
         legend.position = "bottom",
         plot.margin =  unit(c(1,1,1,1), "lines")
-        )
+        ))
 
 ggsave(plot = p, 
        filename = "./n_policy_box/Data/figures/policies_multiplot.pdf", width = 831/300*3, height = 963/300*3,
        units = 'in')
+
+# Elasticity of Demand Point-Slope Formula: https://pressbooks.bccampus.ca/uvicecon103/chapter/4-2-elasticity/
+if(FALSE){
+  
+  elasticity_dt <- perfomances_dt4[policy_name %in% c('ratio') & NMS %in% c('static')  & policy_val < 8]
+                  
+                  
+  elasticity_dt <- plot_dt[NMS == 1 & policy_val %in% c(4,5,6)]
+  d_quantity <- (elasticity_dt[policy_val == 7, N_fert] - elasticity_dt[policy_val == 5, N_fert])/
+    (elasticity_dt[policy_val == 5, N_fert])
+  
+  d_price <- (Pc*7 -  Pc*5)/
+    (Pc*5)
+  
+  d_quantity/d_price
+}
+
+
+
+
+
 
 
 # examine ggplot object: alignment is off

@@ -14,8 +14,8 @@ library(reticulate)
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
 source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
-use_condaenv('GEOANN', conda = '/opt/anaconda3/condabin/conda')
-source_python("./n_policy_git/Codes/3c_cnn_functions_sep10.py")
+# use_condaenv('GEOANN', conda = '/opt/anaconda3/condabin/conda')
+# source_python("./n_policy_git/Codes/3c_cnn_functions_sep10.py")
 
 # yc_yearly_dt3 <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
 # grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
@@ -51,7 +51,7 @@ Yld_response_threshold <- 500
 # =========================================================================================================================================================
 # CREATE THE N RATIO TAX MODEL
 
-ratio_seq <- sort(c(seq(5, 20, by = 2)))
+ratio_seq <- sort(c(seq(5, 20, by = 1)))
 # ratio_seq <- sort(c(seq(5, 20, by = 5)))
 # ratio_seq <- c(5)
 set.seed(123)
@@ -178,7 +178,7 @@ for(ratio_n in ratio_seq){
 # CREATE THE LEACHING FEE MODEL
 source('./n_policy_git/Codes/parameters.R')
 # fee_seq <- sort(c(seq(0, 10, by = 2)))
-fee_seq <- sort(c(seq(0, 16, by = 2)))
+fee_seq <- sort(c(seq(0, 16, by = 1)))
 # fee_seq <- c(0,4)
 length(fee_seq)
 set.seed(123)
@@ -321,7 +321,8 @@ TrainSet_nr[L > 0 & leach_base == 0, leach_rel := L/0.0001] #avoid dividing by 0
 TrainSet_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)] #show me
 TrainSet_RMM <- TrainSet_nr[Yld_response > Yld_response_threshold]
 
-target_seq <- seq(0.7,1, by = 0.05)
+target_seq <- seq(0.5,0.89, by = 0.01)
+target_seq <- sort(unique(c(seq(0.7,0.89, by = 0.03), seq(0.9,1, by = 0.01))))
 # target_seq <- sort(unique(c(seq(0.7,0.89, by = 0.04), seq(0.9,1, by = 0.05))))
 
 length(target_seq)
@@ -442,7 +443,7 @@ TrainSet2[,P := floor(P/10)*10] #get out of the flat zone
 
 baseline_leaching <- merge(TrainSet2, reg_model_stuff$ratio_5$minimum_ok, by = 'region') %>% 
   .[N_fert == eonr_pred] %>% .[,.(id_10, mukey, z, z_type, leach_base = L)]
-sum(baseline_leaching[id_10 ==  47 & mukey == 1591917]$leach_base)
+
 TrainSet2_nr <- merge(TrainSet2, baseline_leaching, by = c('id_10', 'mukey', 'z', 'z_type'))
 TrainSet2_nr[,leach_rel := L/leach_base]
 summary(TrainSet2_nr$leach_rel)
@@ -453,8 +454,9 @@ TrainSet2_nr[L > 0 & leach_base == 0, leach_rel := L/0.0001] #avoid dividing by 
 TrainSet2_nr[,.(leach_rel = mean(leach_rel)), by = N_fert][order(N_fert)]
 TrainSet_RMM <- TrainSet2_nr[Yld_response > Yld_response_threshold]
 
-# red_seq <- sort(unique(c(seq(0.7,0.89, by = 0.03), seq(0.9,1, by = 0.01))))
-red_seq <- seq(0.7,1, by = 0.05)
+red_seq <- seq(0.5,0.89, by = 0.01)
+red_seq <- sort(unique(c(seq(0.7,0.89, by = 0.03), seq(0.9,1, by = 0.01))))
+# red_seq <- seq(0.7,1, by = 0.01)
 # red_seq <- c(0.8, 0.95, 1)
 # red_seq <- c(0.85, 0.95)
 length(red_seq)
@@ -462,7 +464,7 @@ all_optimized_training_sets_list <- list()
 rm(Trainset_optimized_tmp)
 
 for(n_red in sort(red_seq, decreasing = T)){
-  # n_red = 0.7
+  # n_red = 0.8
   policy_n = paste0('nred_', n_red)
   # if(name_model %in% names(reg_model_stuff)){next}
   
@@ -513,7 +515,7 @@ for(n_red in sort(red_seq, decreasing = T)){
   # registerDoParallel(cores = 10)
   
   TrainSet_nr_tmp_list = foreach(i = 1:nrow(soils_training), .combine = "c", .packages = c("data.table")) %dopar% {
-    # i= 133
+    # i= 320
     print(i)
     soils_training_n <- soils_training[i]
     TrainSet2_nr_field <- filter_dt_in_dt(TrainSet2_nr, soils_training_n, return_table = T)
@@ -522,7 +524,8 @@ for(n_red in sort(red_seq, decreasing = T)){
     
     # if(!exists( 'Trainset_optimized_tmp')){
     #start with the rates that maximize profits
-    opt_dt <- TrainSet2_nr_field[,.SD[P == max(P)],by = z] %>% .[,.SD[N_fert == min( N_fert)],by = z]
+    opt_dt <- TrainSet2_nr_field[,.SD[P == max(P)],by = z] %>% 
+      .[,.SD[N_fert == min( N_fert)],by = z]
     sum(opt_dt$L)/leach_base_sum
     # }else{
     #   #start with the rates from last optimization
@@ -574,28 +577,11 @@ for(n_red in sort(red_seq, decreasing = T)){
   
   Trainset_optimized_tmp <- rbindlist(TrainSet_nr_tmp_list, use.names=TRUE)
   setnames(Trainset_optimized_tmp, 'N_fert', 'eonr')
+  sum(Trainset_optimized_tmp$L)/sum(Trainset_optimized_tmp$leach_base)#show me
+  
   
   all_optimized_training_sets_list[[length(all_optimized_training_sets_list)+1]] <- Trainset_optimized_tmp[,target := n_red]
-  # # Type I and II: cases where there are rates with L below the target
-  # TrainSet_nr_tmp1 <- TrainSet_nr[leach_rel <= n_red][order(N_fert )]
-  # TrainSet_nr_tmp1[mukey == 1591902 & z == 3]
-  # #Chose the EONR below the target reduction L
-  # TrainSet_nr_tmp1 <- TrainSet_nr_tmp1[, .SD[ P == max( P)], by = .(id_10, mukey, z)] #pick the EONR
-  # TrainSet_nr_tmp1 <- TrainSet_nr_tmp1[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)] #in case more than one rate had the same P
-  # 
-  # #Type III: cases where the lowest L is higher than the target. Pick the rate with lowest L
-  # TrainSet_nr[,leach_rel_min := min(leach_rel), by = .(id_10, mukey, z)]
-  # TrainSet_nr_tmp2 <- TrainSet_nr[leach_rel_min > n_red]
-  # if(nrow(TrainSet_nr_tmp2)>0){
-  # TrainSet_nr_tmp2 <- TrainSet_nr_tmp2[, .SD[ L == min(L)], by = .(id_10, mukey, z)] #pick the EONR
-  # TrainSet_nr_tmp2 <- TrainSet_nr_tmp2[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)] #in case more than one rate had the same P
-  # }
-  # TrainSet_nr_tmp <- rbind(TrainSet_nr_tmp1, TrainSet_nr_tmp2, fill = T)
-  # setnames(TrainSet_nr_tmp, 'N_fert', 'eonr')
-  # table(TrainSet_nr_tmp[,.N, by = .(id_10, mukey, z)]$N)
-  # 
-  # TrainSet_nr_tmp[,.N, by = .(id_10, mukey, z)]
-  # TrainSet_nr_tmp <- TrainSet_nr_tmp[,c('eonr', pred_vars), with = FALSE]
+
   
   # =========================================================================================================================================================
   # RF Model 2------------------------
@@ -621,7 +607,7 @@ for(n_red in sort(red_seq, decreasing = T)){
   reg_model_stuff[[policy_n]] <- small_model_list
   names(reg_model_stuff)
 }
-
+saveRDS(all_optimized_training_sets_list, "./n_policy_box/Data/files_rds/all_optimized_training_sets_list.rds")
 # =========================================================================================================================================================
 names(reg_model_stuff)
 
