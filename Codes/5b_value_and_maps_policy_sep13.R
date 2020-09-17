@@ -19,9 +19,9 @@ if(FALSE){
   grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds") 
   grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
   grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
-   
+  
   perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt.rds")
-
+  
   perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
   perfomances_dt[,.N, .(id_10, id_field, mukey, policy, NMS)] %>% .[,N] %>% table() #number of z by mukey. SHould be all equal
   perfomances_dt[,.N, .(policy, NMS)]%>% .[,N] %>% table() #number of treatments (policy sublevels x NMS). SHould be all equal
@@ -43,7 +43,7 @@ if(FALSE){
     perfomances_dt[policy_name == 'ratio', P_zero := Y_corn_zero * Pc - N_fert_zero * policy_val * Pc]
     perfomances_dt[policy_name == 'fee', P_zero := Y_corn_zero * Pc - N_fert_zero * Pn - L_zero * policy_val]
     perfomances_dt[policy_name == 'nred', P_zero := Y_corn_zero * Pc - N_fert_zero * Pn]
-                   
+    
     perfomances_dt[,P := P - P_zero]
   }
   #-------------------------------------------------------------------------
@@ -54,14 +54,14 @@ if(FALSE){
   
   if(FALSE){
     
-     perfomances_dt2 <- aggregate_by_area(data_dt = perfomances_dt, variables = do_aggregate, 
-                                        weight = 'area_ha', by_c = do_not_aggregate) #field x z level (mukey is out)
+    perfomances_dt2 <- aggregate_by_area(data_dt = perfomances_dt, variables = do_aggregate, 
+                                         weight = 'area_ha', by_c = do_not_aggregate) #field x z level (mukey is out)
   }else{
     split_list <- split(perfomances_dt,perfomances_dt$z)
     split_list_output <- list()
     for(split_list_n in split_list){
       split_list_output[[unique(split_list_n$z)]] <- aggregate_by_area(data_dt = split_list_n, variables = do_aggregate, 
-                                         weight = 'area_ha', by_c = do_not_aggregate) #field x z level (mukey is out)
+                                                                       weight = 'area_ha', by_c = do_not_aggregate) #field x z level (mukey is out)
     }
     
     perfomances_dt2 <- rbindlist(split_list_output)
@@ -89,7 +89,7 @@ if(FALSE){
     split_list_output <- list()
     for(split_list_n in split_list){
       split_list_output[[unique(split_list_n$region)]] <- aggregate_by_area(data_dt = split_list_n, variables = do_aggregate, 
-                                                                       weight = 'area_ha', by_c = do_not_aggregate) #cell x z level (field is out)
+                                                                            weight = 'area_ha', by_c = do_not_aggregate) #cell x z level (field is out)
     }
     
     perfomances_dt3 <- rbindlist(split_list_output)
@@ -132,18 +132,11 @@ if(FALSE){
   perfomances_dt4[,Y_corn_change := Y_corn/baselevel_Y_corn]
   
   perfomances_dt4 <- perfomances_dt4[Y_corn_change >=0.95 & Y_corn_change <= 1.05, -'Y_corn_change'] #remove yields modifications of more that 5%
-
-  #---------
-  #remove ratios that are subsidized
-  perfomances_dt4 <- perfomances_dt4[!(policy_name == 'ratio' & policy_val < 5)] 
   
   #---------
-  #Calculate the subsidies
+  #Calculate net_balance
   baselevel_P <- perfomances_dt4[policy == 'ratio_5' & NMS == 'static', P ]
-  # perfomances_dt4[,S := P - baselevel_P]
   perfomances_dt4[,net_balance := P - baselevel_P + G]
-  perfomances_dt4[policy == 'ratio_5']
-  # perfomances_dt4[,ag_cost := P  + G]
   
   #Clean the nred (it has a delay in the recommendations)
   perfomances_dt4[policy_name %in% c('cut') & NMS == 'dynamic1' ]
@@ -174,15 +167,15 @@ baselevel_Y_corn <- perfomances_dt4[policy == 'ratio_5' & NMS == 'static', Y_cor
 
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'NMS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
-                                                                                 'P', 'G', 'net_balance'))
+                                                                                               'P', 'G', 'net_balance'))
 
 plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance'),
-                                            labels = c(expression("N Fertilizer \n (N kg " * ha^"-1" *yr^"-1"* ")"), 
-                                                       expression("N Leaching\n ("*'%'*" change)"),
-                                                       expression("Corn Yield \n (kg N " * ha^"-1" *yr^"-1"* ")"), 
-                                                       expression("Farm profits \n ($ " * ha^"-1" * yr^"-1"* ")"),
-                                                       expression("Gov. collections \n ($ " * ha^"-1" * yr^"-1"* ")"),
-                                                       expression("Net balance \n ($ " * ha^"-1" * yr^"-1"* ")")))]
+                                 labels = c(expression("N Fertilizer \n (N kg " * ha^"-1" *yr^"-1"* ")"), 
+                                            expression("N Leaching\n ("*'%'*" change)"),
+                                            expression("Corn Yield \n (kg N " * ha^"-1" *yr^"-1"* ")"), 
+                                            expression("Farm profits \n ($ " * ha^"-1" * yr^"-1"* ")"),
+                                            expression("Gov. collections \n ($ " * ha^"-1" * yr^"-1"* ")"),
+                                            expression("Net balance \n ($ " * ha^"-1" * yr^"-1"* ")")))]
 
 
 
@@ -216,31 +209,31 @@ hline_dt[policy_name == 'ratio' & variable == 'Y_corn', y_label := '95% baseleve
 #----
 
 (p <- ggplot() +
-  # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
-  # scale_colour_manual(values = c("black", "brown"))+
-  geom_line(data = plot_dt_long, aes(x = policy_val, y =  value, color = NMS), size = 1) +
-  # scale_linetype_manual(values = c("dashed", "solid"))+
-  geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
-  geom_text(data = hline_dt, aes(x = 5, y = y_line+50, label =y_label ), hjust = 'left', vjust = 'center') +
-  # scale_color_manual(values=c("royalblue2", "tomato3"))+   
-  # geom_text(data = ann_text[variable %in% unique(plot_dt_long$variable)], aes(y = value, x = x, label = lab), 
-  #           hjust = 0, size = 8) +
-  #   coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest
-  #                   clip = 'off') +   # This keeps the labels from disappearing
+   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+   # scale_colour_manual(values = c("black", "brown"))+
+   geom_line(data = plot_dt_long, aes(x = policy_val, y =  value, color = NMS), size = 1) +
+   # scale_linetype_manual(values = c("dashed", "solid"))+
+   geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+   geom_text(data = hline_dt, aes(x = 5, y = y_line+50, label =y_label ), hjust = 'left', vjust = 'center') +
+   # scale_color_manual(values=c("royalblue2", "tomato3"))+   
+   # geom_text(data = ann_text[variable %in% unique(plot_dt_long$variable)], aes(y = value, x = x, label = lab), 
+   #           hjust = 0, size = 8) +
+   #   coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest
+   #                   clip = 'off') +   # This keeps the labels from disappearing
    facet_free(y_labels~x_labels,
               labeller = label_parsed,
-             scales="free",
-             switch = 'x') +
-  theme_bw()+
-  theme(# panel.grid = element_blank(), 
-        strip.background.x = element_blank(),
-        strip.placement.x = "outside",
-        # panel.spacing = unit(1.5, "lines"),
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank(),
-        legend.position = "bottom",
-        plot.margin =  unit(c(1,1,1,1), "lines")
-        ))
+              scales="free",
+              switch = 'x') +
+   theme_bw()+
+   theme(# panel.grid = element_blank(), 
+     strip.background.x = element_blank(),
+     strip.placement.x = "outside",
+     # panel.spacing = unit(1.5, "lines"),
+     axis.title.x=element_blank(),
+     axis.title.y=element_blank(),
+     legend.position = "bottom",
+     plot.margin =  unit(c(1,1,1,1), "lines")
+   ))
 
 ggsave(plot = p, 
        filename = "./n_policy_box/Data/figures/policies_multiplot.pdf", width = 831/300*3, height = 963/300*3,
@@ -250,8 +243,8 @@ ggsave(plot = p,
 if(FALSE){
   
   elasticity_dt <- perfomances_dt4[policy_name %in% c('ratio') & NMS %in% c('static')  & policy_val < 8]
-                  
-                  
+  
+  
   elasticity_dt <- plot_dt[NMS == 1 & policy_val %in% c(4,5,6)]
   d_quantity <- (elasticity_dt[policy_val == 7, N_fert] - elasticity_dt[policy_val == 5, N_fert])/
     (elasticity_dt[policy_val == 5, N_fert])
@@ -314,7 +307,7 @@ plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn')]
     # scale_linetype_manual(values = c("dashed", "solid"))+
     # geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
     # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
-     scale_color_manual(values=c("royalblue2", "tomato3"))+   
+    scale_color_manual(values=c("royalblue2", "tomato3"))+   
     geom_text(data = ann_text[variable %in% unique(plot_dt_long2$variable)], aes(y = value, x = x, label = lab), 
               hjust = 0, size = 8) +
     coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest
@@ -335,7 +328,7 @@ plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn')]
           # axis.title.x=element_blank(),
           axis.title.y=element_blank(),
           plot.margin =  unit(c(2,1,1,1), "lines"))
-  )
+)
 
 grid.arrange(plot_1, plot_2, nrow = 1)
 ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1), 
@@ -380,33 +373,33 @@ ann_text
 #----
 
 (plot_1 <- ggplot() +
-    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
-    # scale_colour_manual(values = c("black", "brown"))+
-    geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, color = NMS)) +
-    # scale_linetype_manual(values = c("dashed", "solid"))+
-    geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
-     geom_text(data = hline_dt, aes(x = 10, y = y_line, label =y_label ))+
-    scale_color_manual(values=c("royalblue2", "tomato3"))+   
-    geom_text(data = ann_text[variable %in% unique(plot_dt_long1$variable)], aes(y = value, x = x, label = lab),              
-              hjust = 0, size = 8) +     
+   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+   # scale_colour_manual(values = c("black", "brown"))+
+   geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, color = NMS)) +
+   # scale_linetype_manual(values = c("dashed", "solid"))+
+   geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+   geom_text(data = hline_dt, aes(x = 10, y = y_line, label =y_label ))+
+   scale_color_manual(values=c("royalblue2", "tomato3"))+   
+   geom_text(data = ann_text[variable %in% unique(plot_dt_long1$variable)], aes(y = value, x = x, label = lab),              
+             hjust = 0, size = 8) +     
    coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest                     
-                    clip = 'off') +   # This keeps the labels from disappearing   
-    facet_wrap(variable_labels~., 
-               ncol = 1,
-               labeller = label_parsed,
-               scales="free",
-               strip.position = "left") +
-    # scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
-    xlab('L reduction target (%)')+
-    theme_bw()+
-    theme(panel.grid = element_blank(), 
-          strip.background = element_blank(),
-          strip.placement = "outside",
-          panel.spacing = unit(1.5, "lines"),
-          # axis.title.x=element_blank(),
-          axis.title.y=element_blank(),
-          legend.position = "none",
-          plot.margin =  unit(c(2,1,1,1), "lines"))
+                   clip = 'off') +   # This keeps the labels from disappearing   
+   facet_wrap(variable_labels~., 
+              ncol = 1,
+              labeller = label_parsed,
+              scales="free",
+              strip.position = "left") +
+   # scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+   xlab('L reduction target (%)')+
+   theme_bw()+
+   theme(panel.grid = element_blank(), 
+         strip.background = element_blank(),
+         strip.placement = "outside",
+         panel.spacing = unit(1.5, "lines"),
+         # axis.title.x=element_blank(),
+         axis.title.y=element_blank(),
+         legend.position = "none",
+         plot.margin =  unit(c(2,1,1,1), "lines"))
 )
 
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn', 'G')] 
@@ -417,7 +410,7 @@ plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn', '
     # scale_linetype_manual(values = c("dashed", "solid"))+
     # geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
     # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
-      scale_color_manual(values=c("royalblue2", "tomato3"))+   
+    scale_color_manual(values=c("royalblue2", "tomato3"))+   
     geom_text(data = ann_text[variable %in% unique(plot_dt_long2$variable)], aes(y = value, x = x, label = lab),              
               hjust = 0, size = 8) +     
     coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest                     
@@ -483,33 +476,33 @@ ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)")]
 #----
 
 (plot_1 <- ggplot() +
-    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
-    # scale_colour_manual(values = c("black", "brown"))+
-    geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, color = NMS)) +
-    # scale_linetype_manual(values = c("dashed", "solid"))+
-    geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
+   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NMS)) +
+   # scale_colour_manual(values = c("black", "brown"))+
+   geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, color = NMS)) +
+   # scale_linetype_manual(values = c("dashed", "solid"))+
+   geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
    geom_text(data = hline_dt, aes(x = 16, y = y_line, label =y_label ))+
-     scale_color_manual(values=c("royalblue2", "tomato3"))+   
+   scale_color_manual(values=c("royalblue2", "tomato3"))+   
    geom_text(data = ann_text[variable %in% unique(plot_dt_long1$variable)], aes(y = value, x = x, label = lab),              
              hjust = 0, size = 8) +     
    coord_cartesian(xlim = c(min(unique(plot_dt$policy_val)), max(unique(plot_dt$policy_val))), # This focuses the x-axis on the range of interest                     
                    clip = 'off') +   # This keeps the labels from disappearing
-    facet_wrap(variable_labels~., 
-               ncol = 1,
-               labeller = label_parsed,
-               scales="free",
-               strip.position = "left") +
-    # scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
-    xlab('Fee on L ($/kg)')+
-    theme_bw()+
-    theme(panel.grid = element_blank(), 
-          strip.background = element_blank(),
-          strip.placement = "outside",
-          panel.spacing = unit(1.5, "lines"),
-          # axis.title.x=element_blank(),
-          axis.title.y=element_blank(),
-          legend.position = "none",
-          plot.margin =  unit(c(2,1,1,1), "lines"))
+   facet_wrap(variable_labels~., 
+              ncol = 1,
+              labeller = label_parsed,
+              scales="free",
+              strip.position = "left") +
+   # scale_x_continuous(breaks = sort(unique(plot_dt$policy_val)), labels = sort(unique(plot_dt$policy_val))) + 
+   xlab('Fee on L ($/kg)')+
+   theme_bw()+
+   theme(panel.grid = element_blank(), 
+         strip.background = element_blank(),
+         strip.placement = "outside",
+         panel.spacing = unit(1.5, "lines"),
+         # axis.title.x=element_blank(),
+         axis.title.y=element_blank(),
+         legend.position = "none",
+         plot.margin =  unit(c(2,1,1,1), "lines"))
 )
 
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn')] 
@@ -521,7 +514,7 @@ plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn')]
     # scale_linetype_manual(values = c("dashed", "solid"))+
     # geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
     # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
-     scale_color_manual(values=c("royalblue2", "tomato3"))+   
+    scale_color_manual(values=c("royalblue2", "tomato3"))+   
     geom_text(data = ann_text[variable %in% unique(plot_dt_long2$variable)], aes(y = value, x = x, label = lab),              
               hjust = 0, size = 8) +     
     coord_cartesian(xlim = c(min(unique(plot_dt$policy_val)), max(unique(plot_dt$policy_val))), # This focuses the x-axis on the range of interest                     
@@ -570,11 +563,11 @@ latex_table_dt[,(cols_1) := round(.SD,1), .SDcols=cols_1]
 latex_table_dt[,Y_corn := round(Y_corn, 0)]
 
 setnames(latex_table_dt, c('policy_name', 'policy_val', 'N_fert', 'Y_corn', 'L_change', 'P', 'G',  'E', 'W'),
-                               c('policy', 'level', 'N rate (kg/ha)', 'Y_corn (kg/ha)', 'L change (%)', 'Profits ($/ha)', 'G ($/ha)',  'E ($/ha)', 'W ($/ha)'))
+         c('policy', 'level', 'N rate (kg/ha)', 'Y_corn (kg/ha)', 'L change (%)', 'Profits ($/ha)', 'G ($/ha)',  'E ($/ha)', 'W ($/ha)'))
 
 latex_table_xt <- xtable(latex_table_dt, type = "latex", auto = TRUE, label = 'tab:w_maximization', 
-       caption = 'Indicators for the level that maximized W for each policy and NMS combination, ordered by their W. 
-       The base-level system is also shown as a benchmark')
+                         caption = 'Indicators for the level that maximized W for each policy and NMS combination, ordered by their W. 
+                         The base-level system is also shown as a benchmark')
 
 #make L in %. Change N red name to L reduction target
 
@@ -660,17 +653,17 @@ table_dt[,abat_cost := (soc_benefits - baselevel_benefits)/abatement]
 library(mlr) 
 
 rmse_dt <- perfomances_dt[stringr::str_detect(string = perfomances_dt$policy, pattern = 'ratio'),
-               .(Y_corn =  mean(Y_corn),
-                    L = mean(L),
-                    N_fert = mean(N_fert),
-                    N_fert_min = min(N_fert),
-                    N_fert_max = max(N_fert),
-                    P = mean(P),
-                    # cor = cor(N_fert_12, N_fert),
-                    RMSE = mlr::measureRMSE(truth = N_fert_12, response = N_fert),
-                    overpred = sum(overpred)/.N,
-                    subpred = sum(subpred)/.N,
-                    angulo = sum(angulo)/.N), by = .( NMS, policy)][order(-P)]
+                          .(Y_corn =  mean(Y_corn),
+                            L = mean(L),
+                            N_fert = mean(N_fert),
+                            N_fert_min = min(N_fert),
+                            N_fert_max = max(N_fert),
+                            P = mean(P),
+                            # cor = cor(N_fert_12, N_fert),
+                            RMSE = mlr::measureRMSE(truth = N_fert_12, response = N_fert),
+                            overpred = sum(overpred)/.N,
+                            subpred = sum(subpred)/.N,
+                            angulo = sum(angulo)/.N), by = .( NMS, policy)][order(-P)]
 
 rmse_dt[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
 rmse_dt[,policy_name := lapply(policy, function(x) str_split(x, pattern = '_')[[1]][1])]
@@ -928,8 +921,8 @@ NMS_minimum_regional <- reg_NMS_stuff$NMS_minimum_regional
 rm(reg_NMS_stuff)
 
 mrtn_dt <- data.table(region = c(3,3,2,2,1,1), 
-           prev_crop = c(0,1,0,1,0,1),
-           MRTN_Rate_lbN_ac = c(161, 200, 175, 193,187, 192))
+                      prev_crop = c(0,1,0,1,0,1),
+                      MRTN_Rate_lbN_ac = c(161, 200, 175, 193,187, 192))
 mrtn_dt <- mrtn_dt[prev_crop == 0]
 mrtn_dt[,MRTN_rate := round(MRTN_Rate_lbN_ac * 1.12,0)] #1 pound per acre = 1.12 kilograms per hectare
 
@@ -940,8 +933,8 @@ setnames(NMS_minimum_regional2, 'eonr_pred', 'NMS1_rate')
 NMS_minimum_regional2[order(-region)]
 
 print.xtable(xtable(NMS_minimum_regional2, type = "latex", auto = TRUE, 
-             label = 'tab:NMS1', 
-             caption = 'NMS 1 predictions paired with MRTN recommendations for the same region'),
+                    label = 'tab:NMS1', 
+                    caption = 'NMS 1 predictions paired with MRTN recommendations for the same region'),
              file = "./n_policy_box/Data/figures/NMS1.tex", include.rownames=FALSE)
 
 #=====================================================================================================================
@@ -998,9 +991,9 @@ breaks_n <- c(50000,100000,200000,300000,400000)
 #---------------------------------------------------------------------------------------------------
 # MAKE A MAP OF RMSE (In what areas are the NMSs more off?) -----
 rmse_map_dt <- perfomances_dt[NMS %in% c(1,4) ,.(RMSE = mlr::measureRMSE(truth = N_fert_12, response = N_fert),
-                              MAE = mlr::measureMAE(truth = N_fert_12, response = N_fert),
-                              subpred = sum(subpred)/.N,
-                              overpred = sum(overpred)/.N), by = .(id_10, NMS)]
+                                                 MAE = mlr::measureMAE(truth = N_fert_12, response = N_fert),
+                                                 subpred = sum(subpred)/.N,
+                                                 overpred = sum(overpred)/.N), by = .(id_10, NMS)]
 
 rmse_map_dt2 <- dcast(rmse_map_dt, id_10 ~ NMS, value.var = c('RMSE', 'MAE', 'subpred', 'overpred'))
 
@@ -1039,12 +1032,12 @@ tm_shape(rates_map_sf3) + tm_polygons('value')+
   tm_facets(c("NMS", "variable"), ncol = 3, free.scales= T, as.layers = T)
 
 (p1 <- tm_shape(rates_map_sf3[rates_map_sf3$variable == 'Y_corn',]) + 
-  tm_polygons('value',  
-              title = c("Y_corn (kg/ha)"),
-              palette = "Greys", 
-              colorNA = 'white')+
-  tm_facets(c("NMS"), free.scales = F, as.layers = T) +
-  tm_layout(legend.outside = F))
+    tm_polygons('value',  
+                title = c("Y_corn (kg/ha)"),
+                palette = "Greys", 
+                colorNA = 'white')+
+    tm_facets(c("NMS"), free.scales = F, as.layers = T) +
+    tm_layout(legend.outside = F))
 
 (p2 <- tm_shape(rates_map_sf3[rates_map_sf3$variable == 'L',]) + 
     tm_polygons('value',  
@@ -1065,11 +1058,11 @@ rates_map_sf4[  rates_map_sf4$variable == 'N_fert' & rates_map_sf4$NMS ==  1 &  
 rates_map_sf4[  rates_map_sf4$variable == 'N_fert' & rates_map_sf4$NMS ==  1 & !(is.na(rates_map_sf4$value)),]$value %>% table()
 
 (p3 <- tm_shape(rates_map_sf3[rates_map_sf3$variable == 'N_fert',]) + 
-  tm_polygons('value',
-              # n=10,
-              palette = "Greys", 
-              title = c("N Fert (kg/ha)"),
-              colorNA = 'white') +
+    tm_polygons('value',
+                # n=10,
+                palette = "Greys", 
+                title = c("N Fert (kg/ha)"),
+                colorNA = 'white') +
     tm_facets(c("NMS"), free.scales = T) +
     tm_layout(legend.outside = F, 
               panel.label.height = 0,
@@ -1077,11 +1070,11 @@ rates_map_sf4[  rates_map_sf4$variable == 'N_fert' & rates_map_sf4$NMS ==  1 & !
     ))
 
 (p4 <- tm_shape(rates_map_sf3[rates_map_sf3$variable == 'P',]) + 
-  tm_polygons('value',  
-              #n = 10,
-              title = c("P ($/ha)"),
-              palette = "Greys", 
-              colorNA = 'white')+
+    tm_polygons('value',  
+                #n = 10,
+                title = c("P ($/ha)"),
+                palette = "Greys", 
+                colorNA = 'white')+
     tm_facets(c("NMS"), free.scales = F, as.layers = T) +
     tm_layout(legend.outside = F, 
               panel.label.height = 0
@@ -1186,10 +1179,10 @@ value_dt[NMS == 11, P := -P]
 
 # Add values by group
 value_post_dt <- value_dt[, .(Y_corn =  sum(Y_corn),
-                          L = sum(L),
-                          leach_ext = sum(leach_ext), 
-                          N_fert = sum(N_fert),
-                          P = sum(P)), by = .(id_10)]
+                              L = sum(L),
+                              leach_ext = sum(leach_ext), 
+                              N_fert = sum(N_fert),
+                              P = sum(P)), by = .(id_10)]
 value_post_dt[order(-P)]
 
 value_sf <- merge(grid10_tiles_sf7, value_post_dt, by = 'id_10', all.x = T)
@@ -1225,10 +1218,10 @@ value_dt[NMS == 4, P := -P]
 
 # Add values by group
 value_ante_dt <- value_dt[, .(Y_corn =  sum(Y_corn),
-                         L = sum(L),
-                         leach_ext = sum(leach_ext), 
-                         N_fert = sum(N_fert),
-                         P = sum(P)), by = .(id_10)]
+                              L = sum(L),
+                              leach_ext = sum(leach_ext), 
+                              N_fert = sum(N_fert),
+                              P = sum(P)), by = .(id_10)]
 
 value_sf <- merge(grid10_tiles_sf7, value_ante_dt, by = 'id_10', all.x = T) 
 
@@ -1344,7 +1337,7 @@ do_not_aggregate = c('id_10', 'id_field','region','NMS', 'tech')
 do_aggregate =  c("Y_corn", "L", "N_fert","P")
 
 perfomances_field_dt <- aggregate_by_area(data_dt = perfomances_dt, variables = do_aggregate, 
-                                     weight = 'area_ha', by_c = do_not_aggregate) #cell x z level (mukey and field are out)
+                                          weight = 'area_ha', by_c = do_not_aggregate) #cell x z level (mukey and field are out)
 
 # MAKE A MAP OF VALUE TECHNOLOGY (EX ANTE VALUE)
 value_dt <- perfomances_field_dt[NMS %in% c(4,5)]
@@ -1390,7 +1383,7 @@ best_NMS_dt <- best_NMS_dt[,.SD[P==max(P)], by = id_10]
 best_NMS_dt[,.N, by = .(NMS)][order(-N)]
 
 value_sf <- merge(grid10_tiles_sf7, best_NMS_dt[,.(id_10, NMS)], 
-                   by = 'id_10', all = T)
+                  by = 'id_10', all = T)
 
 value_sf <- dplyr::mutate(value_sf, NMS = ifelse(NMS <6, NA, NMS))
 
@@ -1446,15 +1439,15 @@ z_labels <- ic_field_plot[N_fert == max(ic_field_plot$N_fert), .(N_fert, Y_corn,
 z_labels[seq(1, nrow(z_labels), by = 2), N_fert := N_fert - 50]
 
 ggplot() +
-    geom_point(data = testing_set_plot, aes(x = N_fert, y = Y_corn, colour = NMS, size = NMS)) +
-    geom_line(data = ic_field_plot, aes(x = N_fert, y = Y_corn, group=z), show.legend = FALSE) +
-    scale_size_manual(values=c(rep(2, 11), 4)) +
-    scale_color_manual(values=colors_sample)+
-    ylab('Yield (kg/ha)')+
-    xlab('N rate (kg/ha)')+
-    geom_text(data = z_labels, aes(x = N_fert, y = Y_corn, label = z))+
-    theme_bw()+
-    theme(panel.grid = element_blank())
+  geom_point(data = testing_set_plot, aes(x = N_fert, y = Y_corn, colour = NMS, size = NMS)) +
+  geom_line(data = ic_field_plot, aes(x = N_fert, y = Y_corn, group=z), show.legend = FALSE) +
+  scale_size_manual(values=c(rep(2, 11), 4)) +
+  scale_color_manual(values=colors_sample)+
+  ylab('Yield (kg/ha)')+
+  xlab('N rate (kg/ha)')+
+  geom_text(data = z_labels, aes(x = N_fert, y = Y_corn, label = z))+
+  theme_bw()+
+  theme(panel.grid = element_blank())
 
 
 # (plot_n1 <- ggplot() +
@@ -1497,22 +1490,22 @@ testing_set_plot2[variable == 'L', value := value * 150]
 
 
 (plot_n1 <- ggplot() +
-  geom_line(data = ic_field_plot2, aes(x = N_fert, y = value, linetype = variable, colour = variable))+
-  scale_color_manual(values=c('black', 'black', 'black'),
-                     labels = c(bquote (paste('EONR'^'ex post')), 'Yield', 'N leaching'))+
-  geom_point(data = testing_set_plot2, aes(x = N_fert, y = value, colour = 'EONR')) +
-  guides( linetype = FALSE,
-          colour = guide_legend(override.aes = list(shape = c(16, NA, NA),
-                                                    linetype = c("blank", "solid", "dotted"))))+
-  labs(y = 'Yield (kg/ha)',
-       x = 'N rate (kg/ha)',
-       colour = "Variable") +
-  scale_y_continuous(sec.axis = sec_axis(~./150, name = "N leaching (kg/ha)"))+
-  theme_bw() +
-  theme(legend.title =  element_blank(),
-        legend.position = c(0.85, 0.15),
-        panel.grid = element_blank())+
-  annotate("text", x=300, y=15000, label= "a)", size = 10) )
+    geom_line(data = ic_field_plot2, aes(x = N_fert, y = value, linetype = variable, colour = variable))+
+    scale_color_manual(values=c('black', 'black', 'black'),
+                       labels = c(bquote (paste('EONR'^'ex post')), 'Yield', 'N leaching'))+
+    geom_point(data = testing_set_plot2, aes(x = N_fert, y = value, colour = 'EONR')) +
+    guides( linetype = FALSE,
+            colour = guide_legend(override.aes = list(shape = c(16, NA, NA),
+                                                      linetype = c("blank", "solid", "dotted"))))+
+    labs(y = 'Yield (kg/ha)',
+         x = 'N rate (kg/ha)',
+         colour = "Variable") +
+    scale_y_continuous(sec.axis = sec_axis(~./150, name = "N leaching (kg/ha)"))+
+    theme_bw() +
+    theme(legend.title =  element_blank(),
+          legend.position = c(0.85, 0.15),
+          panel.grid = element_blank())+
+    annotate("text", x=300, y=15000, label= "a)", size = 10) )
 
 summary(testing_set_plot$Y_corn)
 
@@ -1537,7 +1530,7 @@ exclude_z = testing_set_plot[Y_corn == min(Y_corn)]$z[1]
           legend.position = c(0.85, 0.15),
           panel.grid = element_blank())+
     guides(color = FALSE) + #remove legend for color
-  annotate("text", x=300, y=15000, label= "b)", size = 10)) 
+    annotate("text", x=300, y=15000, label= "b)", size = 10)) 
 
 summary(testing_set_plot[NMS == '12']$N_fert)
 
@@ -1640,7 +1633,7 @@ ic_field_dt[,prev_crop := ifelse(prev_crop == 'MSM', 0, 1)]
 ic_field_dt[, P := Y_corn * Pc - N_fert * Pn]
 
 performance_set_dt <- filter_dt_in_dt(perfomances_dt , filter_dt = mukey_n, return_table = TRUE)
- 
+
 performance_set_dt[,NMS := as.character(NMS)]
 
 performance_set_dt[prev_crop == 0 & NMS != 11, .N, by = .(NMS, z)]
@@ -1693,27 +1686,27 @@ eonr_mukey_dt <- yc_yearly_dt[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
 all_perfomances_dt[id_10 == 5]
 all_perfomances_dt[id_10 == 5, .(Y_corn_1 = sum(Y_corn_1), area_ha = sum(area_ha))]
 
-   
-    # MAKE A DT
-    economics_field_dt <- merge(n_regional_noss_dt2, n_regional_ss_dt2) %>% merge(eonr_ur_dt2) %>% merge(eonr_vr_dt2)
-    economics_field_dt[,area_ha := sum(area_dt$area_ha)]
-    economics_field_dt[,val_ss_ha := (P_reg_ss - P_reg_no_ss)/area_ha]
-    economics_field_dt[,val_info_ha := (P_ur - P_reg_no_ss)/area_ha]
-    economics_field_dt[,val_tech_ha := (P_vr - P_ur)/area_ha]
-    
-    economics_field_dt[,nval_ss_ha := (nleach_reg_ss - nleach_reg_no_ss)/area_ha]
-    economics_field_dt[,nval_info_ha := (nleach_ur - nleach_reg_no_ss)/area_ha]
-    economics_field_dt[,nval_tech_ha := (nleach_vr - nleach_ur)/area_ha]
-    
-    cols <- names(economics_field_dt)[sapply(economics_field_dt,is.numeric)]
-    economics_field_dt[,(cols) := round(.SD,3), .SDcols=cols]
-    
-    
-    economics_field_dt <- cbind(fields_seq_tmp, economics_field_dt)
-    economics_field_dt[,mukey_count := nrow(area_dt)]
-    
-    economics_ls[[j]] <- economics_field_dt
-  }
+
+# MAKE A DT
+economics_field_dt <- merge(n_regional_noss_dt2, n_regional_ss_dt2) %>% merge(eonr_ur_dt2) %>% merge(eonr_vr_dt2)
+economics_field_dt[,area_ha := sum(area_dt$area_ha)]
+economics_field_dt[,val_ss_ha := (P_reg_ss - P_reg_no_ss)/area_ha]
+economics_field_dt[,val_info_ha := (P_ur - P_reg_no_ss)/area_ha]
+economics_field_dt[,val_tech_ha := (P_vr - P_ur)/area_ha]
+
+economics_field_dt[,nval_ss_ha := (nleach_reg_ss - nleach_reg_no_ss)/area_ha]
+economics_field_dt[,nval_info_ha := (nleach_ur - nleach_reg_no_ss)/area_ha]
+economics_field_dt[,nval_tech_ha := (nleach_vr - nleach_ur)/area_ha]
+
+cols <- names(economics_field_dt)[sapply(economics_field_dt,is.numeric)]
+economics_field_dt[,(cols) := round(.SD,3), .SDcols=cols]
+
+
+economics_field_dt <- cbind(fields_seq_tmp, economics_field_dt)
+economics_field_dt[,mukey_count := nrow(area_dt)]
+
+economics_ls[[j]] <- economics_field_dt
+}
 
 economics_dt <- rbindlist(economics_ls)
 saveRDS(economics_dt, './n_policy_box/Data/files_rds/economics_dt.rds')

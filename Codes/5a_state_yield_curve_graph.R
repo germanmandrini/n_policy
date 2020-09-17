@@ -44,7 +44,7 @@ baselevel_nfert <- 191
 #Max possible reduction:
 max_red_dt  <- state_agg_dt2[N_fert == 0 | N_fert == round(baselevel_nfert/10)*10][order(N_fert)]
 max_red_dt[,L := L1 + L2]
-(max_red_dt[2, L] - max_red_dt[N_fert == 0, L])/ max_red_dt[2, L]
+(sum(max_red_dt[N_fert != 0, L]) - sum(max_red_dt[N_fert == 0, L]))/ sum(max_red_dt[N_fert != 0, L])
 
 # ----------------------------------------------------
 # state_agg_dt2[,leach_prop := round((leach_n / baselevel_leach) - 1,2)*100 ]

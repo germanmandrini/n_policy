@@ -331,53 +331,53 @@ if(FALSE){
     # results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic2'][,policy := policy_n]
     
   }
-  
-  #-------------------------------------------------------
-  # N FERTILIZER CUT (CUT RATIO 5 RECOMENDATIONS)
-  testing_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
-  testing_set_dt[, G := 0] #gov collection
-  
-  policies_cut <- paste0('cut_', seq(0,30, by = 1))
-  
-  for(policy_n in policies_cut){
-    # policy_n = policies_cut[[11]]
-    cut_n <- as.numeric(str_extract(policy_n,pattern = '[0-9.]+'))
-    print(policy_n)
-    #===================================================================================================================
-    # 1b) MINIMUM OK-
-    # testing_set_dt <- testing_set_dt[id_10 == 1436 & id_field == 2 & mukey == 178851 & z == 20]
-    # prediction_set_aggregated_dt <- prediction_set_aggregated_dt[id_10 == 1436 & id_field == 2 & z == 20]
-    # #---------------------------------------------------------------------------
-    # PERFORMANCE EVALUATION
-    # the NMS is trained with z1-10 and testing is evaluated with z11-25
-    minimum_ok_dt <- copy(reg_model_stuff[["ratio_5"]]$minimum_ok)
-    minimum_ok_dt[, eonr_pred := round(eonr_pred*((100-cut_n)/100)/10)*10]
-    
-    testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
-                             minimum_ok_dt, #because I forgot to set the name to eonr_pred
-                             by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-      .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
-    
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'static'][,policy := policy_n]
-    
-    #===================================================================================================================
-    # 2) PREDICT WITH REGIONAL RF 2 - UR 
-    # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
-    
-    prediction_set_aggregated_dt[,eonr_pred := ceiling(predict(reg_model_stuff[["ratio_5"]]$rf2, prediction_set_aggregated_dt)/10)*10]
-    prediction_set_aggregated_dt[, eonr_pred := round(eonr_pred*((100-cut_n)/100)/10)*10]
-    #---------------------------------------------------------------------------
-    # PERFORMANCE EVALUATION
-    testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
-                             prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-      .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
-      .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic1'][,policy := policy_n]
+}
+#-------------------------------------------------------
+# N FERTILIZER CUT (CUT RATIO 5 RECOMENDATIONS)
+testing_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
+testing_set_dt[, G := 0] #gov collection
+
+policies_cut <- paste0('cut_', seq(0,30, by = 1))
+
+for(policy_n in policies_cut){
+# policy_n = policies_cut[[11]]
+cut_n <- as.numeric(str_extract(policy_n,pattern = '[0-9.]+'))
+print(policy_n)
+#===================================================================================================================
+# 1b) MINIMUM OK-
+# testing_set_dt <- testing_set_dt[id_10 == 1436 & id_field == 2 & mukey == 178851 & z == 20]
+# prediction_set_aggregated_dt <- prediction_set_aggregated_dt[id_10 == 1436 & id_field == 2 & z == 20]
+# #---------------------------------------------------------------------------
+# PERFORMANCE EVALUATION
+# the NMS is trained with z1-10 and testing is evaluated with z11-25
+minimum_ok_dt <- copy(reg_model_stuff[["ratio_5"]]$minimum_ok)
+minimum_ok_dt[, eonr_pred := round(eonr_pred*((100-cut_n)/100)/10)*10]
+
+testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
+                         minimum_ok_dt, #because I forgot to set the name to eonr_pred
+                         by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+  .[N_fert == eonr_pred] %>%
+  .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+
+testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+
+results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'static'][,policy := policy_n]
+
+#===================================================================================================================
+# 2) PREDICT WITH REGIONAL RF 2 - UR 
+# GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
+
+prediction_set_aggregated_dt[,eonr_pred := ceiling(predict(reg_model_stuff[["ratio_5"]]$rf2, prediction_set_aggregated_dt)/10)*10]
+prediction_set_aggregated_dt[, eonr_pred := round(eonr_pred*((100-cut_n)/100)/10)*10]
+#---------------------------------------------------------------------------
+# PERFORMANCE EVALUATION
+testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
+                         prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+  .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
+  .[N_fert == eonr_pred] %>%
+  .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+
+results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic1'][,policy := policy_n]
     
     #===================================================================================================================
     # 3) PREDICT CNN
@@ -397,8 +397,8 @@ if(FALSE){
     # 
     # results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic2'][,policy := policy_n]
     
-  }
 }
+
 #-------------------------------------------------------------------------------------------------------
 perfomances_dt <- rbindlist(results_list)
 
