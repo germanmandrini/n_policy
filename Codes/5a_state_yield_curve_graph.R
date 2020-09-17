@@ -1,15 +1,10 @@
-# setwd('C:/Users/germa/Box Sync/My_Documents') #dell
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-# setwd("/home/germanm2")
-# setwd('~')
 rm(list=ls())
 
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+codes_folder <-'C:/Users/germanm2/Documents'#CPSC
 
 setwd('~')#Server
 codes_folder <-'~' #Server
-
 
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
@@ -39,17 +34,17 @@ state_agg_dt2  <- aggregate_by_area(data_dt = state_agg_dt, variables = c('Y_cor
                                     weight = 'area_ha', by_c = c('N_fert', 'region'))# %>% .[,-'area_ha']
 state_agg_dt2[,region := factor(region)]
 
-baselevel_L1 <- 30.29278
-baselevel_L2 <- 21.92814
-baselevel_L <- 52.22092  
-baselevel_Y_corn <- 11125.63 
-baselevel_nfert <- 175.3900
+baselevel_L1 <- 24.03
+baselevel_L2 <- 18.48
+baselevel_L <- 42.51
+baselevel_Y_corn <- 12831 
+baselevel_nfert <- 191
 
 # ----------------------------------------------------
 #Max possible reduction:
-max_red_dt  <- state_agg_dt2[N_fert == 10 | N_fert == round(baselevel_nfert/10)*10][order(N_fert)]
+max_red_dt  <- state_agg_dt2[N_fert == 0 | N_fert == round(baselevel_nfert/10)*10][order(N_fert)]
 max_red_dt[,L := L1 + L2]
-(max_red_dt[2, L] - max_red_dt[N_fert == 10, L])/ max_red_dt[2, L]
+(max_red_dt[2, L] - max_red_dt[N_fert == 0, L])/ max_red_dt[2, L]
 
 # ----------------------------------------------------
 # state_agg_dt2[,leach_prop := round((leach_n / baselevel_leach) - 1,2)*100 ]
