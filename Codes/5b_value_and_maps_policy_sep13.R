@@ -191,7 +191,7 @@ plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'fee', 'cut'),
 #use https://ggplot2.tidyverse.org/reference/labellers.html
 hline_dt <- data.table(unique(plot_dt_long[,.(policy_name, variable, y_labels, x_labels)]))
 hline_dt[variable == 'Y_corn', y_line := baselevel_Y_corn*0.95]
-hline_dt[policy_name == 'ratio' & variable == 'Y_corn', y_label := '95% baselevel']
+hline_dt[policy_name == 'ratio' & variable == 'Y_corn', y_label := '95% base-level']
 
 #----
 # ADD letters outside plot (go down) https://stackoverflow.com/questions/12409960/ggplot2-annotate-outside-of-plot
@@ -208,7 +208,7 @@ hline_dt[policy_name == 'ratio' & variable == 'Y_corn', y_label := '95% baseleve
    geom_line(data = plot_dt_long, aes(x = policy_val, y =  value, color = NMS), size = 1) +
    # scale_linetype_manual(values = c("dashed", "solid"))+
    geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
-   geom_text(data = hline_dt, aes(x = 5, y = y_line+50, label =y_label ), hjust = 'left', vjust = 'center') +
+   # geom_text(data = hline_dt, aes(x = 5, y = y_line+50, label =y_label ), hjust = 'left', vjust = 'center') +
    # scale_color_manual(values=c("royalblue2", "tomato3"))+   
    # geom_text(data = ann_text[variable %in% unique(plot_dt_long$variable)], aes(y = value, x = x, label = lab), 
    #           hjust = 0, size = 8) +
@@ -248,6 +248,39 @@ if(FALSE){
   
   d_quantity/d_price
 }
+
+# Total G collections in IL for 20% reduction
+if(FALSE){
+  IL_corn_area_ha = 5179976
+  percent20_dt <- perfomances_dt4[NMS == 'dynamic1' & L_change < -19]
+  percent20_dt <- percent20_dt[, .SD[ policy_val == min(policy_val)], by = .(policy_name)]
+  saveRDS(percent20_dt, "./n_policy_box/Data/files_rds/percent20_dt.rds")
+  percent20_dt[policy_name == 'ratio', G] * IL_corn_area_ha / 1000000 #million in IL
+  percent20_dt[policy_name == 'fee', G] * IL_corn_area_ha / 1000000 #million in IL
+}
+
+
+
+
+#--------------------------------------------------------------------------------
+
+
+perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt.rds")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
