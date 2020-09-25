@@ -108,8 +108,17 @@ for(ratio_n in ratio_seq){
   rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2,
                            importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
   
+  
   varImpPlot(rf2_eonr, type=2)
   plot(rf2_eonr)
+  
+  if(ratio_n == 5){
+    pdf("./n_policy_box/Data/figures/VarImportancePlot.pdf")
+    varImpPlot(rf2_eonr, type=2, main = '')
+    dev.off() 
+  }
+  
+  
   name_model = paste0('rf2')
   small_model_list[[name_model]] <- rf2_eonr
   
