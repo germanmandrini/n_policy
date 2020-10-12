@@ -2,8 +2,8 @@ rm(list=ls())
 # 
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # codes_folder <-'C:/Users/germa/Documents'#Dell
-setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
 setwd('~')#Server
 codes_folder <-'~' #Server
 
@@ -22,10 +22,20 @@ source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 
 reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
 
+
+
+remove_list <- names(reg_model_stuff)[str_detect(names(reg_model_stuff), 'bal_')]
+for(n in remove_list){
+  reg_model_stuff[[n]] <- NULL
+}
+
 remove_list <- names(reg_model_stuff)[!names(reg_model_stuff) %in% c("full_fields", "stations", "TrainSet","training_z")]
 for(n in remove_list){
   reg_model_stuff[[n]] <- NULL
 }
+
+
+
 
 # =========================================================================================================================================================
 ## SET THE VARIABLES ========
@@ -314,14 +324,14 @@ for(fee_n in fee_seq){
 # CREATE THE N BALANCE MODEL
 source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 # fee_seq <- sort(c(seq(0, 10, by = 2)))
-bal_seq <- sort(c(seq(0, 16, by = 1)))
+bal_seq <- sort(c(seq(0, 100, by = 10)))
 # fee_seq <- c(0,4)
 length(fee_seq)
 set.seed(123)
 
 TrainSet2[,N_balance := N_fert - Y_corn * 11/1000]
-TrainSet2[,N_extra := - N_balance - c(90,60,30)[region]]
-TrainSet2[N_extra <= 0, N_extra := 0]
+reg_model_stuff$bal_threshold <- c(120,100,80)
+reg_model_stuff$bal_fee <- 2
 # CHECK IF THE DATA FOR CURRENT RATIO IS THE SAME THAN FEE_0
 # test_comp_dt <- merge(test_comp[[1]][,.(id_10, mukey, z, N_fert, Y_corn, L)], 
 #       test_comp[[2]][,.(id_10, mukey, z, N_fert, Y_corn, L)], by = c('id_10', 'mukey', 'z', 'N_fert'))
@@ -332,15 +342,31 @@ TrainSet2[N_extra <= 0, N_extra := 0]
 # table(test_comp_dt$leach_same)
 
 for(bal_n in bal_seq){
-  # bal_n = 10
+  # bal_n = 0
   print(bal_n)
   
   policy_n = paste0('bal_', bal_n)
   if(policy_n %in% names(reg_model_stuff)){next}
   
   small_model_list <- list()
-  TrainSet2[, P := Y_corn * Pc - N_fert * Pn - N_extra * bal_n]#update profits
- 
+  
+  no_pay_limit <- reg_model_stuff$bal_threshold - bal_n
+  
+  TrainSet2[,N_extra := N_balance - no_pay_limit[region]]
+  TrainSet2[N_extra <= 0, N_extra := 0]
+  
+  TrainSet2[, P := Y_corn * Pc - N_fert * Pn - N_extra * reg_model_stuff$bal_fee]#update profits
+  TrainSet2[, P1 := Y_corn * Pc - N_fert * Pn]
+  TrainSet2[, P2 := Y_corn * Pc - N_fert * Pn - N_extra * reg_model_stuff$bal_fee]
+  
+  plot_dt <- TrainSet2[, .(P1 = mean(P1), 
+                P2 = mean(P2), 
+                N_extra = round(mean(N_extra),0)), by = .(region, N_fert)][order(region, N_fert)]
+  
+  ggplot(plot_dt) + 
+    geom_line(aes(x = N_fert, y = P1, color = region))+
+    geom_line(aes(x = N_fert, y = P2, color = region), linetype = 'dashed')
+  
   # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL - OK
   TrainSet_RMM <- TrainSet2[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
@@ -363,12 +389,12 @@ for(bal_n in bal_seq){
   TrainSet_eonr <- TrainSet_eonr[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)]
   setnames(TrainSet_eonr, 'N_fert', 'eonr')
   
-  if(FALSE & fee_n == 0){
+  if(FALSE & bal_n == 0){
     fee_eonr_dt <- TrainSet_eonr
     paired_dt <- merge(ratio_eonr_dt[,.(id_10, mukey, z, eonr_ratio = eonr)] ,
-                       fee_eonr_dt[,.(id_10, mukey, z, eonr_fee = eonr)], by = c('id_10', 'mukey', 'z')) 
+                       fee_eonr_dt[,.(id_10, mukey, z, eonr_bal = eonr)], by = c('id_10', 'mukey', 'z')) 
     
-    ggplot(data=paired_dt, aes(x = eonr_ratio, y = eonr_fee)) +
+    ggplot(data=paired_dt, aes(x = eonr_ratio, y = eonr_bal)) +
       geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + 
       ylim(0, 320)+ xlim(0, 320) 
     
@@ -729,6 +755,7 @@ names(reg_model_stuff)
 
 reg_model_stuff$ratio_5$minimum_ok
 reg_model_stuff$fee_0$minimum_ok
+reg_model_stuff$bal_0$minimum_ok
 reg_model_stuff$nred_1$minimum_ok
 reg_model_stuff$target_1$minimum_ok
 

@@ -2,10 +2,10 @@ rm(list=ls())
 
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # codes_folder <-'C:/Users/germa/Documents'#Dell
-setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-codes_folder <-'C:/Users/germanm2/Documents'#CPSC
-# setwd('~')#Server
-# codes_folder <-'~' #Server
+# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+setwd('~')#Server
+codes_folder <-'~' #Server
 
 
 source('./Codes_useful/R.libraries.R')
@@ -149,11 +149,11 @@ if(FALSE){
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 
 
-perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1', 'cut_1') & NMS == 'static']
-perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1', 'cut_1') & NMS == 'dynamic1']
+perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1', 'cut_1', 'bal_0') & NMS == 'static']
+perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1', 'cut_1', 'bal_0') & NMS == 'dynamic']
 
 
-plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'fee', 'nred', 'cut') & NMS %in% c('static', 'dynamic') ] 
+plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'fee', 'cut', 'bal') & NMS %in% c('static', 'dynamic') ] 
 plot_dt[policy_name%in% c('nred', 'target'), policy_val  := (1-policy_val )*100]
 # plot_dt[policy_name%in% c('nred') & NMS == 'dynamic' & policy_val > 15, policy_val  := -round(L_change) ]
 # plot_dt[policy_name%in% c('nred') & NMS == 'dynamic' & policy_val > 15]
@@ -175,10 +175,11 @@ plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_c
 
 
 
-plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'fee', 'cut'),
+plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'fee', 'cut', 'bal'),
                                  labels = c(expression("N:Corn price"*" ratio"),
                                             expression("Fee on L ($ " * kg^"-1" * ha^"-1"*")"),
-                                            expression("N reduction (%"*")")))]
+                                            expression("N reduction (%"*")"),
+                                            expression("Balance threshold (kg" * ha^"-1"*")")))]
 
 
 # plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
