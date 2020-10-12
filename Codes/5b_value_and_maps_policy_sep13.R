@@ -268,7 +268,10 @@ if(FALSE){
 # N Balance
 
 perfomances_dt2 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt2.rds") 
+
 perfomances_dt2[,N_balance := N_fert - Y_corn * 11/1000]
+
+perfomances_dt2[,N_balance := N_fert - Y_corn * 15/1000]
 perfomances_dt2[,L_ton_grain := L/(Y_corn / 1000)]
 balance_dt <- perfomances_dt2[policy == 'ratio_5']
 
@@ -290,10 +293,21 @@ ggplot(data = balance_dt[sample(1:nrow(balance_dt), 5000)], aes(x = N_balance, y
   geom_smooth()+
   facet_free(region_lab~.)
 
+ggplot(data = balance_dt[sample(1:nrow(balance_dt), 5000)], aes(x = N_fert, y = L)) + 
+  geom_point()+
+  geom_smooth()+
+  facet_free(region_lab~.)
+
+ggplot(boxplot_dt[policy_val %in% c(2,8,15)])+
+  geom_density(aes(x =  N_fert, colour = policy_val))+
+  facet_free(region_lab~.)
+
+
 #-------------------------------------------------------------------------
 # YC graph
 # Load Simulated data
 yc_yearly_dt3 <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
+
 
 #Add regions and areas
 grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds")
@@ -307,6 +321,20 @@ state_agg_dt2  <- aggregate_by_area(data_dt = state_agg_dt, variables = c('Y_cor
                                     weight = 'area_ha', by_c = c('N_fert', 'region'))# %>% .[,-'area_ha']
 
 state_agg_dt2[,N_balance := N_fert - Y_corn * 11/1000]
+
+#Add regions and areas
+grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds")
+areas_dt <- data.table(grid10_soils_dt5) %>% .[,.(area_ha = sum(area_ha)), by = .(id_10, mukey)]
+
+areas_dt <- grid10_soils_dt5[,.(area_ha = sum(area_ha)), by = .(id_10, mukey)]
+
+state_agg_dt <- merge(yc_yearly_dt3[,-c('area_ha')], areas_dt, by = c('id_10', 'mukey'))
+
+state_agg_dt2  <- aggregate_by_area(data_dt = state_agg_dt, variables = c('Y_corn', 'Y_soy', 'L1','L2'), 
+                                    weight = 'area_ha', by_c = c('N_fert', 'region'))# %>% .[,-'area_ha']
+
+state_agg_dt2[,N_balance := N_fert - Y_corn * 13/1000]
+
 state_agg_dt2[,L := L1 + L2]
 state_agg_dt2[,L_ton_grain := L/(Y_corn / 1000)]
 
