@@ -271,7 +271,6 @@ perfomances_dt2 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt2.rds")
 
 perfomances_dt2[,N_balance := N_fert - Y_corn * 11/1000]
 
-perfomances_dt2[,N_balance := N_fert - Y_corn * 15/1000]
 perfomances_dt2[,L_ton_grain := L/(Y_corn / 1000)]
 balance_dt <- perfomances_dt2[policy == 'ratio_5']
 
@@ -280,28 +279,35 @@ balance_dt[region == 2,region_lab := '2-Central']
 balance_dt[region == 3,region_lab := '3-North']
 
 
-ggplot(data = balance_dt)+ geom_density(aes(x = N_balance, colour = NMS))+
-  facet_free(region_lab~.)
+(p1 <- ggplot(data = balance_dt)+ geom_density(aes(x = N_balance, colour = NMS), size =1)+
+  facet_free(region_lab~.)+
+  ggtitle('N Balance'))
 
-ggplot(data = balance_dt[sample(1:nrow(balance_dt), 5000)], aes(x = N_balance, y = L)) + 
+ggsave(plot = p1, 
+       filename = "./n_policy_box/Data/figures/balance1.png")
+
+(p2 <- ggplot(data = balance_dt)+ geom_density(aes(x = L2, colour = NMS), size =1)+
+  facet_free(region_lab~.)+
+  ggtitle('Leaching'))
+
+ggsave(plot = p2, 
+       filename = "./n_policy_box/Data/figures/balance2.png")
+
+(p3 <- ggplot(data = balance_dt[sample(1:nrow(balance_dt), 5000)], aes(x = N_balance, y = L)) + 
   geom_point()+
   geom_smooth()+
-  facet_free(region_lab~.)
+  facet_free(region_lab~.))
 
-ggplot(data = balance_dt[sample(1:nrow(balance_dt), 5000)], aes(x = N_balance, y = L_ton_grain)) + 
+ggsave(plot = p3, 
+       filename = "./n_policy_box/Data/figures/balance3.png")
+
+(p4 <- ggplot(data = balance_dt[sample(1:nrow(balance_dt), 5000)], aes(x = N_balance, y = L_ton_grain)) + 
   geom_point()+
   geom_smooth()+
-  facet_free(region_lab~.)
+  facet_free(region_lab~.))
 
-ggplot(data = balance_dt[sample(1:nrow(balance_dt), 5000)], aes(x = N_fert, y = L)) + 
-  geom_point()+
-  geom_smooth()+
-  facet_free(region_lab~.)
-
-ggplot(boxplot_dt[policy_val %in% c(2,8,15)])+
-  geom_density(aes(x =  N_fert, colour = policy_val))+
-  facet_free(region_lab~.)
-
+ggsave(plot = p4, 
+       filename = "./n_policy_box/Data/figures/balance4.png")
 
 #-------------------------------------------------------------------------
 # YC graph

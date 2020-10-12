@@ -2,8 +2,8 @@ rm(list=ls())
 # 
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # codes_folder <-'C:/Users/germa/Documents'#Dell
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+codes_folder <-'C:/Users/germanm2/Documents'#CPSC
 setwd('~')#Server
 codes_folder <-'~' #Server
 
@@ -309,6 +309,98 @@ for(fee_n in fee_seq){
   reg_model_stuff[[policy_n]] <- small_model_list
   # names(reg_model_stuff)
 }
+
+# =========================================================================================================================================================
+# CREATE THE N BALANCE MODEL
+source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
+# fee_seq <- sort(c(seq(0, 10, by = 2)))
+bal_seq <- sort(c(seq(0, 16, by = 1)))
+# fee_seq <- c(0,4)
+length(fee_seq)
+set.seed(123)
+
+TrainSet2[,N_balance := N_fert - Y_corn * 11/1000]
+TrainSet2[,N_extra := - N_balance - c(90,60,30)[region]]
+TrainSet2[N_extra <= 0, N_extra := 0]
+# CHECK IF THE DATA FOR CURRENT RATIO IS THE SAME THAN FEE_0
+# test_comp_dt <- merge(test_comp[[1]][,.(id_10, mukey, z, N_fert, Y_corn, L)], 
+#       test_comp[[2]][,.(id_10, mukey, z, N_fert, Y_corn, L)], by = c('id_10', 'mukey', 'z', 'N_fert'))
+# 
+# test_comp_dt[,Y_corn_same := (Y_corn.x == Y_corn.y)]
+# test_comp_dt[,leach_same := (L.x == L.y)]
+# table(test_comp_dt$Y_corn_same)
+# table(test_comp_dt$leach_same)
+
+for(bal_n in bal_seq){
+  # bal_n = 10
+  print(bal_n)
+  
+  policy_n = paste0('bal_', bal_n)
+  if(policy_n %in% names(reg_model_stuff)){next}
+  
+  small_model_list <- list()
+  TrainSet2[, P := Y_corn * Pc - N_fert * Pn - N_extra * bal_n]#update profits
+ 
+  # =========================================================================================================================================================
+  # CREATE THE REGIONAL MINIMUM MODEL - OK
+  TrainSet_RMM <- TrainSet2[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
+  
+  TrainSet2[,.N, .(id_10, mukey, z)] %>% nrow() #trials before (all of them)
+  TrainSet_RMM[,.N, .(id_10, mukey, z)] %>% nrow()#trials after (whith response > threshold)
+  
+  model_minimum_ok  <- aggregate_by_area(data_dt = TrainSet_RMM, variables = c('P'), 
+                                         weight = 'area_ha', by_c = c('region', 'N_fert')) %>% 
+    .[, .SD[ P == max( P)], by = .(region)] %>% .[,.(region, eonr_pred = N_fert)] %>%
+    .[order(region)]
+  
+  name_model = paste0('minimum_ok')
+  small_model_list[[name_model]] <- model_minimum_ok
+  
+  # =========================================================================================================================================================
+  ## PREPARE THE TRAINING DATA WITH EONR ========
+  TrainSet2[,P := floor(P/10)*10]#get out of the flat zone
+  TrainSet_eonr <- TrainSet2[, .SD[ P == max( P)], by = .(id_10, mukey, z)]
+  TrainSet_eonr <- TrainSet_eonr[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)]
+  setnames(TrainSet_eonr, 'N_fert', 'eonr')
+  
+  if(FALSE & fee_n == 0){
+    fee_eonr_dt <- TrainSet_eonr
+    paired_dt <- merge(ratio_eonr_dt[,.(id_10, mukey, z, eonr_ratio = eonr)] ,
+                       fee_eonr_dt[,.(id_10, mukey, z, eonr_fee = eonr)], by = c('id_10', 'mukey', 'z')) 
+    
+    ggplot(data=paired_dt, aes(x = eonr_ratio, y = eonr_fee)) +
+      geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + 
+      ylim(0, 320)+ xlim(0, 320) 
+    
+  }
+  
+  TrainSet_eonr2 <- TrainSet_eonr[,c('eonr', pred_vars), with = FALSE]
+  
+  # =========================================================================================================================================================
+  # RF Model 2------------------------
+  # mtry <- tuneRF(TrainSet_eonr2[,c(pred_vars), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
+  #                stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE)
+  # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+  best.m = 6
+  
+  rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2[,c('eonr', pred_vars), with = FALSE],
+                           importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
+  
+  varImpPlot(rf2_eonr, type=2)
+  
+  name_model = paste0('rf2')
+  small_model_list[[name_model]] <- rf2_eonr
+  # =========================================================================================================================================================
+  #Call python to build the CNN
+  # build_cnn(TrainSet_eonr2[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
+  
+  
+  # --------------------------------------
+  # Save it to the big list
+  reg_model_stuff[[policy_n]] <- small_model_list
+  # names(reg_model_stuff)
+}
+
 
 # =========================================================================================================================================================
 if(FALSE){
