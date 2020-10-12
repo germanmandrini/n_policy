@@ -327,20 +327,6 @@ state_agg_dt2  <- aggregate_by_area(data_dt = state_agg_dt, variables = c('Y_cor
                                     weight = 'area_ha', by_c = c('N_fert', 'region'))# %>% .[,-'area_ha']
 
 state_agg_dt2[,N_balance := N_fert - Y_corn * 11/1000]
-
-#Add regions and areas
-grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds")
-areas_dt <- data.table(grid10_soils_dt5) %>% .[,.(area_ha = sum(area_ha)), by = .(id_10, mukey)]
-
-areas_dt <- grid10_soils_dt5[,.(area_ha = sum(area_ha)), by = .(id_10, mukey)]
-
-state_agg_dt <- merge(yc_yearly_dt3[,-c('area_ha')], areas_dt, by = c('id_10', 'mukey'))
-
-state_agg_dt2  <- aggregate_by_area(data_dt = state_agg_dt, variables = c('Y_corn', 'Y_soy', 'L1','L2'), 
-                                    weight = 'area_ha', by_c = c('N_fert', 'region'))# %>% .[,-'area_ha']
-
-state_agg_dt2[,N_balance := N_fert - Y_corn * 13/1000]
-
 state_agg_dt2[,L := L1 + L2]
 state_agg_dt2[,L_ton_grain := L/(Y_corn / 1000)]
 
@@ -348,8 +334,9 @@ state_agg_dt2[region == 1,region_lab := '1-South']
 state_agg_dt2[region == 2,region_lab := '2-Central']
 state_agg_dt2[region == 3,region_lab := '3-North']
 
-
-ggplot(data = balance_dt)+ geom_density(aes(x = N_balance, colour = NMS))+
+ggplot() + 
+  geom_line(data = state_agg_dt2, aes(x = N_fert, y = L_ton_grain))+
+  geom_point(data = state_agg_dt2[,.SD[L_ton_grain == min(L_ton_grain)], by = region], aes(x = N_fert, y = L_ton_grain))+
   facet_free(region_lab~.)
 
 ggplot(data = state_agg_dt2) + 
@@ -360,10 +347,6 @@ ggplot(data = state_agg_dt2) +
   geom_point( aes(x = N_balance, y = L_ton_grain))+
   geom_point( aes(x = N_balance, y =  Y_corn/1000))+
   facet_free(region_lab~.)
-
-
-
-
 
 #-----------------------------------------------------------------------------------------------------#
 #POSTER
