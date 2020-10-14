@@ -197,15 +197,15 @@ for(ratio_n in ratio_seq){
 # CREATE THE LEACHING FEE MODEL
 source('./n_policy_git/Codes/parameters.R')
 # fee_seq <- sort(c(seq(0, 10, by = 2)))
-fee_seq <-  sort(c(seq(0, 80, by = 10)))
+fee_seq <-  sort(c(seq(0, 30, by = 2)))
 # fee_seq <- c(0,4)
 length(fee_seq)
 set.seed(123)
 
 
 
-reg_model_stuff$fee_threshold <- TrainSet2[N_fert == 180, .(L = quantile(L, probs = 0.9)), region][order(region)]$L
-reg_model_stuff$leaching_fee <- 20
+reg_model_stuff$fee_threshold <- TrainSet2[N_fert == 180, .(L = quantile(L, probs = 0.3)), region][order(region)]$L
+# reg_model_stuff$leaching_fee <- 30
 
 # CHECK IF THE DATA FOR CURRENT RATIO IS THE SAME THAN FEE_0
 # test_comp_dt <- merge(test_comp[[1]][,.(id_10, mukey, z, N_fert, Y_corn, L)], 
@@ -217,7 +217,7 @@ reg_model_stuff$leaching_fee <- 20
 # table(test_comp_dt$leach_same)
 
 for(fee_n in fee_seq){
-  # fee_n = 80
+  # fee_n = 10
   print(fee_n)
   
   policy_n = paste0('fee_', fee_n)
@@ -225,16 +225,16 @@ for(fee_n in fee_seq){
   
   small_model_list <- list()
   
-  no_pay_limit <- reg_model_stuff$fee_threshold - fee_n
+  no_pay_limit <- reg_model_stuff$fee_threshold# - fee_n
   
   TrainSet2[,L_extra := L - no_pay_limit[region]]
   TrainSet2[L_extra <= 0, L_extra := 0]
+  TrainSet2$L_extra %>% summary()
   
-  
-  TrainSet2[, P := Y_corn * Pc - N_fert * Pn - L_extra * reg_model_stuff$leaching_fee] #update profits
+  TrainSet2[, P := Y_corn * Pc - N_fert * Pn - L_extra * fee_n] #update profits
   
   TrainSet2[, P1 := Y_corn * Pc - N_fert * Pn]
-  TrainSet2[, P2 := Y_corn * Pc - N_fert * Pn - L_extra * reg_model_stuff$leaching_fee] #update profits
+  TrainSet2[, P2 := Y_corn * Pc - N_fert * Pn - L_extra * fee_n] #update profits
   
   plot_dt <- TrainSet2[, .(P1 = mean(P1), 
                            P2 = mean(P2), 

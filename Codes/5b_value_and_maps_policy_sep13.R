@@ -95,7 +95,7 @@ if(FALSE){
   }
   
   saveRDS(perfomances_dt3, "./n_policy_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
-  
+  perfomances_dt3 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
   #---------------------------------------------------------------------------
   # AGGREGATE AGAIN CONSIDERING THE CORN PRODUCTION OF THE CELL
   grid10_tiles_dt <- data.table(grid10_tiles_sf7)[,.N, .(id_tile,id_10, corn_avg_ha,corn5_tile )][,-'N']
@@ -148,6 +148,7 @@ if(FALSE){
 
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 
+perfomances_dt3[policy_name == 'fee']
 
 perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1', 'cut_1', 'bal_0') & NMS == 'static']
 perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1', 'cut_1', 'bal_0') & NMS == 'dynamic']
