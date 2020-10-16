@@ -314,7 +314,7 @@ set.seed(123)
 
 TrainSet2[,N_balance := N_fert - Y_corn * 11/1000]
 # reg_model_stuff$bal_threshold <- TrainSet2[N_fert == 180, .(N_balance = quantile(N_balance, probs = 0.5)), region][order(region)]$N_balance - 30
-reg_model_stuff$bal_threshold <- c(50, 0, -20)
+reg_model_stuff$bal_threshold <- c(70, 20, 0)
 
 # CHECK IF THE DATA FOR CURRENT RATIO IS THE SAME THAN FEE_0
 # test_comp_dt <- merge(test_comp[[1]][,.(id_10, mukey, z, N_fert, Y_corn, L)], 

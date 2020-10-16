@@ -119,7 +119,9 @@ if(T){
   #---------
   #remove yields modifications of more that 5%
   perfomances_dt4[,Y_corn_change := Y_corn/Y_base]
-  perfomances_dt4[policy_name == 'bal']
+
+  perfomances_dt4[policy_name == 'bal' & NMS == 'dynamic']
+
   perfomances_dt4 <- perfomances_dt4[Y_corn_change >=0.95 & Y_corn_change <= 1.05] #remove yields modifications of more that 5%
   
   #---------
@@ -146,6 +148,7 @@ perfomances_dt4[policy %in% c('ratio_5', 'fee_0', 'nred_1', 'target_1', 'cut_1',
 
 plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'fee', 'cut', 'bal') & NMS %in% c('static', 'dynamic') & 
                              region ==1] 
+
 plot_dt[policy_name%in% c('nred', 'target'), policy_val  := (1-policy_val )*100]
 
 # plot_dt[policy_name%in% c('nred') & NMS == 'dynamic' & policy_val > 15, policy_val  := -round(L_change) ]
