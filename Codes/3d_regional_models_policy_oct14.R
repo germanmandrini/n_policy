@@ -24,7 +24,7 @@ reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
 
 
 
-remove_list <- names(reg_model_stuff)[str_detect(names(reg_model_stuff), 'fee_')]
+remove_list <- names(reg_model_stuff)[str_detect(names(reg_model_stuff), 'bal_')]
 for(n in remove_list){
   reg_model_stuff[[n]] <- NULL
 }
@@ -192,7 +192,6 @@ for(ratio_n in ratio_seq){
 }
 
 
-
 # =========================================================================================================================================================
 # CREATE THE LEACHING FEE MODEL
 source('./n_policy_git/Codes/parameters.R')
@@ -309,15 +308,14 @@ for(fee_n in fee_seq){
 # =========================================================================================================================================================
 # CREATE THE N BALANCE MODEL
 source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
-# fee_seq <- sort(c(seq(0, 10, by = 2)))
-bal_seq <- sort(c(seq(0, 100, by = 10)))
-# fee_seq <- c(0,4)
-length(fee_seq)
+bal_seq <- sort(c(seq(0, 30, by = 2)))
+
 set.seed(123)
 
 TrainSet2[,N_balance := N_fert - Y_corn * 11/1000]
-reg_model_stuff$bal_threshold <- c(120,100,80)
-reg_model_stuff$bal_fee <- 2
+# reg_model_stuff$bal_threshold <- TrainSet2[N_fert == 180, .(N_balance = quantile(N_balance, probs = 0.5)), region][order(region)]$N_balance - 30
+reg_model_stuff$bal_threshold <- c(50, 0, -20)
+
 # CHECK IF THE DATA FOR CURRENT RATIO IS THE SAME THAN FEE_0
 # test_comp_dt <- merge(test_comp[[1]][,.(id_10, mukey, z, N_fert, Y_corn, L)], 
 #       test_comp[[2]][,.(id_10, mukey, z, N_fert, Y_corn, L)], by = c('id_10', 'mukey', 'z', 'N_fert'))
@@ -328,7 +326,7 @@ reg_model_stuff$bal_fee <- 2
 # table(test_comp_dt$leach_same)
 
 for(bal_n in bal_seq){
-  # bal_n = 0
+  # bal_n = 30
   print(bal_n)
   
   policy_n = paste0('bal_', bal_n)
@@ -336,22 +334,24 @@ for(bal_n in bal_seq){
   
   small_model_list <- list()
   
-  no_pay_limit <- reg_model_stuff$bal_threshold - bal_n
+  no_pay_limit <- reg_model_stuff$bal_threshold# - bal_n
   
   TrainSet2[,N_extra := N_balance - no_pay_limit[region]]
   TrainSet2[N_extra <= 0, N_extra := 0]
   
-  TrainSet2[, P := Y_corn * Pc - N_fert * Pn - N_extra * reg_model_stuff$bal_fee]#update profits
+  TrainSet2[, P := Y_corn * Pc - N_fert * Pn - N_extra * bal_n]#update profits
   TrainSet2[, P1 := Y_corn * Pc - N_fert * Pn]
-  TrainSet2[, P2 := Y_corn * Pc - N_fert * Pn - N_extra * reg_model_stuff$bal_fee]
+  TrainSet2[, P2 := Y_corn * Pc - N_fert * Pn - N_extra * bal_n]
   
   plot_dt <- TrainSet2[, .(P1 = mean(P1), 
                 P2 = mean(P2), 
                 N_extra = round(mean(N_extra),0)), by = .(region, N_fert)][order(region, N_fert)]
   
-  ggplot(plot_dt) + 
-    geom_line(aes(x = N_fert, y = P1, color = region))+
-    geom_line(aes(x = N_fert, y = P2, color = region), linetype = 'dashed')
+  ggplot() + 
+    geom_line(data = plot_dt, aes(x = N_fert, y = P1, color = region))+
+    geom_point(data = plot_dt[,.SD[P1 == max(P1)], by = region], aes(x = N_fert, y = P1))+
+    geom_line(data = plot_dt, aes(x = N_fert, y = P2, color = region), linetype = 'dashed')+
+    geom_point(data = plot_dt[,.SD[P2 == max(P2)], by = region], aes(x = N_fert, y = P2))
   
   # =========================================================================================================================================================
   # CREATE THE REGIONAL MINIMUM MODEL - OK
