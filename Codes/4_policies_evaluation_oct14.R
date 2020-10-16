@@ -225,13 +225,13 @@ for(policy_n in policies_bal){
   bal_n <- as.numeric(str_extract(policy_n,pattern = '[0-9.]+'))
   # print(bal_n)
   
-  no_pay_limit <- reg_model_stuff$bal_threshold - bal_n
+  no_pay_limit <- reg_model_stuff$bal_threshold# - bal_n
   
   testing_set_dt[,N_extra := N_balance - no_pay_limit[region]]
   testing_set_dt[N_extra <= 0, N_extra := 0]
   
-  testing_set_dt[, P := Y_corn * Pc - N_fert * Pn - N_extra * reg_model_stuff$bal_fee]#update profits
-  testing_set_dt[, G := N_extra * reg_model_stuff$bal_fee] #gov collectionn
+  testing_set_dt[, P := Y_corn * Pc - N_fert * Pn - N_extra * bal_n]#update profits
+  testing_set_dt[, G := N_extra * bal_n] #gov collectionn
   
   #===================================================================================================================
   # 1b) MINIMUM OK-
@@ -496,7 +496,7 @@ perfomances_dt[,.N, .(id_10, mukey,id_field, policy, NMS)]$N %>% table() #number
 # saveRDS(perfomances_dt, "./n_policy_box/Data/files_rds/perfomances_dt.rds")
 
 perfomances_dt2 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt.rds")
-perfomances_dt2 <- perfomances_dt2[!str_detect(perfomances_dt2$policy, 'fee_')]
+perfomances_dt2 <- perfomances_dt2[!str_detect(perfomances_dt2$policy, 'bal_')]
 table(perfomances_dt2$policy)
 perfomances_dt2 <- rbind(perfomances_dt2, perfomances_dt)
 saveRDS(perfomances_dt2, "./n_policy_box/Data/files_rds/perfomances_dt.rds")
