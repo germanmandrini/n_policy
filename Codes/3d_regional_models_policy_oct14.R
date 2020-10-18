@@ -310,12 +310,14 @@ for(leach_n in leach_seq){
 # =========================================================================================================================================================
 # CREATE THE BALANCE FEE MODEL
 source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
-bal_seq <- sort(c(seq(0, 2, by = 0.5), seq(4, 20, by = 2)))
+bal_seq <- sort(seq(0, 5, by = 0.25))
 
 set.seed(123)
 
 TrainSet2[,N_balance := N_fert - Y_corn * 11/1000]
 reg_model_stuff$bal_threshold <- TrainSet2[N_fert == 130, .(N_balance = quantile(N_balance, probs = 0.5)), region][order(region)]$N_balance
+
+reg_model_stuff$bal_threshold <- c(40, 0, -20)
 
 (p1 <- ggplot(data = TrainSet2[N_fert == 80])+ geom_density(aes(x = N_balance, colour = region), size =1)+
               ggtitle('N Balance'))     
