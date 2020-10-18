@@ -41,51 +41,61 @@ state_agg_dt3 <- state_agg_dt2[region == region_n] #filter one region
 
 
 #get thresholds
-reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
-leach_threshold <- reg_model_stuff$leach_threshold[as.numeric(region_n)]
-leach_threshold <- 20
-bal_threshold <- reg_model_stuff$bal_threshold[as.numeric(region_n)]
+# reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
+# leach_threshold <- reg_model_stuff$leach_threshold[as.numeric(region_n)]
+# bal_threshold <- reg_model_stuff$bal_threshold[as.numeric(region_n)]
+# rm(reg_model_stuff)
+
+leach_threshold <- 29
 bal_threshold <- 0
-rm(reg_model_stuff)
+
 
 #Calculate veriables for the plot
 state_agg_dt3[, L := L1 + L2]
-state_agg_dt3[, N_cost_5 := N_fert * Pn]  #update profits
-state_agg_dt3[, N_cost_10 := N_fert * Pn*2]  #update profits
+state_agg_dt3[, cost_base := N_fert * Pn]  #update profits
+state_agg_dt3[, cost_ratio := N_fert * (Pn/5)*20]  #update profits
 
 state_agg_dt3[,L_extra := L - leach_threshold]
 state_agg_dt3[L_extra <= 0, L_extra := 0]
-state_agg_dt3[, leach_fee := 10* L_extra] 
+state_agg_dt3[, cost_leach := 10 * L_extra + cost_base] 
 
 state_agg_dt3[, N_balance := N_fert - Y_corn * 11/1000]
 state_agg_dt3[,N_extra := N_balance - bal_threshold]
 state_agg_dt3[N_extra <= 0, N_extra := 0]
+state_agg_dt3[,cost_bal := 3 * N_extra + cost_base]  
 
-state_agg_dt3[, bal_fee := 1* N_extra]  
+state_agg_dt3[,P_base := Y_corn * Pc - cost_base]
+state_agg_dt3[,P_ratio := Y_corn * Pc - cost_ratio]
+state_agg_dt3[,P_leach := Y_corn * Pc - cost_leach]
+state_agg_dt3[,P_bal := Y_corn * Pc - cost_bal]
 
-
-
-# ----------------------------------------------------
-#Max possible reduction:
-max_red_dt  <- state_agg_dt2[N_fert == 0 | N_fert == round(baselevel_nfert/10)*10][order(N_fert)]
-max_red_dt[,L := L1 + L2]
-(sum(max_red_dt[N_fert != 0, L]) - sum(max_red_dt[N_fert == 0, L]))/ sum(max_red_dt[N_fert != 0, L])
-
+#Get the levels that get to the same N rates for each policy
+perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
+levels_dt <- perfomances_dt4[region == region_n & NMS == 'static' & N_fert > 149 & N_fert < 151]
+levels_dt[, .SD[policy_val== min(policy_val )], by = policy_name]
 
 # ----------------------------------------------------
 # CONCEPTUAL FIGURES
 
-(plot_1 <- ggplot(data = state_agg_dt2[N_fert < 250]) + 
-   geom_line(aes(x = N_fert, y = Y_corn, linetype = "Yield")) +
-   geom_line(aes(x = N_fert, y = L*200, linetype = "N Leaching")) +
+plot_1_dt <- state_agg_dt3[N_fert < 250] %>% .[N_extra <= bal_threshold, N_balance := NA]
+
+vert_line_leach_threshold <- plot_1_dt[L >= leach_threshold] %>% .[L == min(L), N_fert]
+vert_line_bal_threshold <- plot_1_dt[N_balance >= bal_threshold] %>% .[N_balance == min(N_balance), N_fert]
+
+
+(plot_1 <- ggplot(data = plot_1_dt) + 
+   geom_line(aes(x = N_fert, y = Y_corn, linetype = "Yield"), size = 1) +
+   geom_line(aes(x = N_fert, y = L*200, linetype = "N Leaching"), size = 1) +
+   geom_line(aes(x = N_fert, y = N_balance*150, linetype = "N Balance"), size = 1) +
    #geom_hline(yintercept = baselevel_yld, linetype = 'dashed', color = 'grey', size = 1)+
-   geom_vline(xintercept = baselevel_nfert, linetype = 'dashed', color = 'grey', size = 1) +
+   geom_vline(xintercept = vert_line_bal_threshold, linetype = 'dashed', color = 'grey', size = 1)+
    labs(y = 'Corn Yield (kg/ha)',
         x = 'Corn N rate (kg/ha)',
         colour = "Region",
         linetype = 'Variable') +
-   scale_y_continuous(sec.axis = sec_axis(~./200, name = "Corn N leaching (kg/ha)", breaks = seq(30,80,5), labels = seq(30,80,5))) +
-   scale_linetype_manual(values = c("dashed", "solid"))+
+   scale_y_continuous(sec.axis = sec_axis(~./200, name = "Corn N leaching (kg/ha)", 
+                                          breaks = seq(0,80,5), labels = seq(0,80,5))) +
+   scale_linetype_manual(values = c("dashed", "dotted", "solid"))+
    theme_bw()+
    # guides(linetype = guide_legend(order=2),
    #        size = guide_legend(order=1)) +
@@ -94,32 +104,46 @@ max_red_dt[,L := L1 + L2]
      legend.position = 'bottom',
      legend.text=element_text(size=8),
      panel.grid = element_blank())+
-   annotate("text", x=20, y=12500, label= "a)", size = 10) )
+   geom_text(aes(x=vert_line_bal_threshold, y=0,label='leaching and balance threshold'),hjust=0,vjust=0,angle=90,size=4)+
+   annotate("text", x=10, y=14000, label= "a)", size = 10) )
+
+plot_2_long_dt <- melt(state_agg_dt3[N_fert < 250],
+                       id.vars = c('N_fert'),
+                       measure.vars = c( 'cost_base', 'cost_ratio', 'cost_leach', 'cost_bal','P_base', 'P_ratio', 'P_leach', 'P_bal'))
+plot_2_long_dt[,policy_name := as.character(lapply(variable, function(x) str_split(x, pattern = '_')[[1]][2]))]
+plot_2_long_dt[,variable_group := as.character(lapply(variable, function(x) str_split(x, pattern = '_')[[1]][1]))]
+
+
+(plot_2 <- ggplot() + 
+    geom_line(data = plot_2_long_dt, aes(x = N_fert, y = value, color = policy_name, linetype = variable_group), size = 1) + 
+    geom_point(data = plot_2_long_dt[,.SD[value == max(value)], by = policy_name], 
+               aes(x = N_fert, y = value, color = policy_name), size = 3) +
+    labs(y = 'Cost ($/ha)',
+         x = 'Corn N rate (kg/ha)') +
+    theme_bw()+
+    # guides(linetype = guide_legend(order=2),
+    #        size = guide_legend(order=1)) +
+    theme(# legend.title =  element_blank(),
+      # legend.position = c(0.87, 0.15),
+      legend.position = 'bottom',
+      legend.text=element_text(size=8),
+      panel.grid = element_blank())+
+    annotate("text", x=10, y=1500, label= "b)", size = 10) )
+
+p3 <- grid.arrange(plot_1, plot_2, nrow=2)
+print(p3)
+
+
+ggsave(p3, filename = "./n_policy_box/Data/figures/state_response_curve_both.pdf", width = 10, height =  4, units = 'in')
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# ----------------------------------------------------
+#Max possible reduction:
+max_red_dt  <- state_agg_dt2[N_fert == 0 | N_fert == round(baselevel_nfert/10)*10][order(N_fert)]
+max_red_dt[,L := L1 + L2]
+(sum(max_red_dt[N_fert != 0, L]) - sum(max_red_dt[N_fert == 0, L]))/ sum(max_red_dt[N_fert != 0, L])
 
 
 # ------------------By Region---------------------------------
