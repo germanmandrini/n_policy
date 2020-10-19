@@ -130,13 +130,9 @@ plot_2_long_dt[,variable_group := as.character(lapply(variable, function(x) str_
       panel.grid = element_blank())+
     annotate("text", x=10, y=1500, label= "b)", size = 10) )
 
-p3 <- grid.arrange(plot_1, plot_2, nrow=2)
-print(p3)
+p3 <- grid.arrange(plot_1, plot_2, nrow=1)
 
-
-ggsave(p3, filename = "./n_policy_box/Data/figures/state_response_curve_both.pdf", width = 10, height =  4, units = 'in')
-
-
+ggsave(p3, filename = "./n_policy_box/Data/figures/conceptual_response.pdf", width = 10, height =  4, units = 'in')
 
 
 # ----------------------------------------------------
