@@ -204,7 +204,8 @@ set.seed(123)
 
 
 
-reg_model_stuff$leach_threshold <- TrainSet2[N_fert == 180, .(L = quantile(L, probs = 0.3)), region][order(region)]$L
+reg_model_stuff$leach_threshold <- TrainSet2[N_fert == 100, .(L = quantile(L, probs = 0.5)), region][order(region)]$L
+
 # reg_model_stuff$leaching_fee <- 30
 
 # CHECK IF THE DATA FOR CURRENT RATIO IS THE SAME THAN leach_0
@@ -217,7 +218,7 @@ reg_model_stuff$leach_threshold <- TrainSet2[N_fert == 180, .(L = quantile(L, pr
 # table(test_comp_dt$leach_same)
 
 for(leach_n in leach_seq){
-  # leach_n = 1
+  # leach_n = 10
   print(leach_n)
   
   policy_n = paste0('leach_', leach_n)
@@ -315,7 +316,7 @@ bal_seq <- sort(seq(0, 5, by = 0.25))
 set.seed(123)
 
 TrainSet2[,N_balance := N_fert - Y_corn * 11/1000]
-reg_model_stuff$bal_threshold <- TrainSet2[N_fert == 130, .(N_balance = quantile(N_balance, probs = 0.5)), region][order(region)]$N_balance
+reg_model_stuff$bal_threshold <- TrainSet2[N_fert == 100, .(N_balance = quantile(N_balance, probs = 0.5)), region][order(region)]$N_balance
 
 reg_model_stuff$bal_threshold <- c(40, 0, -20)
 
@@ -334,7 +335,7 @@ reg_model_stuff$bal_threshold <- c(40, 0, -20)
 # table(test_comp_dt$leach_same)
 
 for(bal_n in bal_seq){
-  # bal_n = 0.5
+  # bal_n = 1
   print(bal_n)
   
   policy_n = paste0('bal_', bal_n)
