@@ -318,9 +318,9 @@ set.seed(123)
 TrainSet2[,N_balance := N_fert - Y_corn * 11/1000]
 reg_model_stuff$bal_threshold <- TrainSet2[N_fert == 100, .(N_balance = quantile(N_balance, probs = 0.5)), region][order(region)]$N_balance
 
-reg_model_stuff$bal_threshold <- c(40, 0, -20)
+# reg_model_stuff$bal_threshold <- c(40, 0, -20)
 
-(p1 <- ggplot(data = TrainSet2[N_fert == 80])+ geom_density(aes(x = N_balance, colour = region), size =1)+
+(p1 <- ggplot(data = TrainSet2[N_fert == 100])+ geom_density(aes(x = N_balance, colour = region), size =1)+
               ggtitle('N Balance'))     
           
 # reg_model_stuff$bal_threshold <- c(60, 40, 30)

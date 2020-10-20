@@ -362,7 +362,7 @@ perfomances_dt[,.N, .(id_10, mukey,id_field)] %>%
 
 perfomances_dt[,.N, .(id_10, mukey,id_field, policy, NMS)]$N %>% table() #number of z by all the other things
 
-# saveRDS(perfomances_dt, "./n_policy_box/Data/files_rds/perfomances_dt.rds")
+saveRDS(perfomances_dt, "./n_policy_box/Data/files_rds/perfomances_dt.rds")
 
 perfomances_dt2 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt.rds")
 perfomances_dt2 <- perfomances_dt2[!str_detect(perfomances_dt2$policy, 'bal_')]

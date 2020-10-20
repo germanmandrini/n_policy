@@ -117,8 +117,8 @@ if(T){
   perfomances_dt4[,L_change := round((L / L_base) - 1,3)*100 ]
   
   #---------
-  #Calculate net_income
-  perfomances_dt4[,net_income := P - P_base + G]
+  #Calculate net_balance
+  perfomances_dt4[,net_balance := P - P_base + G]
   
   #---------
   #remove yields modifications of more that 5%
@@ -145,9 +145,9 @@ if(T){
   perfomances_dt5[,L_change := round((L / L_base) - 1,3)*100 ]
   
   #---------
-  #Calculate net_income + 
-  perfomances_dt5[,net_income := P + G]
-  perfomances_dt5[,policy_cost := P - P_base + G]
+  #Calculate net_balance + 
+  perfomances_dt5[,net_balance := P + G]
+  perfomances_dt5[,policy_cost := P_base - P -  + G]
   
   #---------
   #remove yields modifications of more that 5%
@@ -186,9 +186,9 @@ baselevel_Y_corn <- plot_dt[policy == 'ratio_5' & NMS == 'static', Y_corn ]
 
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'NMS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
-                                                                                               'P', 'G', 'net_income'))
+                                                                                               'P', 'G', 'net_balance'))
 
-plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_income'),
+plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance'),
                                  labels = c(expression("N Fertilizer \n (N kg " * ha^"-1" *yr^"-1"* ")"), 
                                             expression("N Leaching\n ("*'%'*" change)"),
                                             expression("Corn Yield \n (kg N " * ha^"-1" *yr^"-1"* ")"), 
@@ -254,15 +254,21 @@ ggsave(plot = p,
 # Elasticity of Demand Point-Slope Formula: https://pressbooks.bccampus.ca/uvicecon103/chapter/4-2-elasticity/
 if(FALSE){
   
-  elasticity_dt <- perfomances_dt5[policy_name %in% c('ratio') & NMS %in% c('static')  & policy_val < 8]
+  elasticity_dt <- perfomances_dt5[policy_name == 'ratio' & NMS == 'static' & policy_val %in% c(5,6)]
   
+  d_quantity <- (elasticity_dt[policy_val == 6, N_fert]  - elasticity_dt[policy_val == 5, N_fert])/
+    elasticity_dt[policy_val == 5, N_fert]
   
-  elasticity_dt <- plot_dt[NMS == 1 & policy_val %in% c(4,5,6)]
-  d_quantity <- (elasticity_dt[policy_val == 7, N_fert] - elasticity_dt[policy_val == 5, N_fert])/
-    (elasticity_dt[policy_val == 5, N_fert])
+  d_price <- (Pc*6 -  Pc*5)/ (Pc*5)
   
-  d_price <- (Pc*7 -  Pc*5)/
-    (Pc*5)
+  d_quantity/d_price
+  
+  elasticity_dt <- perfomances_dt5[policy_name == 'ratio' & NMS == 'dynamic' & policy_val %in% c(5,6)]
+  
+  d_quantity <- (elasticity_dt[policy_val == 6, N_fert]  - elasticity_dt[policy_val == 5, N_fert])/
+    elasticity_dt[policy_val == 5, N_fert]
+  
+  d_price <- (Pc*6 -  Pc*5)/ (Pc*5)
   
   d_quantity/d_price
 }
@@ -294,9 +300,9 @@ baselevel_Y_corn <- plot_dt[policy == 'ratio_5' & NMS == 'static', Y_corn ]
 
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val',  'region', 'NMS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
-                                                                                               'P', 'G', 'net_income'))
+                                                                                               'P', 'G', 'net_balance'))
 
-plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_income'),
+plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance'),
                                  labels = c(expression("N Fertilizer \n (N kg " * ha^"-1" *yr^"-1"* ")"), 
                                             expression("N Leaching\n ("*'%'*" change)"),
                                             expression("Corn Yield \n (kg N " * ha^"-1" *yr^"-1"* ")"), 
@@ -451,9 +457,9 @@ baselevel_Y_corn <- perfomances_dt4[policy == 'ratio_5' & NMS == 'static', Y_cor
 
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'NMS'), measure.vars = c('L_change',  
-                                                                                               'P', 'G', 'net_income'))#'N_fert' 'Y_corn', 
+                                                                                               'P', 'G', 'net_balance'))#'N_fert' 'Y_corn', 
 
-plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_income'),
+plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance'),
                                  labels = c(expression("N"*" fertilizer"), 
                                             expression("N"*" leaching"),
                                             expression("Corn"*" yield"), 
@@ -488,7 +494,7 @@ hline_dt[policy_name == 'ratio' & variable == 'Y_corn', y_label := '95% base-lev
 # ann_text <- plot_dt_long[,.(x = min(policy_val)-5,
 #                 value = max(value)), by = .(policy_name, variable, variable_labels)]
 # #Sort in the right order
-# ann_text <- ann_text[match(c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_income', 'E','W'), ann_text$variable),]
+# ann_text <- ann_text[match(c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance', 'E','W'), ann_text$variable),]
 # ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)", "h)")]
 #----
 
@@ -616,9 +622,9 @@ plot_dt[,policy_val  := (1-policy_val )*100]
 ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L_change, color = NMS))
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
-                                                                                 'P', 'G', 'net_income')) %>% data.table()
+                                                                                 'P', 'G', 'net_balance')) %>% data.table()
 
-plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_income'),
+plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance'),
                                         labels = c(expression("Fertilizer (N kg " * ha^"-1" *yr^"-1"* ")"), 
                                                    expression("L ("*'%'*" change)"),
                                                    expression("Corn Yield (kg N " * ha^"-1" *yr^"-1"* ")"), 
@@ -639,7 +645,7 @@ hline_dt[variable == 'Y_corn', y_label := '95% baselevel']
 ann_text <- plot_dt_long[,.(x = min(policy_val)-5,
                             value = max(value)), by = .(variable, variable_labels)]
 #Sort in the right order
-ann_text <- ann_text[match(c('N_fert', 'L_change', 'Y_corn', 'P', 'net_income','W'), ann_text$variable),]
+ann_text <- ann_text[match(c('N_fert', 'L_change', 'Y_corn', 'P', 'net_balance','W'), ann_text$variable),]
 ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)")]
 ann_text
 #----
@@ -719,9 +725,9 @@ plot_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
 ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NMS))
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NMS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
-                                                                                 'P', 'G', 'net_income'))
+                                                                                 'P', 'G', 'net_balance'))
 
-plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_income'),
+plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance'),
                                         labels = c(expression("Fertilizer (N kg " * ha^"-1" *yr^"-1"* ")"), 
                                                    expression("L ("*'%'*" change)"),
                                                    expression("Corn Yield (kg N " * ha^"-1" *yr^"-1"* ")"), 
