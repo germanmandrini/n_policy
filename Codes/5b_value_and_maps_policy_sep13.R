@@ -355,8 +355,32 @@ plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal'
 ggsave(plot = p, 
        filename = "./n_policy_box/Data/figures/policies_multiplot_region.pdf", width = 831/300*3, height = 963/300*3,
        units = 'in')
+#--------------------------------------------------------------------------------
+# Regional table
+perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
+percent20_dt <- readRDS("./n_policy_box/Data/files_rds/percent20_dt.rds")
+percent20_dt <- percent20_dt[,.(policy, NMS)]
+percent20_dt <- rbind(data.table(policy = c('ratio_5'), NMS = c('static')), 
+                      percent20_dt)
 
+region_dt <- filter_dt_in_dt(perfomances_dt4, filter_dt = percent20_dt, return_table = T)
+region_dt[region == 1,region_lab := '1-South']
+region_dt[region == 2,region_lab := '2-Central']
+region_dt[region == 3,region_lab := '3-North']
 
+region_dt_base <- region_dt[policy == 'ratio_5', .(region_lab, Y_corn, L, N_fert, P)]
+region_dt_20down <- region_dt[policy != 'ratio_5', .(region_lab, policy_name, NMS, Y_corn, L, N_fert, P, G, net_balance)]
+
+region_dt2 <- merge(region_dt_20down, region_dt_base, by = 'region_lab', suffixes = c("", "_base"))
+region_dt2[, Y_corn_diff := Y_corn - Y_corn_base]
+region_dt2[, L_diff := L - L_base]
+region_dt2[, N_fert_diff := N_fert - N_fert_base]
+region_dt2[, P_diff := P - P_base]
+region_dt2[, net_balance := P_diff + G]
+region_dt2 <- region_dt2[,.(region_lab, policy_name, Y_corn, L, N_fert, P, G,Y_corn_diff, L_diff, N_fert_diff, P_diff, net_balance)]
+region_dt2[,.(L_diff = mean(L_diff),
+              N_fert_diff = mean(N_fert_diff),
+              net_balance = mean(net_balance)), by = region_lab ]
 
 #--------------------------------------------------------------------------------
 # N Balance
