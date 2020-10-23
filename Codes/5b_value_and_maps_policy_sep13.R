@@ -276,11 +276,11 @@ if(FALSE){
 # Total G collections in IL for 20% reduction
 if(FALSE){
   IL_corn_area_ha = 5179976
-  percent20_dt <- perfomances_dt5[NMS == 'dynamic' & L_change < -19]
-  percent20_dt <- percent20_dt[, .SD[ policy_val == min(policy_val)], by = .(policy_name)]
+  percent20_dt <- perfomances_dt5[ L_change < -19]
+  percent20_dt <- percent20_dt[, .SD[ policy_val == min(policy_val)], by = .(NMS, policy_name)]
   saveRDS(percent20_dt, "./n_policy_box/Data/files_rds/percent20_dt.rds")
-  percent20_dt[policy_name == 'ratio', G] * IL_corn_area_ha / 1000000 #million in IL
-  percent20_dt[policy_name == 'leach', G] * IL_corn_area_ha / 1000000 #million in IL
+  percent20_dt[policy_name == 'ratio' & NMS == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
+  percent20_dt[policy_name == 'leach' & NMS == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
 }
 
 #---------------------------------------------------------------------------
@@ -377,10 +377,11 @@ region_dt2[, L_diff := L - L_base]
 region_dt2[, N_fert_diff := N_fert - N_fert_base]
 region_dt2[, P_diff := P - P_base]
 region_dt2[, net_balance := P_diff + G]
-region_dt2 <- region_dt2[,.(region_lab, policy_name, Y_corn, L, N_fert, P, G,Y_corn_diff, L_diff, N_fert_diff, P_diff, net_balance)]
+region_dt2 <- region_dt2[,.(region_lab, policy_name, NMS, Y_corn, L, N_fert, P, G,Y_corn_diff, L_diff, N_fert_diff, P_diff, net_balance)]
+region_dt2[order(-region_lab)]
 region_dt2[,.(L_diff = mean(L_diff),
               N_fert_diff = mean(N_fert_diff),
-              net_balance = mean(net_balance)), by = region_lab ]
+              net_balance = mean(net_balance)), by = .(NMS, region_lab) ]
 
 #--------------------------------------------------------------------------------
 # N Balance

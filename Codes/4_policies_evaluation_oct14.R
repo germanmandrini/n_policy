@@ -286,11 +286,11 @@ for(policy_n in policies_bal){
 }
 
 #-------------------------------------------------------
-# N FERTILIZER REDUCTION (CUT RATIO 5 RECOMENDATIONS)
+# N FERTILIZER REDUCTION (REDUCE RATIO 5 RECOMENDATIONS)
 testing_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
 testing_set_dt[, G := 0] #gov collection
 
-policies_red <- paste0('red_', seq(0,30, by = 1))
+policies_red <- paste0('red_', sort(c(seq(0,30, by = 1), 18.25, 18.5)))
 
 for(policy_n in policies_red){
 # policy_n = policies_red[[11]]
