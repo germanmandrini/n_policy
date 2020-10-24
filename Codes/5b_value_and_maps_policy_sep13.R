@@ -281,6 +281,7 @@ if(FALSE){
   saveRDS(percent20_dt, "./n_policy_box/Data/files_rds/percent20_dt.rds")
   percent20_dt[policy_name == 'ratio' & NMS == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
   percent20_dt[policy_name == 'leach' & NMS == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
+  percent20_dt[policy_name == 'bal' & NMS == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
 }
 
 #---------------------------------------------------------------------------
@@ -359,7 +360,7 @@ ggsave(plot = p,
 # Regional table
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 percent20_dt <- readRDS("./n_policy_box/Data/files_rds/percent20_dt.rds")
-percent20_dt <- percent20_dt[,.(policy, NMS)]
+percent20_dt <- percent20_dt[NMS == 'static',.(policy, NMS)]
 percent20_dt <- rbind(data.table(policy = c('ratio_5'), NMS = c('static')), 
                       percent20_dt)
 

@@ -290,7 +290,7 @@ for(policy_n in policies_bal){
 testing_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
 testing_set_dt[, G := 0] #gov collection
 
-policies_red <- paste0('red_', sort(c(seq(0,30, by = 1), 18.25, 18.5)))
+policies_red <- paste0('red_', sort(c(seq(0,30, by = 1), seq(18,19, by = 0.1))))
 
 for(policy_n in policies_red){
 # policy_n = policies_red[[11]]
@@ -362,10 +362,10 @@ perfomances_dt[,.N, .(id_10, mukey,id_field)] %>%
 
 perfomances_dt[,.N, .(id_10, mukey,id_field, policy, NMS)]$N %>% table() #number of z by all the other things
 
-saveRDS(perfomances_dt, "./n_policy_box/Data/files_rds/perfomances_dt.rds")
+# saveRDS(perfomances_dt, "./n_policy_box/Data/files_rds/perfomances_dt.rds")
 
 perfomances_dt2 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt.rds")
-perfomances_dt2 <- perfomances_dt2[!str_detect(perfomances_dt2$policy, 'bal_')]
+perfomances_dt2 <- perfomances_dt2[!str_detect(perfomances_dt2$policy, 'red_')]
 table(perfomances_dt2$policy)
 perfomances_dt2 <- rbind(perfomances_dt2, perfomances_dt)
 saveRDS(perfomances_dt2, "./n_policy_box/Data/files_rds/perfomances_dt.rds")
