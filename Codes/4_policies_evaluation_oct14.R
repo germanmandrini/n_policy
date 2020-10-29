@@ -108,6 +108,8 @@ for(policy_n in policies_ratios){
     .[N_fert == eonr_pred] %>%
     .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
   
+  testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+  
   results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic1'][,policy := policy_n]
   
   #===================================================================================================================
@@ -290,10 +292,10 @@ for(policy_n in policies_bal){
 testing_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
 testing_set_dt[, G := 0] #gov collection
 
-policies_red <- paste0('red_', sort(c(seq(0,30, by = 1), seq(18,19, by = 0.1))))
+policies_red <- paste0('red_', unique(sort(c(seq(0,30, by = 1), seq(18,19, by = 0.1)))))
 
 for(policy_n in policies_red){
-# policy_n = policies_red[[11]]
+# policy_n = policies_red[[19]]
 red_n <- as.numeric(str_extract(policy_n,pattern = '[0-9.]+'))
 print(policy_n)
 #===================================================================================================================
@@ -362,10 +364,10 @@ perfomances_dt[,.N, .(id_10, mukey,id_field)] %>%
 
 perfomances_dt[,.N, .(id_10, mukey,id_field, policy, NMS)]$N %>% table() #number of z by all the other things
 
-# saveRDS(perfomances_dt, "./n_policy_box/Data/files_rds/perfomances_dt.rds")
+saveRDS(perfomances_dt, "./n_policy_box/Data/files_rds/perfomances_dt.rds")
 
-perfomances_dt2 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt.rds")
-perfomances_dt2 <- perfomances_dt2[!str_detect(perfomances_dt2$policy, 'red_')]
-table(perfomances_dt2$policy)
-perfomances_dt2 <- rbind(perfomances_dt2, perfomances_dt)
-saveRDS(perfomances_dt2, "./n_policy_box/Data/files_rds/perfomances_dt.rds")
+# perfomances_dt2 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt.rds")
+# perfomances_dt2 <- perfomances_dt2[!str_detect(perfomances_dt2$policy, 'red_')]
+# table(perfomances_dt2$policy)
+# perfomances_dt2 <- rbind(perfomances_dt2, perfomances_dt)
+# saveRDS(perfomances_dt2, "./n_policy_box/Data/files_rds/perfomances_dt.rds")
