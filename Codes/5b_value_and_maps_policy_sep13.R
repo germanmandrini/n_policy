@@ -21,6 +21,13 @@ if(T){
   grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
   
   perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt.rds")
+  perfomances_dt[,area_field := sum(area_ha), by = .(policy, NMS, id_10, id_field, z)]
+  perfomances_dt$area_field %>% summary()
+  see <- perfomances_dt[area_field > 41]
+  see[id_10 == 1438 & id_field==3 & policy == 'ratio_5' & NMS == 'static' & z == '15']
+  
+  perfomances_dt[,.(area_ha = sum(area_ha)), by = .(policy, NMS, id_10, id_field, z)]$area_ha %>% summary()
+  
   perfomances_dt[NMS == 'dynamic1', NMS := 'dynamic']
   
   perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
