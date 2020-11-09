@@ -90,6 +90,9 @@ names(supp.labs) <- c("mrtn", "simulated")
 ggsave(plot = plot_1, 
        filename = "./n_policy_box/Data/figures/validation_yield.pdf",  width = 703/300*3, height = 502/300*3,
        units = 'in')
+ggsave(plot = plot_1, 
+       filename = "./n_policy_box/Data/figures/validation_yield.png",  width = 703/300*3, height = 502/300*3,
+       units = 'in')
 
 #======================================================================================
 # 2) RELATIVE YIELD SHAPE PLOTS
@@ -171,6 +174,10 @@ ggsave(plot = plot_1,
        filename = "./n_policy_box/Data/figures/validation_shape.pdf",  width = 706/300*3, height = 415/300*3,
        units = 'in')
 
+ggsave(plot = plot_1, 
+       filename = "./n_policy_box/Data/figures/validation_shape.png",  width = 706/300*3, height = 415/300*3,
+       units = 'in')
+
 
 #======================================================================================
 # 3) EONR FREQUENCY PLOTS
@@ -241,6 +248,10 @@ names(supp.labs) <- c("mrtn", "simulated")
 
 ggsave(plot = plot_1, 
        filename = "./n_policy_box/Data/figures/validation_eonr.pdf",  width = 706/300*3, height = 415/300*3,
+       units = 'in')
+
+ggsave(plot = plot_1, 
+       filename = "./n_policy_box/Data/figures/validation_eonr.png",  width = 706/300*3, height = 415/300*3,
        units = 'in')
        
 # =========================================================================================================================================================
