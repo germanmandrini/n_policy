@@ -1,16 +1,16 @@
 #!/bin/bash
-##SBATCH --ntasks=28
-##PBS -l nodes=1:ppn=28 ## Specify how many nodes/cores per node
-##PBS -q secondary ## Specify which queue to run in
-
+#PBS -l nodes=1:ppn=28 ## Specify how many nodes/cores per node
+##PBS -l walltime=00:01:00
+#PBS -q secondary ## Specify which queue to run in
 
 ## cd /projects/aces
 cd /home/germanm2/scratch
 module load singularity ## Load the singularity runtime to your environment
 
 # cell_n=$1 #split the cell string for bash work
+cell_n=${cell_n} #for qsub
 
-bash_n=151
+bash_n=129
 
 ## Code to get the cell_n from qsub or from bash
 ## if [ -z ${cell+x} ]; then echo "var is unset"; else echo "var is set to '$cell'"; fi
