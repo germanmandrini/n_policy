@@ -218,7 +218,7 @@ for(policy_n in policies_leach){
 
 policies_bal <- names(reg_model_stuff)[str_detect(names(reg_model_stuff), pattern = 'bal_[0-9.]')]
 
-testing_set_dt[,N_balance := N_fert - Y_corn * 11/1000]
+testing_set_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
 
 for(policy_n in policies_bal){
   # policy_n = policies_bal[[3]]

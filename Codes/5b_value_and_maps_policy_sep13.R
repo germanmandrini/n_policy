@@ -287,6 +287,17 @@ if(FALSE){
   percent20_dt[policy_name == 'bal' & NMS == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
 }
 
+#---------------------------------------------------------------
+# IL NLRS Cos calculation - Cost ($/lb removed)
+percent20_dt
+
+percent20_dt[,kg_removed := (baselevel_L - L)]
+percent20_dt[,cost_red_dlr_kg := policy_cost/kg_removed]
+
+percent20_dt[,lb_removed := kg_removed *2.20462]
+percent20_dt[,cost_red_dlr_lb := policy_cost/lb_removed]
+
+
 #---------------------------------------------------------------------------
 # REGION LEVEL PLOT 
 
@@ -363,6 +374,7 @@ ggsave(plot = p,
 # Regional table
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 percent20_dt <- readRDS("./n_policy_box/Data/files_rds/percent20_dt.rds")
+
 percent20_dt <- percent20_dt[NMS == 'static',.(policy, NMS)]
 percent20_dt <- rbind(data.table(policy = c('ratio_5'), NMS = c('static')), 
                       percent20_dt)

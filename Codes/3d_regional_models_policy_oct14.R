@@ -315,7 +315,7 @@ bal_seq <- sort(seq(0, 5, by = 0.25))
 
 set.seed(123)
 
-TrainSet2[,N_balance := N_fert - Y_corn * 11/1000]
+TrainSet2[,N_balance := N_fert - Y_corn * 11.5/1000]
 reg_model_stuff$bal_threshold <- TrainSet2[N_fert == 100, .(N_balance = quantile(N_balance, probs = 0.5)), region][order(region)]$N_balance
 
 # reg_model_stuff$bal_threshold <- c(40, 0, -20)
