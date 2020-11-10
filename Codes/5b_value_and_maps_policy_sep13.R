@@ -287,6 +287,12 @@ if(FALSE){
   percent20_dt[policy_name == 'bal' & NMS == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
 }
 
+# IL NRS - Cost ($/lb removed)
+percent20_dt
+
+percent20_dt[,lb_removed := (baselevel_dt$L_base - L) *2.20462]
+percent20_dt[,cost_red_dlr_lb := policy_cost/lb_removed]
+
 #---------------------------------------------------------------------------
 # REGION LEVEL PLOT 
 
