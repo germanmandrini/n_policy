@@ -297,7 +297,6 @@ percent20_dt[,cost_red_dlr_kg := policy_cost/kg_removed]
 percent20_dt[,lb_removed := kg_removed *2.20462]
 percent20_dt[,cost_red_dlr_lb := policy_cost/lb_removed]
 
-
 #---------------------------------------------------------------------------
 # REGION LEVEL PLOT 
 
