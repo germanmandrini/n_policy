@@ -292,66 +292,131 @@ for(policy_n in policies_bal){
 testing_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
 testing_set_dt[, G := 0] #gov collection
 
+policies_lag <- names(reg_model_stuff)[str_detect(names(reg_model_stuff), pattern = 'lag_[0-9.]')]
+
+for(policy_n in policies_lag){
+  # policy_n = policies_lag[2]
+  lag_n <- as.numeric(str_extract(policy_n,pattern = '[0-9.]+'))
+  print(policy_n)
+  #===================================================================================================================
+  # 1b) MINIMUM OK-
+  # testing_set_dt <- testing_set_dt[id_10 == 1436 & id_field == 2 & mukey == 178851 & z == 20]
+  # prediction_set_aggregated_dt <- prediction_set_aggregated_dt[id_10 == 1436 & id_field == 2 & z == 20]
+  # #---------------------------------------------------------------------------
+  # PERFORMANCE EVALUATION
+  # the NMS is trained with z1-10 and testing is evaluated with z11-25
+  minimum_ok_dt <- copy(reg_model_stuff[[policy_n]]$minimum_ok)
+  
+  testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
+                           minimum_ok_dt, #because I forgot to set the name to eonr_pred
+                           by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+    .[N_fert == eonr_pred] %>%
+    .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+  
+  testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+  
+  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'static'][,policy := policy_n]
+  
+  #===================================================================================================================
+  # 2) PREDICT WITH REGIONAL RF 2 - UR 
+  # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
+  
+  prediction_set_aggregated_dt[,eonr_pred := ceiling(predict(reg_model_stuff[[policy_n]]$rf2, prediction_set_aggregated_dt)/10)*10]
+  
+  #---------------------------------------------------------------------------
+  # PERFORMANCE EVALUATION
+  testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
+                           prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+    .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
+    .[N_fert == eonr_pred] %>%
+    .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+  
+  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic1'][,policy := policy_n]
+      
+      #===================================================================================================================
+      # 3) PREDICT CNN
+      # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
+      # prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n, pred_vars) %>% data.table()
+      # 
+      # prediction_set_aggregated_dt2[,eonr_pred := round(eonr_pred/10)*10] %>%
+      #   .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))]
+      # 
+      # #---------------------------------------------------------------------------
+      # # PERFORMANCE EVALUATION
+      # testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
+      #                          prediction_set_aggregated_dt2[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+      #   .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
+      #   .[N_fert == eonr_pred] %>%
+      #   .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+      # 
+      # results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic2'][,policy := policy_n]
+      
+  }
+#-------------------------------------------------------
+# VOLUNTARY LAG REDUCTION (REDUCE RATIO 5 RECOMENDATIONS)
+testing_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
+testing_set_dt[, G := 0] #gov collection
+
 policies_red <- paste0('red_', unique(sort(c(seq(0,30, by = 1), seq(18,19, by = 0.1)))))
 
 for(policy_n in policies_red){
-# policy_n = policies_red[[19]]
-red_n <- as.numeric(str_extract(policy_n,pattern = '[0-9.]+'))
-print(policy_n)
-#===================================================================================================================
-# 1b) MINIMUM OK-
-# testing_set_dt <- testing_set_dt[id_10 == 1436 & id_field == 2 & mukey == 178851 & z == 20]
-# prediction_set_aggregated_dt <- prediction_set_aggregated_dt[id_10 == 1436 & id_field == 2 & z == 20]
-# #---------------------------------------------------------------------------
-# PERFORMANCE EVALUATION
-# the NMS is trained with z1-10 and testing is evaluated with z11-25
-minimum_ok_dt <- copy(reg_model_stuff[["ratio_5"]]$minimum_ok)
-minimum_ok_dt[, eonr_pred := round(eonr_pred*((100-red_n)/100)/10)*10]
-
-testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
-                         minimum_ok_dt, #because I forgot to set the name to eonr_pred
-                         by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-  .[N_fert == eonr_pred] %>%
-  .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-
-testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
-
-results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'static'][,policy := policy_n]
-
-#===================================================================================================================
-# 2) PREDICT WITH REGIONAL RF 2 - UR 
-# GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
-
-prediction_set_aggregated_dt[,eonr_pred := ceiling(predict(reg_model_stuff[["ratio_5"]]$rf2, prediction_set_aggregated_dt)/10)*10]
-prediction_set_aggregated_dt[, eonr_pred := round(eonr_pred*((100-red_n)/100)/10)*10]
-#---------------------------------------------------------------------------
-# PERFORMANCE EVALUATION
-testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
-                         prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-  .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
-  .[N_fert == eonr_pred] %>%
-  .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-
-results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic1'][,policy := policy_n]
-    
-    #===================================================================================================================
-    # 3) PREDICT CNN
-    # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
-    # prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n, pred_vars) %>% data.table()
-    # 
-    # prediction_set_aggregated_dt2[,eonr_pred := round(eonr_pred/10)*10] %>%
-    #   .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))]
-    # 
-    # #---------------------------------------------------------------------------
-    # # PERFORMANCE EVALUATION
-    # testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
-    #                          prediction_set_aggregated_dt2[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-    #   .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
-    #   .[N_fert == eonr_pred] %>%
-    #   .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    # 
-    # results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic2'][,policy := policy_n]
-    
+  # policy_n = policies_red[[19]]
+  red_n <- as.numeric(str_extract(policy_n,pattern = '[0-9.]+'))
+  print(policy_n)
+  #===================================================================================================================
+  # 1b) MINIMUM OK-
+  # testing_set_dt <- testing_set_dt[id_10 == 1436 & id_field == 2 & mukey == 178851 & z == 20]
+  # prediction_set_aggregated_dt <- prediction_set_aggregated_dt[id_10 == 1436 & id_field == 2 & z == 20]
+  # #---------------------------------------------------------------------------
+  # PERFORMANCE EVALUATION
+  # the NMS is trained with z1-10 and testing is evaluated with z11-25
+  minimum_ok_dt <- copy(reg_model_stuff[["ratio_5"]]$minimum_ok)
+  minimum_ok_dt[, eonr_pred := round(eonr_pred*((100-red_n)/100)/10)*10]
+  
+  testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
+                           minimum_ok_dt, #because I forgot to set the name to eonr_pred
+                           by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+    .[N_fert == eonr_pred] %>%
+    .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+  
+  testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+  
+  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'static'][,policy := policy_n]
+  
+  #===================================================================================================================
+  # 2) PREDICT WITH REGIONAL RF 2 - UR 
+  # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
+  
+  prediction_set_aggregated_dt[,eonr_pred := ceiling(predict(reg_model_stuff[["ratio_5"]]$rf2, prediction_set_aggregated_dt)/10)*10]
+  prediction_set_aggregated_dt[, eonr_pred := round(eonr_pred*((100-red_n)/100)/10)*10]
+  #---------------------------------------------------------------------------
+  # PERFORMANCE EVALUATION
+  testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
+                           prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+    .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
+    .[N_fert == eonr_pred] %>%
+    .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+  
+  results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic1'][,policy := policy_n]
+  
+  #===================================================================================================================
+  # 3) PREDICT CNN
+  # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH MUKEY
+  # prediction_set_aggregated_dt2 <- predict_cnn(prediction_set_aggregated_dt, policy_n, pred_vars) %>% data.table()
+  # 
+  # prediction_set_aggregated_dt2[,eonr_pred := round(eonr_pred/10)*10] %>%
+  #   .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))]
+  # 
+  # #---------------------------------------------------------------------------
+  # # PERFORMANCE EVALUATION
+  # testing_set_tmp <- merge(testing_set_dt[!z %in% training_z],
+  #                          prediction_set_aggregated_dt2[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+  #   .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
+  #   .[N_fert == eonr_pred] %>%
+  #   .[,c("region", "id_10", 'id_field',"mukey", "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+  # 
+  # results_list[[length(results_list)+1]] <- testing_set_tmp[,NMS := 'dynamic2'][,policy := policy_n]
+  
 }
 
 #-------------------------------------------------------------------------------------------------------
@@ -367,7 +432,7 @@ perfomances_dt[,.N, .(id_10, mukey,id_field, policy, NMS)]$N %>% table() #number
 saveRDS(perfomances_dt, "./n_policy_box/Data/files_rds/perfomances_dt.rds")
 
 # perfomances_dt2 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt.rds")
-# perfomances_dt2 <- perfomances_dt2[!str_detect(perfomances_dt2$policy, 'red_')]
+# perfomances_dt2 <- perfomances_dt2[!str_detect(perfomances_dt2$policy, 'lag_')]
 # table(perfomances_dt2$policy)
 # perfomances_dt2 <- rbind(perfomances_dt2, perfomances_dt)
 # saveRDS(perfomances_dt2, "./n_policy_box/Data/files_rds/perfomances_dt.rds")

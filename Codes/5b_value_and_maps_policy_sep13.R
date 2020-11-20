@@ -177,7 +177,7 @@ perfomances_dt5[policy %in% c('ratio_5', 'leach_0', 'bal_0', 'red_1') & NMS == '
 perfomances_dt5[policy %in% c('ratio_5', 'leach_0', 'bal_0', 'red_1') & NMS == 'dynamic']
 
 
-plot_dt <- perfomances_dt5[policy_name %in% c('ratio', 'leach', 'bal', 'red') & NMS %in% c('static', 'dynamic')] 
+plot_dt <- perfomances_dt5[policy_name %in% c('ratio', 'leach', 'bal', 'lag') & NMS %in% c('static', 'dynamic')] 
 
 # plot_dt[policy_name%in% c('red'), policy_val  := (1-policy_val )*100]
 
