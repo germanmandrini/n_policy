@@ -24,7 +24,7 @@ reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
 
 
 
-remove_list <- names(reg_model_stuff)[str_detect(names(reg_model_stuff), 'bal_')]
+remove_list <- names(reg_model_stuff)[str_detect(names(reg_model_stuff), 'lag_')]
 for(n in remove_list){
   reg_model_stuff[[n]] <- NULL
 }
@@ -315,7 +315,7 @@ bal_seq <- sort(seq(0, 5, by = 0.25))
 
 set.seed(123)
 
-TrainSet2[,N_balance := N_fert - Y_corn * 11/1000]
+TrainSet2[,N_balance := N_fert - Y_corn * 11.5/1000]
 reg_model_stuff$bal_threshold <- TrainSet2[N_fert == 100, .(N_balance = quantile(N_balance, probs = 0.5)), region][order(region)]$N_balance
 
 # reg_model_stuff$bal_threshold <- c(40, 0, -20)
@@ -427,14 +427,103 @@ for(bal_n in bal_seq){
   # names(reg_model_stuff)
 }
 
+# =========================================================================================================================================================
+# CREATE THE VOLUNTARY LAG MODEL
+source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
+lag_seq <- seq(0,50,5)
 
+for(lag_n in lag_seq){
+  # lag_n = 20
+  print(lag_n)
+  policy_n = paste0('lag_', lag_n)
+  
+  small_model_list <- list()
+  TrainSet2[, P := Y_corn * Pc - N_fert * Pn]  #update profits
+  
+  # =========================================================================================================================================================
+  # CREATE THE REGIONAL STATIC1
+  
+  # Limit the trials included in MRTN
+  
+  Yld_response_threshold <- 500 
+  
+  
+  TrainSet_RMM <- TrainSet2[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
+  
+  TrainSet2[,.N, .(id_10, mukey, z)] %>% nrow() #trials before (all of them)
+  TrainSet_RMM[,.N, .(id_10, mukey, z)] %>% nrow()#trials after (whith response > threshold)
+  
+  static_data <- aggregate_by_area(data_dt = TrainSet2, variables = c('P'), 
+                                   weight = 'area_ha', by_c = c('region', 'N_fert')) %>% 
+    .[,P_max := max(P), region] %>%
+    .[,P_diff := P - P_max]
+  
+  static_dt  <- static_data[P_diff >= -lag_n] %>% # get out of the flat zone: lowest rate withing diff_n usd difference from max Profit
+    .[, .SD[ N_fert == min( N_fert)], by = .(region)] %>%
+    .[,.(region, eonr_pred = N_fert)] %>%
+    .[order(region)]
+  
+  if(lag_n == 20){
+    (plot1 <- ggplot() + 
+        geom_line(data = static_data, aes(x = N_fert, y = P, color = region))+
+        geom_point(data = static_data[,.SD[P == max(P)], by = region], aes(x = N_fert, y = P)) +
+        geom_point(data = static_data[P_diff >= -lag_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2)+
+        theme_bw() +
+        xlab('N rate (kg/ha)'))
+    
+    ggsave(plot = plot1, 
+           filename = "./n_dynamic_box/Data/figures/flat_zone.png")
+  }
+  
+  name_model = paste0('minimum_ok')
+  small_model_list[[name_model]] <- static_dt
+  
+  # =========================================================================================================================================================
+  #Dynamic (lag_n usd below P max)
+  ## PREPARE THE TRAINING DATA WITH EONR ========
+  TrainSet_eonr <- copy(TrainSet2)
+  
+  TrainSet_eonr[,P_max := max(P), .(id_10, mukey, z)]
+  TrainSet_eonr[,P_diff := P - P_max]
+  
+  TrainSet_eonr  <- TrainSet_eonr[P_diff >= -lag_n] %>% # get out of the flat zone: lowest rate withing 10 usd difference from max Profit
+    .[, .SD[ N_fert == min( N_fert)], by = .(id_10, mukey, z)] 
+  
+  setnames(TrainSet_eonr, 'N_fert', 'eonr')
+  
+  TrainSet_eonr2 <- TrainSet_eonr[,c('eonr', pred_vars), with = FALSE]
+  
+  # RF Model 2------------------------
+  # mtry <- tuneRF(TrainSet_eonr2[,c(pred_vars), with = FALSE],TrainSet_eonr2$eonr, ntreeTry=1000,
+  #                 stepFactor=1.2,improve=0.01, trace=TRUE, plot=TRUE) # ,mtryStart = 5
+  # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+  
+  best.m = 6
+  
+  rf2_eonr <- randomForest(eonr ~ ., data = TrainSet_eonr2[,c('eonr', pred_vars), with = FALSE],
+                           importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
+  
+  varImpPlot(rf2_eonr, type=2)
+  
+  name_model = paste0('rf2')
+  small_model_list[[name_model]] <- rf2_eonr
+  # =========================================================================================================================================================
+  #Call python to build the CNN
+  # build_cnn(TrainSet_eonr2[,c(pred_vars, 'eonr'), with = FALSE], policy_n, pred_vars)
+  
+  
+  # --------------------------------------
+  # Save it to the big list
+  reg_model_stuff[[policy_n]] <- small_model_list
+  
+}
 # =========================================================================================================================================================
 
 
 reg_model_stuff$ratio_5$minimum_ok
 reg_model_stuff$leach_0$minimum_ok
 reg_model_stuff$bal_0$minimum_ok
-reg_model_stuff$nred_1$minimum_ok
-reg_model_stuff$target_1$minimum_ok
+reg_model_stuff$lag_0$minimum_ok
+
 
 saveRDS(reg_model_stuff, "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
