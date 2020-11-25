@@ -48,8 +48,8 @@ if(server){
 }else if(cpsc){
   directory <- paste('C:/apsim_temp/', Sys.info()["nodename"],'/n_policy/batch_', batch_n, '/cell', id10_n, sep = '')
 }else if(cluster){
-  # directory <- paste('/projects/aces/germanm2/n_policy/batch_', batch_n, '/cell', id10_n, sep = '')
-  directory <- paste('/home/germanm2/scratch/apsim_temp/batch_', batch_n, '/cell', id10_n, sep = '')
+  directory <- paste('/projects/aces/germanm2/n_policy/batch_', batch_n, '/cell', id10_n, sep = '')
+  # directory <- paste('/home/germanm2/scratch/apsim_temp/batch_', batch_n, '/cell', id10_n, sep = '')
   # directory <- paste('/projects/aces/germanm2/scratch/batch_', batch_n, '/cell', id10_n, sep = '')
 }
 
