@@ -21,7 +21,7 @@ grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>%
 # Open the files and save the base-level rates
 if(FALSE){
   reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
-  minimum_ok <- reg_model_stuff$minimum_ok
+  minimum_ok <- reg_model_stuff$ratio_5$minimum_ok
   rm(reg_model_stuff)
   
   library("foreach")

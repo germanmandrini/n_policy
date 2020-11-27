@@ -286,6 +286,7 @@ if(FALSE){
   percent20_dt[policy_name == 'leach' & NMS == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
   percent20_dt[policy_name == 'bal' & NMS == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
 }
+IL_corn_area_ha * 10 / 1000000
 
 #--------------------------------------------------------------------------------
 # Certified farmer

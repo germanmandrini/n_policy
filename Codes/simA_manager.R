@@ -23,11 +23,11 @@ if(server){
   regional_test <- F #makes rates every 25
   regional_soils <- F #uses regional soils
 }else{
-  # setwd('/projects/aces/germanm2/')
-  setwd('/home/germanm2/scratch/')
+  setwd('/projects/aces/germanm2/')
+  # setwd('/home/germanm2/scratch/')
   cluster <- TRUE	
-  # codes_folder <- '/projects/aces/germanm2'
-  codes_folder <- '/home/germanm2/scratch'
+  codes_folder <- '/projects/aces/germanm2'
+  # codes_folder <- '/home/germanm2/scratch'
   test_small <- TRUE   #only one soil and one z
   regional_test <- FALSE #makes rates every 25
   regional_soils <- FALSE    #uses regional soils
@@ -48,7 +48,7 @@ if(server|cpsc){
 
 
 # id10_seq <- c(1214, 1332, 1488, 970, 894, 663, 219, 39, 45, 43, 807, 1362)
-id10_seq <- c(39, 663, 1488)
+# id10_seq <- c(39, 663, 1488)
 # id10_seq <- c(1214, 1332, 970, 894, 219, 45, 43, 807, 1362)
 # id10_seq <- c(219, 45, 43)
 # id10_seq <- c(1500, 1245, 1156, 596, 797, 576, 286, 52, 253)
@@ -56,7 +56,7 @@ id10_seq <- c(39, 663, 1488)
 # id10_seq <- c(43, 807, 1362,1069, 513, 53)
 
 # for(batch_n in c('89_105', '89_110', '89_115')){
-for(id10_n in id10_seq){
+# for(id10_n in id10_seq){
   # id10_n = id10_seq[1]
   print(id10_n)
   print(batch_n)
@@ -109,6 +109,6 @@ for(id10_n in id10_seq){
   saveRDS(time_track_tmp, paste0(folder_name,'/time_track_',id10_n,'.rds'))
   
   
-}# end id10_n loop
+# }# end id10_n loop
 #}#end batch_n loop
 
