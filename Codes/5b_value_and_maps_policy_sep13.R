@@ -287,6 +287,40 @@ if(FALSE){
   percent20_dt[policy_name == 'bal' & NMS == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
 }
 
+#--------------------------------------------------------------------------------
+# Certified farmer
+perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
+percent20_dt <- readRDS("./n_policy_box/Data/files_rds/percent20_dt.rds")
+
+ratio_14_dt <- perfomances_dt5[policy == 'ratio_14']
+baselevel_dt <- perfomances_dt5[policy == 'ratio_5' & NMS == 'static', .( L_base = L, Y_base = Y_corn, P_base = P)]
+
+ratio_14_dt <- cbind(ratio_14_dt, baselevel_dt)
+ratio_14_dt[,L_change := round((L / L_base) - 1,3)*100 ]
+
+
+
+
+
+region_dt_base <- region_dt[policy == 'ratio_5', .(region_lab, Y_corn, L, N_fert, P)]
+region_dt_20down <- region_dt[policy != 'ratio_5', 
+
+region_dt2 <- merge(region_dt_20down, region_dt_base, by = 'region_lab', suffixes = c("", "_base"))
+region_dt2[, Y_corn_diff := Y_corn - Y_corn_base]
+region_dt2[, L_diff := L - L_base]
+region_dt2[, N_fert_diff := N_fert - N_fert_base]
+region_dt2[, P_diff := P - P_base]
+region_dt2[, policy_cost := P + G - P_base]
+region_dt2 <- region_dt2[,.(region_lab, policy_name, NMS, Y_corn, L, N_fert, P, G,Y_corn_diff, L_diff, N_fert_diff, P_diff, policy_cost)]
+region_dt2[order(-region_lab)]
+region_dt2[,.(L_diff = mean(L_diff),
+              N_fert_diff = mean(N_fert_diff),
+              net_balance = mean(net_balance)), by = .(NMS, region_lab) ]
+
+
+
+
+
 #---------------------------------------------------------------
 # IL NLRS Cos calculation - Cost ($/lb removed)
 percent20_dt
@@ -391,8 +425,8 @@ region_dt2[, Y_corn_diff := Y_corn - Y_corn_base]
 region_dt2[, L_diff := L - L_base]
 region_dt2[, N_fert_diff := N_fert - N_fert_base]
 region_dt2[, P_diff := P - P_base]
-region_dt2[, net_balance := P_diff + G]
-region_dt2 <- region_dt2[,.(region_lab, policy_name, NMS, Y_corn, L, N_fert, P, G,Y_corn_diff, L_diff, N_fert_diff, P_diff, net_balance)]
+region_dt2[, policy_cost := P + G - P_base]
+region_dt2 <- region_dt2[,.(region_lab, policy_name, NMS, Y_corn, L, N_fert, P, G,Y_corn_diff, L_diff, N_fert_diff, P_diff, policy_cost)]
 region_dt2[order(-region_lab)]
 region_dt2[,.(L_diff = mean(L_diff),
               N_fert_diff = mean(N_fert_diff),
