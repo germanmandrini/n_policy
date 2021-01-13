@@ -14,50 +14,13 @@ Pn/2.20462 #$\lb N
 print(paste('Pn/Pc', Pn/Pc))
 
 
-Pe_min = 8.88 # $/kg N #    cost of the externality for each kg of N leached
-Pe_med = 18.54 # $/kg N #    cost of the externality for each kg of N leached
-Pe_max = 27.08 # $/kg N #    cost of the externality for each kg of N leached
-Pe_total = 10.108
-#Urea 340/1000/0.46=0.739$/kgN https://www.ams.usda.gov/mnreports/gx_gr210.txt
-#Liquid Nitrogen 28% spread 240/1000/0.28 = 0.857$/kgN https://www.ams.usda.gov/mnreports/gx_gr210.txt
+Yld_response_threshold <- 200 
 
-#(p = 3.5/25.4)#$3.3/bu 180/1000
-#(w = 0.3/0.453592)#$0.3/pound of N
+low_var <- c("rain_30", "rain_60", "rain_90",
+             "t_max_30", "t_max_60", "t_max_90", "t_min_30", "t_min_60",
+             "t_min_90", 'Y_corn_lt_avg', "day_sow", "day_v5", "lai_v5")#'Y_corn_lt_min', 'Y_corn_lt_max', 
 
-#p = 0.1534 # ($/kg) = ($3.9/bu) Taro
-#w = 0.5*2.20462 #($/kg) = $($100/100kg) Taro
+high_var <- c("whc",  "oc_20cm_v5", "sw_dep_v5", "n_0_60cm_v5",  
+              "surfaceom_wt_v5", "sand_40cm", "clay_40cm") #"root_wt_v5",, "n_deep_v5", "esw_pct_v5", 
 
-
-#--------------------------
-# Fixed cost 
-#--------------------------
-#--- costs excluding Nitrogen fertilizer ---#
-# see http://www.farmdoc.illinois.edu/manage/2018_crop_budgets.pdf by Gary for this information
-# c_fixed_ha <- 442/0.404686 # 600 ($/acre)
-# 
-# 356-130+131+83
-
-#--------------------------
-# Cost of N application 
-#--------------------------
-c_vra_ha <- 9*2.471 #($/ha) 9 ($/acre)
-c_ura_ha <- 7*2.471 #($/ha) 7 ($/acre) 
-
-#--------------------------
-# Oportunity cost 
-#--------------------------
-# r_a <- 0.05 #annual return rate
-# r_m <- (r.a +1) ^ (1/12) - 1 #monthly return rate
-
-#--------------------------
-# Grid Soil sampling cost
-#--------------------------
-#c_sampling_ha <- 8*2.471 #($/ha) 8 ($/acre) http://ocj.com/2012/02/intensive-soil-sampling-makes-dollars-and-sense/
-#8$/sample
-# c_N_sample <- 3
-# c_OM_sample <- 3
-
-#--------------------------
-# Cost of trial implementation 
-#--------------------------
-# c_trial <- c(700,400,200,rep(100,7)) 
+NRS_paper <- c('staticmrtn', 'staticmean', "extra20", "forecast", "rfhigh", "rflow")
