@@ -115,14 +115,14 @@ for(z_n in 1:30){
   # ratio_seq <- c(5)
   set.seed(123)
   
-  for(ratio_n in ratio_seq){
-    # ratio_n = Pn/Pc
-    # ratio_n = 5
-    policy_n = paste0('ratio_', ratio_n)
+  for(policy_n in ratio_seq){
+    # policy_n = Pn/Pc
+    # policy_n = 5
+    policy_n = paste0('ratio_', policy_n)
     # if(policy_n %in% names(reg_model_stuff)){next}
     
     small_model_list <- list()
-    Pn_tmp = ratio_n * Pc
+    Pn_tmp = policy_n * Pc
     print(Pn_tmp/Pc)
     # training_set_dt[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn_tmp]  #update profits
     training_set_dt[, P := Y_corn * Pc - N_fert * Pn_tmp]  #update profits
@@ -143,7 +143,7 @@ for(z_n in 1:30){
     (plot1 <- ggplot() +
         geom_line(data = static_data, aes(x = N_fert, y = P, color = region), size = 1.5)+
         geom_point(data = static_data[,.SD[P == max(P)], by = region], aes(x = N_fert, y = P), size = 3) +
-        # geom_point(data = static_data[P_diff >= -ratio_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2, size = 3)+
+        # geom_point(data = static_data[P_diff >= -policy_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2, size = 3)+
         ylab('Profits ($/ha)')+
         theme_bw() +
         xlab('N rate (kg/ha)'))
@@ -172,7 +172,7 @@ for(z_n in 1:30){
     varImpPlot(rfhigh, type=2)
     plot(rfhigh)
     
-    if(ratio_n == 5){
+    if(policy_n == 5){
       pdf("./n_policy_box/Data/figures/VarImportancePlot.pdf")
       varImpPlot(rfhigh, type=2, main = '')
       dev.off() 
@@ -258,28 +258,23 @@ for(z_n in 1:30){
   
   
   
-  
-  
-  
   # =========================================================================================================================================================
   # CREATE THE LEACHING FEE MODEL
   source('./n_policy_git/Codes/parameters.R')
-  
   reg_model_stuff$leach_threshold <- training_set_dt[N_fert == 100, .(L = quantile(L, probs = 0.5)), region][order(region)]$L
   
-  ratio_seq <- sort(c(seq(5, 20, by = 1)))
+  leach_seq <-  sort(c(seq(0, 30, by = 2)))
   # ratio_seq <- sort(c(seq(5, 20, by = 5)))
   # ratio_seq <- c(5)
   set.seed(123)
   
-  for(ratio_n in ratio_seq){
-    # ratio_n = Pn/Pc
-    # ratio_n = 5
-    policy_n = paste0('ratio_', ratio_n)
-    # if(policy_n %in% names(reg_model_stuff)){next}
+  for(policy_n in leach_seq){
+    # leach_n = 10
+    print(policy_n)
+    policy_n = paste0('ratio_', policy_n)
     
     small_model_list <- list()
-    Pn_tmp = ratio_n * Pc
+    Pn_tmp = policy_n * Pc
     print(Pn_tmp/Pc)
     # training_set_dt[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn_tmp]  #update profits
     training_set_dt[, P := Y_corn * Pc - N_fert * Pn_tmp]  #update profits
@@ -300,7 +295,7 @@ for(z_n in 1:30){
     (plot1 <- ggplot() +
         geom_line(data = static_data, aes(x = N_fert, y = P, color = region), size = 1.5)+
         geom_point(data = static_data[,.SD[P == max(P)], by = region], aes(x = N_fert, y = P), size = 3) +
-        # geom_point(data = static_data[P_diff >= -ratio_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2, size = 3)+
+        # geom_point(data = static_data[P_diff >= -policy_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2, size = 3)+
         ylab('Profits ($/ha)')+
         theme_bw() +
         xlab('N rate (kg/ha)'))
@@ -329,7 +324,7 @@ for(z_n in 1:30){
     varImpPlot(rfhigh, type=2)
     plot(rfhigh)
     
-    if(ratio_n == 5){
+    if(policy_n == 5){
       pdf("./n_policy_box/Data/figures/VarImportancePlot.pdf")
       varImpPlot(rfhigh, type=2, main = '')
       dev.off() 
