@@ -1,6 +1,10 @@
 library(ranger)
 library(mlr)
 library("parallelMap")
+
+#=======================================================================================================
+# MLR HYPERPARAMETERS
+
 #------ TUNE HYPERPARAMETERS
 
 ## Create combined training data
@@ -26,7 +30,7 @@ train_task <- makeRegrTask(data = train_task_data[,-'year'], target = "eonr") #t
 
 
 ## Tune hyperparameters
-ctrl <- makeTuneControlRandom(maxit = 1000)
+ctrl <- makeTuneControlRandom(maxit = 50)
 ps <- makeParamSet(
   makeIntegerParam("num.trees", lower=500, upper=3000),
   makeIntegerParam("min.node.size", lower=5, upper=50),
@@ -34,7 +38,7 @@ ps <- makeParamSet(
 )
 
 
-parallelStartSocket(30)
+parallelStartSocket(25)
 
 res <- tuneParams("regr.ranger",
                   task = train_task,
@@ -63,10 +67,20 @@ names(mod_rf)
 mod_rf$learner.model
 
 #Make preditions
-task_pred = predict(mod_rf, task = regr_task)
-prediction_set_aggregated_dt[,eonr_pred := round(predict(mod_rf, newdata = prediction_set_aggregated_dt)$data$response/10)*10] 
-prediction_set_aggregated_dt[,eonr_pred := round(predict(rfhigh, prediction_set_aggregated_dt)/10,0)*10]
-
+# task_pred = predict(mod_rf, task = regr_task)
+# prediction_set_aggregated_dt[,eonr_pred := round(predict(mod_rf, newdata = prediction_set_aggregated_dt)$data$response/10)*10] 
 # task_pred$data$truth
 # measureRMSE(truth = task_pred$data$truth, response = task_pred$data$response)
 # cor(task_pred$data$truth, task_pred$data$response)
+
+
+#===================================================================================================================
+#===================================================================================================================
+# MLR3 Hyperparameters
+ibrary("mlr3")
+library("mlr3tuning") # fitnessfunction and tuning
+library("mlr3learners") # needed to get the random forest learner
+library("paradox") # needed to define parameter spaces
+# https://mlr3book.mlr-org.com/tuning.html
+
+learner$param_set

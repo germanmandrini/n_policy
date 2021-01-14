@@ -7,11 +7,13 @@ rm(list=ls())
 setwd('~')#Server
 codes_folder <-'~' #Server
 
-library(randomForest)
-library(reticulate)
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
 source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
+library(randomForest)
+library(reticulate)
+library(ranger)
+library(mlr)
 # use_condaenv('GEOANN', conda = '/opt/anaconda3/condabin/conda')
 # source_python("./n_policy_git/Codes/3c_cnn_functions_sep10.py")
 
@@ -102,10 +104,10 @@ for(z_n in 1:30){
   # yc_field_dt2 <- yc_field_dt2[!is.na(set)][,-'station']
   # yc_field_dt2[,.N, .(set, id_10, id_field)][,.N, set]#fields by set
   # saveRDS(yc_field_dt2, "./n_policy_box/Data/files_rds/yc_field_dt2.rds")
-  # 
+
   training_set_dt <- yc_field_dt2[station == 1 & z != z_n]
   evaluation_set_dt <- yc_field_dt2[station != 1 & z == z_n]
-  prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-'N_fert'] #one line per field, not yield curve
+  prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
   
   # =========================================================================================================================================================
   # CREATE THE N RATIO TAX MODEL
@@ -118,7 +120,7 @@ for(z_n in 1:30){
   for(policy_n in ratio_seq){
     # policy_n = Pn/Pc
     # policy_n = 5
-    policy_n = paste0('ratio_', policy_n)
+    
     # if(policy_n %in% names(reg_model_stuff)){next}
     
     small_model_list <- list()
@@ -165,8 +167,8 @@ for(z_n in 1:30){
     best.m = 6
     
     rfhigh <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
-                           data = training_eonr_dt[,c('eonr', low_var, high_var, 'z'), with = FALSE],
-                           strata = z, #I think it will bootstrap by year
+                           data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
+                           strata = year, #I think it will bootstrap by year
                            importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
     
     varImpPlot(rfhigh, type=2)
@@ -177,21 +179,6 @@ for(z_n in 1:30){
       varImpPlot(rfhigh, type=2, main = '')
       dev.off() 
     }
-    
-    # =========================================================================================================================================================
-    # CREATE THE RANGER-RF
-    # source('~/n_policy_git/Codes/3e_ranger_hyperparameters.R')
-    # # Train a model
-    learner_rf = makeLearner("regr.ranger",
-                             num.trees = 585,
-                             min.node.size = 29,
-                             mtry = 4) #instructions
-    
-    regr_task = makeRegrTask(data = training_eonr_dt, target = "eonr", blocking = 'year') #task = data
-    tsk = subsetTask(regr_task, features = c(low_var, high_var))#specify the features to avoid using the year
-    
-    ranger_rf <- train(learner_rf, task = regr_task)
-    
     #===================================================================================================================
     # EVALUATION
     
