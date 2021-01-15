@@ -10,24 +10,24 @@ rm(list=ls())
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
 
-# perfomances_dt3 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
+# perfomances_dt3 <- readRDS("./n_dynamic_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
 # validation_dt <- perfomances_dt3[policy == 'ratio_6' & NMS ==1]
-grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds") 
-grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
+grid10_tiles_sf7 <- readRDS("./n_dynamic_box/Data/Grid/grid10_tiles_sf7.rds") 
+grid10_soils_dt5 <- readRDS("./n_dynamic_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
 
 
 
 #-----------------------------------------------------------------------------------------------------------
 # Open the files and save the base-level rates
 if(FALSE){
-  reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
+  reg_model_stuff <- readRDS( "./n_dynamic_box/Data/files_rds/reg_model_stuff.rds")
   minimum_ok <- reg_model_stuff$ratio_5$minimum_ok
   rm(reg_model_stuff)
   
   library("foreach")
   library("doParallel")
  
-  multiple_files <- list.files('S:/Bioinformatics Lab/germanm2/n_policy_box_58/Data/yc_output_58', full.names = T)
+  multiple_files <- list.files('S:/Bioinformatics Lab/germanm2/n_dynamic_box_58/Data/yc_output_58', full.names = T)
   
   length(multiple_files)
   regions_dt <- data.table(grid10_tiles_sf7) %>% .[,.N,.(id_10, region)] %>% .[,-'N']
@@ -49,9 +49,9 @@ if(FALSE){
   validation_dt <- rbindlist(output_list)
   validation_dt[,id_10 := as.integer(id_10)]
   
-  saveRDS(validation_dt, './n_policy_box/Data/files_rds/validation_monthly_leaching.rds')
+  saveRDS(validation_dt, './n_dynamic_box/Data/files_rds/validation_monthly_leaching.rds')
 }
-validation_dt <- readRDS('./n_policy_box/Data/files_rds/validation_monthly_leaching.rds')
+validation_dt <- readRDS('./n_dynamic_box/Data/files_rds/validation_monthly_leaching.rds')
 validation_dt[,.N, by = z]
 #Sepparate soy and corn
 corn <- validation_dt[year == 2010, .(id_10, mukey, z, year, month, leach_no3)] %>% setnames('leach_no3', 'L1')
@@ -89,7 +89,7 @@ ggplot(data = validation_dt4)+
 
 # #---------------------------------------------------------------------------
 # # Add the weather
-# weather_historic_dt <- readRDS('./n_policy_box/Data/met_files/weather_historic_dt2019.rds')
+# weather_historic_dt <- readRDS('./n_dynamic_box/Data/met_files/weather_historic_dt2019.rds')
 # 
 # month_seq <- c(rep(1,31), rep(2, 28), rep(3,31), rep(4,30), rep(5,31), rep(6,30), rep(7,31), rep(8,31), rep(9, 30), rep(10,31), rep(11,30), rep(12,31))
 # weather_historic_dt[,month := rep(month_seq, nrow(weather_historic_dt)/365)]
@@ -111,10 +111,10 @@ ggplot(data = validation_dt4)+
 
 library(gdata)
 #Year is corrected from april to april
-graffton_waterquality <- read.xls('./n_policy_box/Data/validation/graffton_waterquality.xlsx', 
+graffton_waterquality <- read.xls('./n_dynamic_box/Data/validation/graffton_waterquality.xlsx', 
                                   sheet = 'qual_vol_3', header = TRUE, stringsAsFactors=FALSE) %>% data.table()
 
-graffton_waterquality <- read.csv('./n_policy_box/Data/validation/graffton_waterquality.csv', header = T)%>% data.table()
+graffton_waterquality <- read.csv('./n_dynamic_box/Data/validation/graffton_waterquality.csv', header = T)%>% data.table()
 
 setnames(graffton_waterquality, c('year_nu', 'month_nu'), c('year', 'month'))
 
@@ -144,7 +144,7 @@ validation_dt4_monthly <- validation_dt4[, .(L = mean(L),
       panel.grid = element_blank()))#+   annotate("text", x=1, y=22, label= "a)", size = 8) )
 
 ggsave(plot = plot_1,
-       filename = "./n_policy_box/Data/figures/validation_grafton_time.pdf", width = 758/300*3, height= 586/300*3, units = 'in')
+       filename = "./n_dynamic_box/Data/figures/validation_grafton_time.pdf", width = 758/300*3, height= 586/300*3, units = 'in')
        #units = 'in') #, width = 758/300*3, height = 586/300*3
 
 #---------------------------------------------------------------------------
@@ -241,6 +241,6 @@ plot_grid <- grid.arrange(plot_1, plot_4, ncol=2, nrow = 2,
                           layout_matrix = rbind(c(1,2), c(NA,2)),
                           widths = c(5, 5), heights = c(2.5, 0.05))
 ggsave(plot = plot_grid, 
-       filename = "./n_policy_box/Data/figures/validation_grafton.jpg",  width = 1263/300*3, height = 502/300*3,
+       filename = "./n_dynamic_box/Data/figures/validation_grafton.jpg",  width = 1263/300*3, height = 502/300*3,
        units = 'in')
 

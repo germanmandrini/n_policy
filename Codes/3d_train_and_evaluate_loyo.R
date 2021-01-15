@@ -2,10 +2,10 @@ rm(list=ls())
 # 
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # codes_folder <-'C:/Users/germa/Documents'#Dell
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
-setwd('~')#Server
-codes_folder <-'~' #Server
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+# setwd('~')#Server
+# codes_folder <-'~' #Server
 
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
@@ -117,14 +117,10 @@ for(z_n in 1:30){
   # ratio_seq <- c(5)
   set.seed(123)
   
-  for(policy_n in ratio_seq){
-    # policy_n = Pn/Pc
-    # policy_n = 5
+  for(level_n in ratio_seq){
+     # level_n = 5
     
-    # if(policy_n %in% names(reg_model_stuff)){next}
-    
-    small_model_list <- list()
-    Pn_tmp = policy_n * Pc
+    Pn_tmp = level_n * Pc
     print(Pn_tmp/Pc)
     # training_set_dt[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn_tmp]  #update profits
     training_set_dt[, P := Y_corn * Pc - N_fert * Pn_tmp]  #update profits
@@ -145,7 +141,7 @@ for(z_n in 1:30){
     (plot1 <- ggplot() +
         geom_line(data = static_data, aes(x = N_fert, y = P, color = region), size = 1.5)+
         geom_point(data = static_data[,.SD[P == max(P)], by = region], aes(x = N_fert, y = P), size = 3) +
-        # geom_point(data = static_data[P_diff >= -policy_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2, size = 3)+
+        # geom_point(data = static_data[P_diff >= -level_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2, size = 3)+
         ylab('Profits ($/ha)')+
         theme_bw() +
         xlab('N rate (kg/ha)'))
@@ -174,94 +170,484 @@ for(z_n in 1:30){
     varImpPlot(rfhigh, type=2)
     plot(rfhigh)
     
-    if(policy_n == 5){
+    if(level_n == 5){
       pdf("./n_policy_box/Data/figures/VarImportancePlot.pdf")
       varImpPlot(rfhigh, type=2, main = '')
       dev.off() 
     }
+    
+    # =========================================================================================================================================================
+    # CREATE THE RANGER-RF
+    # source('~/n_policy_git/Codes/3e_ranger_hyperparameters.R')
+    # # Train a model
+    blocking_year <- factor(training_eonr_dt$year)
+    
+    
+    learner_rf = makeLearner("regr.ranger",
+                             num.trees = 1700,
+                             min.node.size = 50,
+                             mtry = 5) #instructions
+    
+    regr_task = mlr::makeRegrTask(data = training_eonr_dt[,c('eonr', low_var, high_var), with = FALSE], 
+                                  target = "eonr", blocking = blocking_year) #task = data
+    
+    tsk = subsetTask(regr_task, features = c(low_var, high_var))#specify the features to avoid using the year
+    
+    # mcaffinity(1:20)
+    ranger_rf <- train(learner_rf, task = regr_task)
     #===================================================================================================================
     # EVALUATION
     
+    #Prepare the data
+    evaluation_set_dt[, P := Y_corn * Pc - N_fert * Pn_tmp]  #update profits
+    evaluation_set_dt[, G := N_fert * (Pn_tmp - Pn)] #gov collection
     #===================================================================================================================
     # 1) STATIC MRTN
     
     # the NRS is trained with z1-10 and testing is evaluated with z11-25
-    testing_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
+    evaluation_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
                              by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,NRS := 'staticmrtn'][,policy := policy_n]
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRS := 'staticmrtn'][,policy := paste0('ratio_', level_n)]
+    
+    if()
     #===================================================================================================================
     # 2) RFHIGH
     # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
     
     prediction_set_aggregated_dt[,eonr_pred := round(predict(rfhigh, prediction_set_aggregated_dt)/10,0)*10]
     
-    testing_set_tmp <- merge(evaluation_set_dt,
+    evaluation_set_tmp <- merge(evaluation_set_dt,
                              prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,NRS := 'rfhigh'][,policy := policy_n]
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRS := 'rfhigh'][,policy := paste0('ratio_', level_n)]
     
     #===================================================================================================================
     # 3) RANGER-RF
     # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
     
-    prediction_set_aggregated_dt[,eonr_pred := round(predict(mod_rf, newdata = prediction_set_aggregated_dt[,c(low_var, high_var), with = FALSE])$data$response/10)*10] 
+    prediction_set_aggregated_dt[,eonr_pred := round(predict(ranger_rf , newdata = prediction_set_aggregated_dt[,c(low_var, high_var), with = FALSE])$data$response/10)*10] 
     
     
-    testing_set_tmp <- merge(evaluation_set_dt,
+    evaluation_set_tmp <- merge(evaluation_set_dt,
                              prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,NRS := 'rfranger'][,policy := policy_n]
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRS := 'rfranger'][,policy := paste0('ratio_', level_n)]
     
     
     #===================================================================================================================
     # 3) EXPOST
 
-    testing_set_tmp <-  evaluation_set_dt %>% 
+    evaluation_set_tmp <-  evaluation_set_dt %>% 
       .[, .SD[ P == max( P)], by = .(id_10, id_field, z)] %>%
       .[, .SD[ N_fert == min(N_fert)], by = .(id_10, id_field, z)] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,NRS := 'expost'][,policy := policy_n]
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRS := 'expost'][,policy := paste0('ratio_', level_n)]
     #===================================================================================================================
-    # Save it to the big list
-    reg_model_stuff[[policy_n]] <- small_model_list
-    names(reg_model_stuff)
-  }
+
+  }#end of ratio loop
   
   
   
   # =========================================================================================================================================================
   # CREATE THE LEACHING FEE MODEL
-  source('./n_policy_git/Codes/parameters.R')
-  reg_model_stuff$leach_threshold <- training_set_dt[N_fert == 100, .(L = quantile(L, probs = 0.5)), region][order(region)]$L
+  source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
+  
+  #Load datasets again
+  training_set_dt <- yc_field_dt2[station == 1 & z != z_n]
+  evaluation_set_dt <- yc_field_dt2[station != 1 & z == z_n]
+  prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
+  
+  #Update threholds
+  leach_threshold <- training_set_dt[N_fert == 100, .(L_thr = quantile(L, probs = 0.5)), region][order(region)]
+  
+  training_set_dt <- merge(training_set_dt, leach_threshold, by = 'region')
+  
+  training_set_dt[,L_extra := L - L_thr]
+  training_set_dt[L_extra <= 0, L_extra := 0]
+  training_set_dt$L_extra %>% summary()
+  
+  evaluation_set_dt <- merge(evaluation_set_dt, leach_threshold, by = 'region')
+  
+  evaluation_set_dt[,L_extra := L - L_thr]
+  evaluation_set_dt[L_extra <= 0, L_extra := 0]
   
   leach_seq <-  sort(c(seq(0, 30, by = 2)))
-  # ratio_seq <- sort(c(seq(5, 20, by = 5)))
-  # ratio_seq <- c(5)
+  
   set.seed(123)
   
-  for(policy_n in leach_seq){
-    # leach_n = 10
-    print(policy_n)
-    policy_n = paste0('ratio_', policy_n)
+  for(level_n in leach_seq){
+    # level_n = 5
+    print(level_n)
+    # training_set_dt[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn_tmp]  #update profits
+    # training_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
     
-    small_model_list <- list()
-    Pn_tmp = policy_n * Pc
+    training_set_dt[, P := Y_corn * Pc - N_fert * Pn - L_extra * level_n] #update profits
+    
+    training_set_dt[, P1 := Y_corn * Pc - N_fert * Pn]
+    training_set_dt[, P2 := Y_corn * Pc - N_fert * Pn - L_extra * level_n] #update profits
+    
+    plot_dt <- training_set_dt[, .(P1 = mean(P1), 
+                             P2 = mean(P2), 
+                             L_extra = round(mean(L_extra),0)), by = .(region, N_fert)][order(region, N_fert)]
+    
+    ggplot() + 
+      geom_line(data = plot_dt, aes(x = N_fert, y = P1, color = region))+
+      geom_point(data = plot_dt[,.SD[P1 == max(P1)], by = region], aes(x = N_fert, y = P1))+
+      geom_line(data = plot_dt, aes(x = N_fert, y = P2, color = region), linetype = 'dashed')+
+      geom_point(data = plot_dt[,.SD[P2 == max(P2)], by = region], aes(x = N_fert, y = P2))
+    
+    
+    # =========================================================================================================================================================
+    # CREATE THE STATIC MRTN
+    training_mrtn_dt <- training_set_dt[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
+    
+    static_data <- aggregate_by_area(data_dt = training_mrtn_dt, variables = c('P'), 
+                                     weight = 'area_ha', by_c = c('region', 'N_fert'))
+    
+    static_mrtn_dt  <- static_data %>% 
+      .[, .SD[ P == max( P)], by = .(region)] %>%
+      .[, .SD[ N_fert == min( N_fert)], by = .(region)] %>%
+      .[,.(region, eonr_pred = N_fert)] %>%
+      .[order(region)]
+    
+    
+    (plot1 <- ggplot() +
+        geom_line(data = static_data, aes(x = N_fert, y = P, color = region), size = 1.5)+
+        geom_point(data = static_data[,.SD[P == max(P)], by = region], aes(x = N_fert, y = P), size = 3) +
+        # geom_point(data = static_data[P_diff >= -level_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2, size = 3)+
+        ylab('Profits ($/ha)')+
+        theme_bw() +
+        xlab('N rate (kg/ha)'))
+    
+    # =========================================================================================================================================================
+    # CREATE THE RF-HIGH
+    training_eonr_dt  <- training_set_dt[, .SD[ P == max(P)], by = .(id_10, id_field, z)] %>%
+      .[, .SD[ N_fert == min( N_fert)], by = .(id_10, id_field, z)] %>%
+      .[,c('N_fert', low_var, high_var, 'year'), with = FALSE]
+    
+    setnames(training_eonr_dt, 'N_fert', 'eonr')
+    
+    # RF Model 2------------------------
+    # mtry <- tuneRF(training_eonr_dt2[,c(pred_vars), with = FALSE],training_eonr_dt2$eonr, mtryStart = 6, ntreeTry=1000,
+    #                 stepFactor=1.1,improve=0.01, trace=TRUE, plot=TRUE) # ,mtryStart = 5
+    # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+    
+    best.m = 6
+    
+    rfhigh <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
+                           data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
+                           strata = year, #I think it will bootstrap by year
+                           importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
+    
+    varImpPlot(rfhigh, type=2)
+    plot(rfhigh)
+    
+    if(level_n == 5){
+      pdf("./n_policy_box/Data/figures/VarImportancePlot.pdf")
+      varImpPlot(rfhigh, type=2, main = '')
+      dev.off() 
+    }
+    
+    # =========================================================================================================================================================
+    # CREATE THE RANGER-RF
+    # source('~/n_policy_git/Codes/3e_ranger_hyperparameters.R')
+    # # Train a model
+    blocking_year <- factor(training_eonr_dt$year)
+    
+    
+    learner_rf = makeLearner("regr.ranger",
+                             num.trees = 1700,
+                             min.node.size = 50,
+                             mtry = 5) #instructions
+    
+    regr_task = mlr::makeRegrTask(data = training_eonr_dt[,c('eonr', low_var, high_var), with = FALSE], 
+                                  target = "eonr", blocking = blocking_year) #task = data
+    
+    tsk = subsetTask(regr_task, features = c(low_var, high_var))#specify the features to avoid using the year
+    
+    # mcaffinity(1:20)
+    ranger_rf <- train(learner_rf, task = regr_task)
+    #===================================================================================================================
+    # EVALUATION
+    
+    #Prepare the data
+    evaluation_set_dt[, P := Y_corn * Pc - N_fert * Pn - L_extra * level_n] #update profits
+    evaluation_set_dt[, G := L_extra * level_n] #gov collectionn
+    #===================================================================================================================
+    # 1) STATIC MRTN
+    
+    # the NRS is trained with z1-10 and testing is evaluated with z11-25
+    evaluation_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
+                             by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+      .[N_fert == eonr_pred] %>%
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+
+    
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRS := 'staticmrtn'][,policy := paste0('leach_', level_n)]
+    #===================================================================================================================
+    # 2) RFHIGH
+    # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
+    
+    prediction_set_aggregated_dt[,eonr_pred := round(predict(rfhigh, prediction_set_aggregated_dt)/10,0)*10]
+    
+    evaluation_set_tmp <- merge(evaluation_set_dt,
+                             prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+      .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
+      .[N_fert == eonr_pred] %>%
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+    
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRS := 'rfhigh'][,policy := paste0('leach_', level_n)]
+    
+    #===================================================================================================================
+    # 3) RANGER-RF
+    # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
+    
+    prediction_set_aggregated_dt[,eonr_pred := round(predict(ranger_rf , newdata = prediction_set_aggregated_dt[,c(low_var, high_var), with = FALSE])$data$response/10)*10] 
+    
+    
+    evaluation_set_tmp <- merge(evaluation_set_dt,
+                             prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+      .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
+      .[N_fert == eonr_pred] %>%
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+    
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRS := 'rfranger'][,policy := paste0('leach_', level_n)]
+    
+    
+    #===================================================================================================================
+    # 3) EXPOST
+    
+    evaluation_set_tmp <-  evaluation_set_dt %>% 
+      .[, .SD[ P == max( P)], by = .(id_10, id_field, z)] %>%
+      .[, .SD[ N_fert == min(N_fert)], by = .(id_10, id_field, z)] %>%
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+    
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRS := 'expost'][,policy := paste0('leach_', level_n)]
+    #===================================================================================================================
+  } #end of leaching loop
+  
+  # =========================================================================================================================================================
+  # CREATE THE BALANCE FEE MODEL
+  source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
+  
+  #Load datasets again
+  training_set_dt <- yc_field_dt2[station == 1 & z != z_n]
+  evaluation_set_dt <- yc_field_dt2[station != 1 & z == z_n]
+  prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
+  
+  #Update threholds
+  
+  bal_threshold <- training_set_dt[N_fert == 100, .(N_balance_thr = quantile(N_balance, probs = 0.5)), region][order(region)]
+  
+  training_set_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
+  training_set_dt <- merge(training_set_dt[,-'N_balance_thr'], bal_threshold, by = 'region')
+  
+  training_set_dt[,N_extra := N_balance - N_balance_thr]
+  training_set_dt[N_extra <= 0, N_extra := 0]
+  #evaluation set
+  evaluation_set_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
+  evaluation_set_dt <- merge(evaluation_set_dt[,-'N_balance_thr'], bal_threshold, by = 'region')
+
+  evaluation_set_dt[,N_extra := N_balance - N_balance_thr]
+  evaluation_set_dt[N_extra <= 0, N_extra := 0]
+  
+  
+  bal_seq <- sort(seq(0, 5, by = 0.25))
+  
+  set.seed(123)
+  
+  for(level_n in bal_seq){
+    # level_n = 5
+    print(level_n)
+    # training_set_dt[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn_tmp]  #update profits
+    # training_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
+    training_set_dt[, P := Y_corn * Pc - N_fert * Pn - N_extra * level_n]#update profits
+    training_set_dt[, P1 := Y_corn * Pc - N_fert * Pn]
+    training_set_dt[, P2 := Y_corn * Pc - N_fert * Pn - N_extra * level_n]
+    
+    plot_dt <- training_set_dt[, .(P1 = mean(P1), 
+                             P2 = mean(P2), 
+                             N_extra = round(mean(N_extra),0)), by = .(region, N_fert)][order(region, N_fert)]
+    ggplot() + 
+      geom_line(data = plot_dt, aes(x = N_fert, y = P1, color = region))+
+      geom_point(data = plot_dt[,.SD[P1 == max(P1)], by = region], aes(x = N_fert, y = P1))+
+      geom_line(data = plot_dt, aes(x = N_fert, y = P2, color = region), linetype = 'dashed')+
+      geom_point(data = plot_dt[,.SD[P2 == max(P2)], by = region], aes(x = N_fert, y = P2))
+    
+    # =========================================================================================================================================================
+    # CREATE THE STATIC MRTN
+    training_mrtn_dt <- training_set_dt[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
+    
+    static_data <- aggregate_by_area(data_dt = training_mrtn_dt, variables = c('P'), 
+                                     weight = 'area_ha', by_c = c('region', 'N_fert'))
+    
+    static_mrtn_dt  <- static_data %>% 
+      .[, .SD[ P == max( P)], by = .(region)] %>%
+      .[, .SD[ N_fert == min( N_fert)], by = .(region)] %>%
+      .[,.(region, eonr_pred = N_fert)] %>%
+      .[order(region)]
+    
+    
+    (plot1 <- ggplot() +
+        geom_line(data = static_data, aes(x = N_fert, y = P, color = region), size = 1.5)+
+        geom_point(data = static_data[,.SD[P == max(P)], by = region], aes(x = N_fert, y = P), size = 3) +
+        # geom_point(data = static_data[P_diff >= -level_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2, size = 3)+
+        ylab('Profits ($/ha)')+
+        theme_bw() +
+        xlab('N rate (kg/ha)'))
+    
+    # =========================================================================================================================================================
+    # CREATE THE RF-HIGH
+    training_eonr_dt  <- training_set_dt[, .SD[ P == max(P)], by = .(id_10, id_field, z)] %>%
+      .[, .SD[ N_fert == min( N_fert)], by = .(id_10, id_field, z)] %>%
+      .[,c('N_fert', low_var, high_var, 'year'), with = FALSE]
+    
+    setnames(training_eonr_dt, 'N_fert', 'eonr')
+    
+    # RF Model 2------------------------
+    # mtry <- tuneRF(training_eonr_dt2[,c(pred_vars), with = FALSE],training_eonr_dt2$eonr, mtryStart = 6, ntreeTry=1000,
+    #                 stepFactor=1.1,improve=0.01, trace=TRUE, plot=TRUE) # ,mtryStart = 5
+    # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+    
+    best.m = 6
+    
+    rfhigh <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
+                           data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
+                           strata = year, #I think it will bootstrap by year
+                           importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
+    
+    varImpPlot(rfhigh, type=2)
+    plot(rfhigh)
+    
+    if(level_n == 5){
+      pdf("./n_policy_box/Data/figures/VarImportancePlot.pdf")
+      varImpPlot(rfhigh, type=2, main = '')
+      dev.off() 
+    }
+    
+    # =========================================================================================================================================================
+    # CREATE THE RANGER-RF
+    # source('~/n_policy_git/Codes/3e_ranger_hyperparameters.R')
+    # # Train a model
+    blocking_year <- factor(training_eonr_dt$year)
+    
+    
+    learner_rf = makeLearner("regr.ranger",
+                             num.trees = 1700,
+                             min.node.size = 50,
+                             mtry = 5) #instructions
+    
+    regr_task = mlr::makeRegrTask(data = training_eonr_dt[,c('eonr', low_var, high_var), with = FALSE], 
+                                  target = "eonr", blocking = blocking_year) #task = data
+    
+    tsk = subsetTask(regr_task, features = c(low_var, high_var))#specify the features to avoid using the year
+    
+    # mcaffinity(1:20)
+    ranger_rf <- train(learner_rf, task = regr_task)
+    #===================================================================================================================
+    # EVALUATION
+    
+    #Prepare the data
+    evaluation_set_dt[, P := Y_corn * Pc - N_fert * Pn - N_extra * level_n]#update profits
+    evaluation_set_dt[, G := N_extra * level_n] #gov collection
+    
+    #===================================================================================================================
+    # 1) STATIC MRTN
+    
+    # the NRS is trained with z1-10 and testing is evaluated with z11-25
+    evaluation_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
+                                by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+      .[N_fert == eonr_pred] %>%
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+    
+    
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRS := 'staticmrtn'][,policy := paste0('bal_n', level_n)]
+    #===================================================================================================================
+    # 2) RFHIGH
+    # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
+    
+    prediction_set_aggregated_dt[,eonr_pred := round(predict(rfhigh, prediction_set_aggregated_dt)/10,0)*10]
+    
+    evaluation_set_tmp <- merge(evaluation_set_dt,
+                                prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+      .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
+      .[N_fert == eonr_pred] %>%
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+    
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRS := 'rfhigh'][,policy := paste0('bal_n', level_n)]
+    
+    #===================================================================================================================
+    # 3) RANGER-RF
+    # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
+    
+    prediction_set_aggregated_dt[,eonr_pred := round(predict(ranger_rf , newdata = prediction_set_aggregated_dt[,c(low_var, high_var), with = FALSE])$data$response/10)*10] 
+    
+    
+    evaluation_set_tmp <- merge(evaluation_set_dt,
+                                prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+      .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
+      .[N_fert == eonr_pred] %>%
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+    
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRS := 'rfranger'][,policy := paste0('bal_n', level_n)]
+    
+    
+    #===================================================================================================================
+    # 3) EXPOST
+    
+    evaluation_set_tmp <-  evaluation_set_dt %>% 
+      .[, .SD[ P == max( P)], by = .(id_10, id_field, z)] %>%
+      .[, .SD[ N_fert == min(N_fert)], by = .(id_10, id_field, z)] %>%
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+    
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRS := 'expost'][,policy := paste0('bal_n', level_n)]
+    #===================================================================================================================
+  } #end of balance loop
+  
+ 
+  # =========================================================================================================================================================
+  # VOLUNTARY LAG REDUCTION (REDUCE RATIO 5 RECOMENDATIONS)
+  source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
+  
+  #Load datasets again
+  training_set_dt <- yc_field_dt2[station == 1 & z != z_n]
+  evaluation_set_dt <- yc_field_dt2[station != 1 & z == z_n]
+  prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
+  
+  red_seq <- unique(sort(c(seq(0,30, by = 1), seq(18,19, by = 0.1))))
+  
+  for(level_n in red_seq){
+    # level_n = 5
+    
+    Pn_tmp = level_n * Pc
     print(Pn_tmp/Pc)
     # training_set_dt[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn_tmp]  #update profits
     training_set_dt[, P := Y_corn * Pc - N_fert * Pn_tmp]  #update profits
@@ -282,7 +668,7 @@ for(z_n in 1:30){
     (plot1 <- ggplot() +
         geom_line(data = static_data, aes(x = N_fert, y = P, color = region), size = 1.5)+
         geom_point(data = static_data[,.SD[P == max(P)], by = region], aes(x = N_fert, y = P), size = 3) +
-        # geom_point(data = static_data[P_diff >= -policy_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2, size = 3)+
+        # geom_point(data = static_data[P_diff >= -level_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2, size = 3)+
         ylab('Profits ($/ha)')+
         theme_bw() +
         xlab('N rate (kg/ha)'))
@@ -304,14 +690,14 @@ for(z_n in 1:30){
     best.m = 6
     
     rfhigh <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
-                           data = training_eonr_dt[,c('eonr', low_var, high_var, 'z'), with = FALSE],
-                           strata = z, #I think it will bootstrap by year
+                           data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
+                           strata = year, #I think it will bootstrap by year
                            importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
     
     varImpPlot(rfhigh, type=2)
     plot(rfhigh)
     
-    if(policy_n == 5){
+    if(level_n == 5){
       pdf("./n_policy_box/Data/figures/VarImportancePlot.pdf")
       varImpPlot(rfhigh, type=2, main = '')
       dev.off() 
@@ -321,79 +707,87 @@ for(z_n in 1:30){
     # CREATE THE RANGER-RF
     # source('~/n_policy_git/Codes/3e_ranger_hyperparameters.R')
     # # Train a model
-    learner_rf = makeLearner("regr.ranger",
-                             num.trees = 585,
-                             min.node.size = 29,
-                             mtry = 4) #instructions
+    blocking_year <- factor(training_eonr_dt$year)
     
-    regr_task = makeRegrTask(data = training_eonr_dt, target = "eonr", blocking = 'year') #task = data
+    
+    learner_rf = makeLearner("regr.ranger",
+                             num.trees = 1700,
+                             min.node.size = 50,
+                             mtry = 5) #instructions
+    
+    regr_task = mlr::makeRegrTask(data = training_eonr_dt[,c('eonr', low_var, high_var), with = FALSE], 
+                                  target = "eonr", blocking = blocking_year) #task = data
+    
     tsk = subsetTask(regr_task, features = c(low_var, high_var))#specify the features to avoid using the year
     
+    # mcaffinity(1:20)
     ranger_rf <- train(learner_rf, task = regr_task)
-    
     #===================================================================================================================
     # EVALUATION
     
+    #Prepare the data
+    evaluation_set_dt[, P := Y_corn * Pc - N_fert * Pn_tmp]  #update profits
+    evaluation_set_dt[, G := N_fert * (Pn_tmp - Pn)] #gov collection
     #===================================================================================================================
     # 1) STATIC MRTN
     
     # the NRS is trained with z1-10 and testing is evaluated with z11-25
-    testing_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
-                             by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+    evaluation_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
+                                by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,NRS := 'staticmrtn'][,policy := policy_n]
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRS := 'staticmrtn'][,policy := paste0('ratio_', level_n)]
     #===================================================================================================================
     # 2) RFHIGH
     # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
     
     prediction_set_aggregated_dt[,eonr_pred := round(predict(rfhigh, prediction_set_aggregated_dt)/10,0)*10]
     
-    testing_set_tmp <- merge(evaluation_set_dt,
-                             prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+    evaluation_set_tmp <- merge(evaluation_set_dt,
+                                prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,NRS := 'rfhigh'][,policy := policy_n]
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRS := 'rfhigh'][,policy := paste0('ratio_', level_n)]
     
     #===================================================================================================================
     # 3) RANGER-RF
     # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
     
-    prediction_set_aggregated_dt[,eonr_pred := round(predict(mod_rf, newdata = prediction_set_aggregated_dt[,c(low_var, high_var), with = FALSE])$data$response/10)*10] 
+    prediction_set_aggregated_dt[,eonr_pred := round(predict(ranger_rf , newdata = prediction_set_aggregated_dt[,c(low_var, high_var), with = FALSE])$data$response/10)*10] 
     
     
-    testing_set_tmp <- merge(evaluation_set_dt,
-                             prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+    evaluation_set_tmp <- merge(evaluation_set_dt,
+                                prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,NRS := 'rfranger'][,policy := policy_n]
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRS := 'rfranger'][,policy := paste0('ratio_', level_n)]
     
     
     #===================================================================================================================
     # 3) EXPOST
     
-    testing_set_tmp <-  evaluation_set_dt %>% 
+    evaluation_set_tmp <-  evaluation_set_dt %>% 
       .[, .SD[ P == max( P)], by = .(id_10, id_field, z)] %>%
       .[, .SD[ N_fert == min(N_fert)], by = .(id_10, id_field, z)] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,NRS := 'expost'][,policy := policy_n]
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRS := 'expost'][,policy := paste0('ratio_', level_n)]
     #===================================================================================================================
-    # Save it to the big list
-    reg_model_stuff[[policy_n]] <- small_model_list
-    names(reg_model_stuff)
-  }
+    
+  }#end of ratio loop
+  
+  
   
   
   
@@ -602,15 +996,15 @@ for(z_n in 1:30){
     # prediction_set_aggregated_dt[,eonr_pred := ceiling(predict(xgbc, xgb_test)/10)*10]
     # caret::RMSE(prediction_set_aggregated_dt$eonr_12, prediction_set_aggregated_dt$eonr_pred)
     # 
-    # testing_set_tmp <- merge(evaluation_set_dt,
+    # evaluation_set_tmp <- merge(evaluation_set_dt,
     #                          prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
     #   .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
     #   .[N_fert == eonr_pred] %>%
-    #   .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+    #   .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     # 
-    # testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    # evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     # 
-    # results_list[[length(results_list)+1]] <- testing_set_tmp[,lag := lag_n][,NRS := 'xgboost']
+    # results_list[[length(results_list)+1]] <- evaluation_set_tmp[,lag := lag_n][,NRS := 'xgboost']
     
     #===================================================================================================================
     # EVALUATION
@@ -619,38 +1013,38 @@ for(z_n in 1:30){
     # 1) STATIC MRTN
     
     # the NRS is trained with z1-10 and testing is evaluated with z11-25
-    testing_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
+    evaluation_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
                              by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
 
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,lag := lag_n][,NRS := 'staticmrtn']
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,lag := lag_n][,NRS := 'staticmrtn']
     
     #===================================================================================================================
     # 1) extra20 (MRTN + 20)
     
     # the NRS is trained with z1-10 and testing is evaluated with z11-25
-    testing_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
+    evaluation_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
                              by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[N_fert == eonr_pred+20] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,lag := lag_n][,NRS := 'extra20']
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,lag := lag_n][,NRS := 'extra20']
     
     #===================================================================================================================
     # 1) STATIC MEAN
     
     # the NRS is trained with z1-10 and testing is evaluated with z11-25
-    testing_set_tmp <- merge(evaluation_set_dt, static_mean_dt, 
+    evaluation_set_tmp <- merge(evaluation_set_dt, static_mean_dt, 
                              by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,lag := lag_n][,NRS := 'staticmean']
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,lag := lag_n][,NRS := 'staticmean']
     #===================================================================================================================
     # 2) RFLOW
     # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
@@ -659,15 +1053,15 @@ for(z_n in 1:30){
     
     #---------------------------------------------------------------------------
     # PERFORMANCE EVALUATION
-    testing_set_tmp <- merge(evaluation_set_dt,
+    evaluation_set_tmp <- merge(evaluation_set_dt,
                              prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,lag := lag_n][,NRS := 'rflow']
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,lag := lag_n][,NRS := 'rflow']
     
     #===================================================================================================================
     # 2) RFHIGH
@@ -695,15 +1089,15 @@ for(z_n in 1:30){
     
     #---------------------------------------------------------------------------
     # PERFORMANCE EVALUATION
-    testing_set_tmp <- merge(evaluation_set_dt,
+    evaluation_set_tmp <- merge(evaluation_set_dt,
                              prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,lag := lag_n][,NRS := 'rfhigh']
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,lag := lag_n][,NRS := 'rfhigh']
     
     #===================================================================================================================
     # 2) DYNAMIC LONG TERM
@@ -731,15 +1125,15 @@ for(z_n in 1:30){
     
     #---------------------------------------------------------------------------
     # PERFORMANCE EVALUATION
-    testing_set_tmp <- merge(evaluation_set_dt,
+    evaluation_set_tmp <- merge(evaluation_set_dt,
                              prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,lag := lag_n][,NRS := 'rfLT']
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,lag := lag_n][,NRS := 'rfLT']
     # #===================================================================================================================
     # # 2) DYNAMICYEAR
     # # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
@@ -750,13 +1144,13 @@ for(z_n in 1:30){
     # 
     # #---------------------------------------------------------------------------
     # # PERFORMANCE EVALUATION
-    # testing_set_tmp <- merge(evaluation_set_dt,
+    # evaluation_set_tmp <- merge(evaluation_set_dt,
     #                          dynamicyear_dt[,.(region, z, eonr_pred)], by = c('region','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
     #   .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
     #   .[N_fert == eonr_pred] %>%
-    #   .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+    #   .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     # 
-    # results_list[[length(results_list)+1]] <- testing_set_tmp[,lag := lag_n][,NRS := 'dynamicyear']
+    # results_list[[length(results_list)+1]] <- evaluation_set_tmp[,lag := lag_n][,NRS := 'dynamicyear']
     # 
     # 
     # #===================================================================================================================
@@ -769,13 +1163,13 @@ for(z_n in 1:30){
     # 
     # # #---------------------------------------------------------------------------
     # # # PERFORMANCE EVALUATION
-    # testing_set_tmp <- merge(evaluation_set_dt,
+    # evaluation_set_tmp <- merge(evaluation_set_dt,
     #                          prediction_set_aggregated_dt2[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
     #   .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
     #   .[N_fert == eonr_pred] %>%
-    #   .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+    #   .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     # 
-    # results_list[[length(results_list)+1]] <- testing_set_tmp[,lag := lag_n][,NRS := 'cnn'] 
+    # results_list[[length(results_list)+1]] <- evaluation_set_tmp[,lag := lag_n][,NRS := 'cnn'] 
     
     
     #===================================================================================================================
@@ -786,15 +1180,15 @@ for(z_n in 1:30){
     
     #---------------------------------------------------------------------------
     # PERFORMANCE EVALUATION
-    testing_set_tmp <- merge(evaluation_set_dt,
+    evaluation_set_tmp <- merge(evaluation_set_dt,
                              prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,lag := lag_n][,NRS := 'forecast']
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,lag := lag_n][,NRS := 'forecast']
     
     #===================================================================================================================
     # 3) CORRECTED
@@ -811,15 +1205,15 @@ for(z_n in 1:30){
     #
     # #---------------------------------------------------------------------------
     # # PERFORMANCE EVALUATION
-    testing_set_tmp <- merge(evaluation_set_dt,
+    evaluation_set_tmp <- merge(evaluation_set_dt,
                              prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,lag := lag_n][,NRS := 'corrected']
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,lag := lag_n][,NRS := 'corrected']
     # #===================================================================================================================
     # # 3) METAMODEL
     # 
@@ -873,15 +1267,15 @@ for(z_n in 1:30){
     # summary(prediction_set_aggregated_dt$eonr_pred)
     # #---------------------------------------------------------------------------
     # # PERFORMANCE EVALUATION
-    # testing_set_tmp <- merge(evaluation_set_dt,
+    # evaluation_set_tmp <- merge(evaluation_set_dt,
     #                          prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
     #   .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
     #   .[N_fert == eonr_pred] %>%
-    #   .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+    #   .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     # 
-    # testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    # evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     # 
-    # results_list[[length(results_list)+1]] <- testing_set_tmp[,lag := lag_n][,NRS := 'metamodel']
+    # results_list[[length(results_list)+1]] <- evaluation_set_tmp[,lag := lag_n][,NRS := 'metamodel']
     
     #===================================================================================================================
     # 3) YIELD GOAL
@@ -894,15 +1288,15 @@ for(z_n in 1:30){
     
     # #---------------------------------------------------------------------------
     # # PERFORMANCE EVALUATION
-    testing_set_tmp <- merge(evaluation_set_dt,
+    evaluation_set_tmp <- merge(evaluation_set_dt,
                              prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,lag := lag_n][,NRS := 'yieldgoal']
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,lag := lag_n][,NRS := 'yieldgoal']
     #===================================================================================================================
     # 3) EXPOST
     predictions_expost_dt  <- aggregate_by_area(data_dt = evaluation_set_dt, variables = c('P'),
@@ -912,15 +1306,15 @@ for(z_n in 1:30){
     
     # #---------------------------------------------------------------------------
     # # PERFORMANCE EVALUATION
-    testing_set_tmp <- merge(evaluation_set_dt,
+    evaluation_set_tmp <- merge(evaluation_set_dt,
                              predictions_expost_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- testing_set_tmp[,lag := lag_n][,NRS := 'expost']
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,lag := lag_n][,NRS := 'expost']
     #===================================================================================================================
     # 3) YIELD RESPONSE
     # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
@@ -929,15 +1323,15 @@ for(z_n in 1:30){
     # 
     # # #---------------------------------------------------------------------------
     # # # PERFORMANCE EVALUATION
-    # testing_set_tmp <- merge(evaluation_set_dt,
+    # evaluation_set_tmp <- merge(evaluation_set_dt,
     #                          prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
     #   .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
     #   .[N_fert == eonr_pred] %>%
-    #   .[,c("region", "id_10", 'id_field',  "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', 'Yld_response')]
+    #   .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     # 
-    # testing_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+    # evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     # 
-    # results_list[[length(results_list)+1]] <- testing_set_tmp[,lag := lag_n][,NRS := 'yieldresponse']
+    # results_list[[length(results_list)+1]] <- evaluation_set_tmp[,lag := lag_n][,NRS := 'yieldresponse']
     
   }#end of lag_n
 }#end of z_n
