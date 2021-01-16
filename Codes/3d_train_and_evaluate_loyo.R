@@ -2,10 +2,10 @@ rm(list=ls())
 # 
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # codes_folder <-'C:/Users/germa/Documents'#Dell
-setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-codes_folder <-'C:/Users/germanm2/Documents'#CPSC
-# setwd('~')#Server
-# codes_folder <-'~' #Server
+# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+setwd('~')#Server
+codes_folder <-'~' #Server
 
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
@@ -96,7 +96,8 @@ saveRDS(yc_field_dt2, "./n_policy_box/Data/files_rds/yc_field_dt2.rds")
 
 
 z_n = 10
-for(z_n in 1:30){
+z_seq <- 1:30
+for(z_n in z_seq){
   print(z_n)
   results_list <- list()
   # yc_field_dt2[station == 1 & z %in% training_z, set := 'training']
@@ -105,18 +106,16 @@ for(z_n in 1:30){
   # yc_field_dt2 <- yc_field_dt2[!is.na(set)][,-'station']
   # yc_field_dt2[,.N, .(set, id_10, id_field)][,.N, set]#fields by set
   # saveRDS(yc_field_dt2, "./n_policy_box/Data/files_rds/yc_field_dt2.rds")
-
+  # =========================================================================================================================================================
+  # CREATE THE N RATIO TAX MODEL
+  
+  #Load datasets again
   training_set_dt <- yc_field_dt2[station == 1 & z != z_n]
   evaluation_set_dt <- yc_field_dt2[station != 1 & z == z_n]
   prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
   
-  # =========================================================================================================================================================
-  # CREATE THE N RATIO TAX MODEL
   
   ratio_seq <- sort(c(seq(5, 20, by = 1)))
-  # ratio_seq <- sort(c(seq(5, 20, by = 5)))
-  # ratio_seq <- c(5)
-  set.seed(123)
   ratio5_recommendations_list <- list()
   
   for(level_n in ratio_seq){
@@ -124,7 +123,7 @@ for(z_n in 1:30){
     
     Pn_tmp = level_n * Pc
     print(Pn_tmp/Pc)
-    # training_set_dt[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn_tmp]  #update profits
+    
     training_set_dt[, P := Y_corn * Pc - N_fert * Pn_tmp]  #update profits
     # =========================================================================================================================================================
     # CREATE THE STATIC MRTN
@@ -298,7 +297,7 @@ for(z_n in 1:30){
   for(level_n in leach_seq){
     # level_n = 5
     print(level_n)
-    # training_set_dt[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn_tmp]  #update profits
+    
     # training_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
     
     training_set_dt[, P := Y_corn * Pc - N_fert * Pn - L_extra * level_n] #update profits
@@ -462,10 +461,9 @@ for(z_n in 1:30){
   prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
   
   #Update threholds
-  
-  bal_threshold <- training_set_dt[N_fert == 100, .(N_balance_thr = quantile(N_balance, probs = 0.5)), region][order(region)]
-  
+
   training_set_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
+  bal_threshold <- training_set_dt[N_fert == 100, .(N_balance_thr = quantile(N_balance, probs = 0.5)), region][order(region)]
   training_set_dt <- merge(training_set_dt[,-'N_balance_thr'], bal_threshold, by = 'region')
   
   training_set_dt[,N_extra := N_balance - N_balance_thr]
@@ -485,7 +483,7 @@ for(z_n in 1:30){
   for(level_n in bal_seq){
     # level_n = 5
     print(level_n)
-    # training_set_dt[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn_tmp]  #update profits
+    
     # training_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
     training_set_dt[, P := Y_corn * Pc - N_fert * Pn - N_extra * level_n]#update profits
     training_set_dt[, P1 := Y_corn * Pc - N_fert * Pn]
@@ -739,21 +737,8 @@ for(z_n in 1:30){
   for(level_n in lag_seq){
     # level_n = 5
     print(level_n)
-    # training_set_dt[, P := Y_corn * Pc + Y_soy * Ps - N_fert * Pn_tmp]  #update profits
-    # training_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
+
     training_set_dt[, P := Y_corn * Pc - N_fert * Pn]#update profits
-    training_set_dt[, P1 := Y_corn * Pc - N_fert * Pn]
-    training_set_dt[, P2 := Y_corn * Pc - N_fert * Pn - N_extra * level_n]
-    
-    plot_dt <- training_set_dt[, .(P1 = mean(P1), 
-                                   P2 = mean(P2), 
-                                   N_extra = round(mean(N_extra),0)), by = .(region, N_fert)][order(region, N_fert)]
-    ggplot() + 
-      geom_line(data = plot_dt, aes(x = N_fert, y = P1, color = region))+
-      geom_point(data = plot_dt[,.SD[P1 == max(P1)], by = region], aes(x = N_fert, y = P1))+
-      geom_line(data = plot_dt, aes(x = N_fert, y = P2, color = region), linetype = 'dashed')+
-      geom_point(data = plot_dt[,.SD[P2 == max(P2)], by = region], aes(x = N_fert, y = P2))
-    
     # =========================================================================================================================================================
     # CREATE THE STATIC MRTN
     training_mrtn_dt <- training_set_dt[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
@@ -909,11 +894,11 @@ for(file_n in files_path){
   perfomances_list[[length(perfomances_list)+1]] <- readRDS(file_n)
   
 }
-perfomances_dt <- rbindlist(results_list)
-perfomances_dt[,.N, z][order(z)]
+field_perfomances_dt <- rbindlist(results_list)
+field_perfomances_dt[,.N, z][order(z)]
 
-perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, .(id_10)] %>% .[,N] %>% table() #number of fields by cell
-perfomances_dt[,.N, .(id_10, id_field, policy, NRS, z)] %>% .[,.N, .(NRS)] #field x year by NRS
+field_perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, .(id_10)] %>% .[,N] %>% table() #number of fields by cell
+field_perfomances_dt[,.N, .(id_10, id_field, policy, NRS, z)] %>% .[,.N, .(NRS)] #field x year by NRS
 
 
 saveRDS(field_perfomances_dt, "./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
