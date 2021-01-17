@@ -894,7 +894,7 @@ for(file_n in files_path){
   perfomances_list[[length(perfomances_list)+1]] <- readRDS(file_n)
   
 }
-field_perfomances_dt <- rbindlist(results_list)
+field_perfomances_dt <- rbindlist(perfomances_list)
 field_perfomances_dt[,.N, z][order(z)]
 
 field_perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, .(id_10)] %>% .[,N] %>% table() #number of fields by cell

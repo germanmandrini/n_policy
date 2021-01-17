@@ -2,10 +2,10 @@ rm(list=ls())
 
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # codes_folder <-'C:/Users/germa/Documents'#Dell
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
-setwd('~')#Server
-codes_folder <-'~' #Server
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+# setwd('~')#Server
+# codes_folder <-'~' #Server
 
 
 source('./Codes_useful/R.libraries.R')
@@ -21,15 +21,19 @@ if(T){
   grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
   
   perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
+  setnames(perfomances_dt, 'NRS', 'NRT')
+  perfomances_dt[NRT == 'staticmrtn', NRT := 'static']
+  perfomances_dt[NRT == 'rfhigh', NRT := 'dynamic']
+
   
-  perfomances_dt[,.(area_ha = sum(area_ha)), by = .(policy, NRS, id_10, id_field, z)]$area_ha %>% summary()
+  perfomances_dt[,.(area_ha = sum(area_ha)), by = .(policy, NRT, id_10, id_field, z)]$area_ha %>% summary()
   
   perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
-  perfomances_dt[,.N, .(id_10, id_field, policy, NRS)] %>% .[,N] %>% table() #number of z by field SHould be all equal
-  perfomances_dt[,.N, .(policy, NRS)]%>% .[,N] %>% table() #number of treatments (policy sublevels x NRS). SHould be all equal
-  table(perfomances_dt$NRS) #obs by NRS. SHould be all equal
+  perfomances_dt[,.N, .(id_10, id_field, policy, NRT)] %>% .[,N] %>% table() #number of z by field SHould be all equal
+  perfomances_dt[,.N, .(policy, NRT)]%>% .[,N] %>% table() #number of treatments (policy sublevels x NRT). SHould be all equal
+  table(perfomances_dt$NRT) #obs by NRT. SHould be all equal
   
-  summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NRS, z)]$area_ha)
+  summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NRT, z)]$area_ha)
   
   #-------------------------------------------------------------------------
   #Make profits relative to the zero rate
@@ -50,7 +54,7 @@ if(T){
   #-------------------------------------------------------------------------
   # AGGREGATE THE DATA TO CELL X Z LEVEL CONSIDERING THE AREA
   names(perfomances_dt)
-  do_not_aggregate = c('policy','id_10', 'region','NRS', 'z')
+  do_not_aggregate = c('policy','id_10', 'region','NRT', 'z')
   do_aggregate =  c("Y_corn", 'Y_soy', 'L1', 'L2', "L", "N_fert","P", 'G')
   
   if(FALSE){
@@ -79,12 +83,13 @@ if(T){
   perfomances_dt3 <- merge(perfomances_dt3, grid10_tiles_dt, by = 'id_10')
   
   
-  perfomances_dt4 <- aggregate_by_area(data_dt = perfomances_dt3, variables = c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G"), 
-                                       weight = 'corn_avg_ha', by_c = c('policy','NRS', 'region')) #region level, weighted by corn_ha
+  perfomances_dt4 <- aggregate_by_area(data_dt = perfomances_dt3, 
+                                       variables = c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G"), 
+                                       weight = 'corn_avg_ha', by_c = c('policy','NRT', 'region')) #region level, weighted by corn_ha
   
   # ---------
   # Make leaching relative to baselevel
-  baselevel_dt <- perfomances_dt4[policy == 'ratio_5' & NRS == 'staticmrtn', .(region, L_base = L, Y_base = Y_corn, P_base = P)]
+  baselevel_dt <- perfomances_dt4[policy == 'ratio_5' & NRT == 'static', .(region, L_base = L, Y_base = Y_corn, P_base = P)]
   
   perfomances_dt4 <- merge(perfomances_dt4, baselevel_dt, by = 'region')
   perfomances_dt4[,L_change := round((L / L_base) - 1,3)*100 ]
@@ -108,11 +113,12 @@ if(T){
   saveRDS(perfomances_dt4, "./n_policy_box/Data/files_rds/perfomances_dt4.rds")
   #---------------------------------------------------------------------------
   # AGGREGATE AGAIN AT THE STATE LEVEL, CONSIDERING THE CORN PRODUCTION OF THE CELL
-  perfomances_dt5 <- aggregate_by_area(data_dt = perfomances_dt4, variables = c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G"), 
-                                       weight = 'corn_avg_ha', by_c = c('policy', 'NRS')) #state level, weighted by corn_ha
+  perfomances_dt5 <- aggregate_by_area(data_dt = perfomances_dt4, 
+                                       variables = c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G"), 
+                                       weight = 'corn_avg_ha', by_c = c('policy', 'NRT')) #state level, weighted by corn_ha
   # ---------
   # Make leaching relative to baselevel
-  baselevel_dt <- perfomances_dt5[policy == 'ratio_5' & NRS == 'staticmrtn', .( L_base = L, Y_base = Y_corn, P_base = P)]
+  baselevel_dt <- perfomances_dt5[policy == 'ratio_5' & NRT == 'static', .( L_base = L, Y_base = Y_corn, P_base = P)]
 
   perfomances_dt5 <- cbind(perfomances_dt5, baselevel_dt)
   perfomances_dt5[,L_change := round((L / L_base) - 1,3)*100 ]
@@ -143,22 +149,22 @@ if(T){
 # STATE LEVEL PLOT 
 perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 
-perfomances_dt5[policy %in% c('ratio_5', 'leach_0', 'bal_0', 'red_1') & NRS == 'static']
-perfomances_dt5[policy %in% c('ratio_5', 'leach_0', 'bal_0', 'red_1') & NRS == 'dynamic']
+perfomances_dt5[policy %in% c('ratio_5', 'leach_0', 'bal_0', 'red_1', 'lag_0') & NRT == 'static']
+perfomances_dt5[policy %in% c('ratio_5', 'leach_0', 'bal_0', 'red_1') & NRT == 'dynamic']
 
 
-plot_dt <- perfomances_dt5[policy_name %in% c('ratio', 'leach', 'bal', 'lag') & NRS %in% c('static', 'dynamic')] 
+plot_dt <- perfomances_dt5[policy_name %in% c('ratio', 'leach', 'bal', 'lag') & NRT %in% c('static', 'dynamic')] 
 
 # plot_dt[policy_name%in% c('red'), policy_val  := (1-policy_val )*100]
 
-# plot_dt[policy_name%in% c('nred') & NRS == 'dynamic' & policy_val > 15, policy_val  := -round(L_change) ]
-# plot_dt[policy_name%in% c('nred') & NRS == 'dynamic' & policy_val > 15]
+# plot_dt[policy_name%in% c('nred') & NRT == 'dynamic' & policy_val > 15, policy_val  := -round(L_change) ]
+# plot_dt[policy_name%in% c('nred') & NRT == 'dynamic' & policy_val > 15]
 
-baselevel_L <- plot_dt[policy == 'ratio_5' & NRS == 'static', L]
-baselevel_Y_corn <- plot_dt[policy == 'ratio_5' & NRS == 'static', Y_corn ]
+baselevel_L <- plot_dt[policy == 'ratio_5' & NRT == 'static', L]
+baselevel_Y_corn <- plot_dt[policy == 'ratio_5' & NRT == 'static', Y_corn ]
 
 
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'NRS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'NRT'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
                                                                                                'P', 'G', 'net_balance'))
 
 plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance'),
@@ -194,9 +200,9 @@ hline_dt[policy_name == 'ratio' & variable == 'Y_corn', y_label := '95% base-lev
 
 
 (p <- ggplot() +
-   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRS)) +
+   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRT)) +
    # scale_colour_manual(values = c("black", "brown"))+
-   geom_line(data = plot_dt_long, aes(x = policy_val, y =  value, color = NRS), size = 1) +
+   geom_line(data = plot_dt_long, aes(x = policy_val, y =  value, color = NRT), size = 1) +
    # scale_linetype_manual(values = c("dashed", "solid"))+
    geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
    # geom_text(data = hline_dt, aes(x = 5, y = y_line+50, label =y_label ), hjust = 'left', vjust = 'center') +
@@ -227,7 +233,7 @@ ggsave(plot = p,
 # Elasticity of Demand Point-Slope Formula: https://pressbooks.bccampus.ca/uvicecon103/chapter/4-2-elasticity/
 if(FALSE){
   
-  elasticity_dt <- perfomances_dt5[policy_name == 'ratio' & NRS == 'static' & policy_val %in% c(5,6)]
+  elasticity_dt <- perfomances_dt5[policy_name == 'ratio' & NRT == 'static' & policy_val %in% c(5,6)]
   
   d_quantity <- (elasticity_dt[policy_val == 6, N_fert]  - elasticity_dt[policy_val == 5, N_fert])/
     elasticity_dt[policy_val == 5, N_fert]
@@ -236,7 +242,7 @@ if(FALSE){
   
   d_quantity/d_price
   
-  elasticity_dt <- perfomances_dt5[policy_name == 'ratio' & NRS == 'dynamic' & policy_val %in% c(5,6)]
+  elasticity_dt <- perfomances_dt5[policy_name == 'ratio' & NRT == 'dynamic' & policy_val %in% c(5,6)]
   
   d_quantity <- (elasticity_dt[policy_val == 6, N_fert]  - elasticity_dt[policy_val == 5, N_fert])/
     elasticity_dt[policy_val == 5, N_fert]
@@ -250,44 +256,44 @@ if(FALSE){
 if(FALSE){
   IL_corn_area_ha = 5179976
   percent20_dt <- perfomances_dt5[ L_change < -19]
-  percent20_dt <- percent20_dt[, .SD[ policy_val == min(policy_val)], by = .(NRS, policy_name)]
+  percent20_dt <- percent20_dt[, .SD[ policy_val == min(policy_val)], by = .(NRT, policy_name)]
   saveRDS(percent20_dt, "./n_policy_box/Data/files_rds/percent20_dt.rds")
-  percent20_dt[policy_name == 'ratio' & NRS == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
-  percent20_dt[policy_name == 'leach' & NRS == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
-  percent20_dt[policy_name == 'bal' & NRS == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
+  percent20_dt[policy_name == 'ratio' & NRT == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
+  percent20_dt[policy_name == 'leach' & NRT == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
+  percent20_dt[policy_name == 'bal' & NRT == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
 }
 IL_corn_area_ha * 10 / 1000000
 
 #--------------------------------------------------------------------------------
 # Certified farmer
-perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
-percent20_dt <- readRDS("./n_policy_box/Data/files_rds/percent20_dt.rds")
-
-ratio_14_dt <- perfomances_dt5[policy == 'ratio_14']
-baselevel_dt <- perfomances_dt5[policy == 'ratio_5' & NRS == 'static', .( L_base = L, Y_base = Y_corn, P_base = P)]
-
-ratio_14_dt <- cbind(ratio_14_dt, baselevel_dt)
-ratio_14_dt[,L_change := round((L / L_base) - 1,3)*100 ]
-
-
-
-
-
-region_dt_base <- region_dt[policy == 'ratio_5', .(region_lab, Y_corn, L, N_fert, P)]
-region_dt_20down <- region_dt[policy != 'ratio_5', 
-
-region_dt2 <- merge(region_dt_20down, region_dt_base, by = 'region_lab', suffixes = c("", "_base"))
-region_dt2[, Y_corn_diff := Y_corn - Y_corn_base]
-region_dt2[, L_diff := L - L_base]
-region_dt2[, N_fert_diff := N_fert - N_fert_base]
-region_dt2[, P_diff := P - P_base]
-region_dt2[, policy_cost := P + G - P_base]
-region_dt2 <- region_dt2[,.(region_lab, policy_name, NRS, Y_corn, L, N_fert, P, G,Y_corn_diff, L_diff, N_fert_diff, P_diff, policy_cost)]
-region_dt2[order(-region_lab)]
-region_dt2[,.(L_diff = mean(L_diff),
-              N_fert_diff = mean(N_fert_diff),
-              net_balance = mean(net_balance)), by = .(NRS, region_lab) ]
-
+# perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
+# percent20_dt <- readRDS("./n_policy_box/Data/files_rds/percent20_dt.rds")
+# 
+# ratio_14_dt <- perfomances_dt5[policy == 'ratio_14']
+# baselevel_dt <- perfomances_dt5[policy == 'ratio_5' & NRT == 'static', .( L_base = L, Y_base = Y_corn, P_base = P)]
+# 
+# ratio_14_dt <- cbind(ratio_14_dt, baselevel_dt)
+# ratio_14_dt[,L_change := round((L / L_base) - 1,3)*100 ]
+# 
+# 
+# 
+# 
+# 
+# region_dt_base <- region_dt[policy == 'ratio_5', .(region_lab, Y_corn, L, N_fert, P)]
+# region_dt_20down <- region_dt[policy != 'ratio_5', 
+# 
+# region_dt2 <- merge(region_dt_20down, region_dt_base, by = 'region_lab', suffixes = c("", "_base"))
+# region_dt2[, Y_corn_diff := Y_corn - Y_corn_base]
+# region_dt2[, L_diff := L - L_base]
+# region_dt2[, N_fert_diff := N_fert - N_fert_base]
+# region_dt2[, P_diff := P - P_base]
+# region_dt2[, policy_cost := P + G - P_base]
+# region_dt2 <- region_dt2[,.(region_lab, policy_name, NRT, Y_corn, L, N_fert, P, G,Y_corn_diff, L_diff, N_fert_diff, P_diff, policy_cost)]
+# region_dt2[order(-region_lab)]
+# region_dt2[,.(L_diff = mean(L_diff),
+#               N_fert_diff = mean(N_fert_diff),
+#               net_balance = mean(net_balance)), by = .(NRT, region_lab) ]
+# 
 
 
 
@@ -307,18 +313,18 @@ percent20_dt[,cost_red_dlr_lb := policy_cost/lb_removed]
 
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 
-perfomances_dt4[policy %in% c('ratio_5', 'leach_0', 'nred_1', 'target_1', 'red_1', 'bal_0') & NRS == 'static']
-perfomances_dt4[policy %in% c('ratio_5', 'leach_0', 'nred_1', 'target_1', 'red_1', 'bal_0') & NRS == 'dynamic']
+perfomances_dt4[policy %in% c('ratio_5', 'leach_0', 'nred_1', 'target_1', 'red_1', 'bal_0') & NRT == 'static']
+perfomances_dt4[policy %in% c('ratio_5', 'leach_0', 'nred_1', 'target_1', 'red_1', 'bal_0') & NRT == 'dynamic']
 
 
-plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'leach', 'red', 'bal') & NRS %in% c('static', 'dynamic')] 
+plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'leach', 'red', 'bal') & NRT %in% c('static', 'dynamic')] 
 
 
-baselevel_L <- plot_dt[policy == 'ratio_5' & NRS == 'static', L]
-baselevel_Y_corn <- plot_dt[policy == 'ratio_5' & NRS == 'static', Y_corn ]
+baselevel_L <- plot_dt[policy == 'ratio_5' & NRT == 'static', L]
+baselevel_Y_corn <- plot_dt[policy == 'ratio_5' & NRT == 'static', Y_corn ]
 
 
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val',  'region', 'NRS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val',  'region', 'NRT'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
                                                                                                'P', 'G', 'net_balance'))
 
 plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance'),
@@ -345,9 +351,9 @@ plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal'
 
 
 (p <- ggplot() +
-    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRS)) +
+    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRT)) +
     # scale_colour_manual(values = c("black", "brown"))+
-    geom_line(data = plot_dt_long, aes(x = policy_val, y =  value, color = NRS, linetype = region), size = 1) +
+    geom_line(data = plot_dt_long, aes(x = policy_val, y =  value, color = NRT, linetype = region), size = 1) +
     # scale_linetype_manual(values = c("dashed", "solid"))+
     # geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
     # geom_text(data = hline_dt, aes(x = 5, y = y_line+50, label =y_label ), hjust = 'left', vjust = 'center') +
@@ -379,8 +385,8 @@ ggsave(plot = p,
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 percent20_dt <- readRDS("./n_policy_box/Data/files_rds/percent20_dt.rds")
 
-percent20_dt <- percent20_dt[NRS == 'static',.(policy, NRS)]
-percent20_dt <- rbind(data.table(policy = c('ratio_5'), NRS = c('static')), 
+percent20_dt <- percent20_dt[NRT == 'static',.(policy, NRT)]
+percent20_dt <- rbind(data.table(policy = c('ratio_5'), NRT = c('static')), 
                       percent20_dt)
 
 region_dt <- filter_dt_in_dt(perfomances_dt4, filter_dt = percent20_dt, return_table = T)
@@ -389,7 +395,7 @@ region_dt[region == 2,region_lab := '2-Central']
 region_dt[region == 3,region_lab := '3-North']
 
 region_dt_base <- region_dt[policy == 'ratio_5', .(region_lab, Y_corn, L, N_fert, P)]
-region_dt_20down <- region_dt[policy != 'ratio_5', .(region_lab, policy_name, NRS, Y_corn, L, N_fert, P, G, net_balance)]
+region_dt_20down <- region_dt[policy != 'ratio_5', .(region_lab, policy_name, NRT, Y_corn, L, N_fert, P, G, net_balance)]
 
 region_dt2 <- merge(region_dt_20down, region_dt_base, by = 'region_lab', suffixes = c("", "_base"))
 region_dt2[, Y_corn_diff := Y_corn - Y_corn_base]
@@ -397,11 +403,11 @@ region_dt2[, L_diff := L - L_base]
 region_dt2[, N_fert_diff := N_fert - N_fert_base]
 region_dt2[, P_diff := P - P_base]
 region_dt2[, policy_cost := P + G - P_base]
-region_dt2 <- region_dt2[,.(region_lab, policy_name, NRS, Y_corn, L, N_fert, P, G,Y_corn_diff, L_diff, N_fert_diff, P_diff, policy_cost)]
+region_dt2 <- region_dt2[,.(region_lab, policy_name, NRT, Y_corn, L, N_fert, P, G,Y_corn_diff, L_diff, N_fert_diff, P_diff, policy_cost)]
 region_dt2[order(-region_lab)]
 region_dt2[,.(L_diff = mean(L_diff),
               N_fert_diff = mean(N_fert_diff),
-              net_balance = mean(net_balance)), by = .(NRS, region_lab) ]
+              net_balance = mean(net_balance)), by = .(NRT, region_lab) ]
 
 #--------------------------------------------------------------------------------
 # N Balance
@@ -418,14 +424,14 @@ balance_dt[region == 2,region_lab := '2-Central']
 balance_dt[region == 3,region_lab := '3-North']
 
 
-(p1 <- ggplot(data = balance_dt)+ geom_density(aes(x = N_balance, colour = NRS), size =1)+
+(p1 <- ggplot(data = balance_dt)+ geom_density(aes(x = N_balance, colour = NRT), size =1)+
   facet_free(region_lab~.)+
   ggtitle('N Balance'))
 
 ggsave(plot = p1, 
        filename = "./n_policy_box/Data/figures/balance1.png")
 
-(p2 <- ggplot(data = balance_dt)+ geom_density(aes(x = L2, colour = NRS), size =1)+
+(p2 <- ggplot(data = balance_dt)+ geom_density(aes(x = L2, colour = NRT), size =1)+
   facet_free(region_lab~.)+
   ggtitle('Leaching'))
 
@@ -491,17 +497,17 @@ ggplot(data = state_agg_dt2) +
 #POSTER
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 
-plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'fee', 'nred', 'red') & NRS %in% c('static', 'dynamic') ] 
+plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'fee', 'nred', 'red') & NRT %in% c('static', 'dynamic') ] 
 
 plot_dt[policy_name%in% c('nred', 'target'), policy_val  := (1-policy_val )*100]
-# plot_dt[policy_name%in% c('nred') & NRS == 'dynamic' & policy_val > 15, policy_val  := -round(L_change) ]
-# plot_dt[policy_name%in% c('nred') & NRS == 'dynamic' & policy_val > 15]
+# plot_dt[policy_name%in% c('nred') & NRT == 'dynamic' & policy_val > 15, policy_val  := -round(L_change) ]
+# plot_dt[policy_name%in% c('nred') & NRT == 'dynamic' & policy_val > 15]
 
-baselevel_L <- perfomances_dt4[policy == 'ratio_5' & NRS == 'static', L]
-baselevel_Y_corn <- perfomances_dt4[policy == 'ratio_5' & NRS == 'static', Y_corn ]
+baselevel_L <- perfomances_dt4[policy == 'ratio_5' & NRT == 'static', L]
+baselevel_Y_corn <- perfomances_dt4[policy == 'ratio_5' & NRT == 'static', Y_corn ]
 
 
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'NRS'), measure.vars = c('L_change',  
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'NRT'), measure.vars = c('L_change',  
                                                                                                'P', 'G', 'net_balance'))#'N_fert' 'Y_corn', 
 
 plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance'),
@@ -544,9 +550,9 @@ hline_dt[policy_name == 'ratio' & variable == 'Y_corn', y_label := '95% base-lev
 #----
 
 (p <- ggplot() +
-   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRS)) +
+   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRT)) +
    # scale_colour_manual(values = c("black", "brown"))+
-   geom_line(data = plot_dt_long, aes(x = policy_val, y =  value, color = NRS), size = 1) +
+   geom_line(data = plot_dt_long, aes(x = policy_val, y =  value, color = NRT), size = 1) +
    # scale_linetype_manual(values = c("dashed", "solid"))+
    geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
    # geom_text(data = hline_dt, aes(x = 5, y = y_line+50, label =y_label ), hjust = 'left', vjust = 'center') +
@@ -624,9 +630,9 @@ grid.draw(gp)
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn')] 
 
 (plot_2 <- ggplot() +
-    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRS)) +
+    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRT)) +
     # scale_colour_manual(values = c("black", "brown"))+
-    geom_line(data = plot_dt_long2, aes(x = policy_val, y =  value, color = NRS)) +
+    geom_line(data = plot_dt_long2, aes(x = policy_val, y =  value, color = NRT)) +
     # scale_linetype_manual(values = c("dashed", "solid"))+
     # geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
     # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
@@ -659,14 +665,14 @@ ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1),
        units = 'in')
 #==========================================================================
 # LRED CHART
-plot_dt <- perfomances_dt4[policy_name == 'nred' & NRS %in% c('static','dynamic')][order(NRS, -policy_val)]
+plot_dt <- perfomances_dt4[policy_name == 'nred' & NRT %in% c('static','dynamic')][order(NRT, -policy_val)]
 
 # plot_dt[,L_red := round(1-(L / baselevel_L),2)*100 ]
 # plot_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
 plot_dt[,policy_val  := (1-policy_val )*100]
-ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L_change, color = NRS))
+ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L_change, color = NRT))
 
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NRS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NRT'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
                                                                                  'P', 'G', 'net_balance')) %>% data.table()
 
 plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance'),
@@ -696,9 +702,9 @@ ann_text
 #----
 
 (plot_1 <- ggplot() +
-   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRS)) +
+   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRT)) +
    # scale_colour_manual(values = c("black", "brown"))+
-   geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, color = NRS)) +
+   geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, color = NRT)) +
    # scale_linetype_manual(values = c("dashed", "solid"))+
    geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
    geom_text(data = hline_dt, aes(x = 10, y = y_line, label =y_label ))+
@@ -727,9 +733,9 @@ ann_text
 
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn', 'G')] 
 (plot_2 <- ggplot() +
-    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRS)) +
+    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRT)) +
     # scale_colour_manual(values = c("black", "brown"))+
-    geom_line(data = plot_dt_long2, aes(x = policy_val, y =  value, color = NRS)) +
+    geom_line(data = plot_dt_long2, aes(x = policy_val, y =  value, color = NRT)) +
     # scale_linetype_manual(values = c("dashed", "solid"))+
     # geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
     # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
@@ -763,13 +769,13 @@ ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1),
 #==========================================================================
 # FEE CHART
 
-plot_dt <- perfomances_dt4[policy_name == 'fee' & NRS %in% c('static','dynamic') ] 
+plot_dt <- perfomances_dt4[policy_name == 'fee' & NRT %in% c('static','dynamic') ] 
 
 plot_dt[,L := round((L / baselevel_L) - 1,2)*100 ]
 
-ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NRS))
+ggplot(plot_dt) + geom_line(aes(x = policy_val, y = L, color = NRT))
 
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NRS'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NRT'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
                                                                                  'P', 'G', 'net_balance'))
 
 plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance'),
@@ -799,9 +805,9 @@ ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)")]
 #----
 
 (plot_1 <- ggplot() +
-   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRS)) +
+   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRT)) +
    # scale_colour_manual(values = c("black", "brown"))+
-   geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, color = NRS)) +
+   geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, color = NRT)) +
    # scale_linetype_manual(values = c("dashed", "solid"))+
    geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
    geom_text(data = hline_dt, aes(x = 16, y = y_line, label =y_label ))+
@@ -831,9 +837,9 @@ ann_text[,lab := c("a)", "b)", "c)", "d)", "e)", "f)", "g)")]
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L_change', 'Y_corn')] 
 
 (plot_2 <- ggplot() +
-    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRS)) +
+    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRT)) +
     # scale_colour_manual(values = c("black", "brown"))+
-    geom_line(data = plot_dt_long2, aes(x = policy_val, y =  value, color = NRS)) +
+    geom_line(data = plot_dt_long2, aes(x = policy_val, y =  value, color = NRT)) +
     # scale_linetype_manual(values = c("dashed", "solid"))+
     # geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
     # geom_text(data = hline_dt, aes(x = 18, y = y_line, label =y_label ))+
@@ -868,18 +874,18 @@ ggsave(plot = grid.arrange(plot_1, plot_2, nrow = 1),
 
 #==========================================================================
 # W MAXIMIZATION
-w_dt <- perfomances_dt4[policy_name != 'subs',.SD[W == max(W)], by = .(policy_name, NRS)][order(-W)] #peak in W
+w_dt <- perfomances_dt4[policy_name != 'subs',.SD[W == max(W)], by = .(policy_name, NRT)][order(-W)] #peak in W
 w_dt[,policy_val := as.numeric(policy_val )]
 w_dt[policy_name == 'nred', policy_val := (1-as.numeric(policy_val ))*100]
 w_dt[policy_name == 'nred', policy_name := 'target']
-baselevel_dt <- perfomances_dt4[policy  == 'ratio_6' & NRS == 1]
+baselevel_dt <- perfomances_dt4[policy  == 'ratio_6' & NRT == 1]
 baselevel_dt[,policy_name := 'base-level']
 baselevel_dt[,policy_val := '-']
 baselevel_dt
 
 w_dt <- rbind(w_dt ,baselevel_dt) %>% .[order(-W)]
 
-latex_table_dt <- w_dt[,c('policy_name', 'policy_val','NRS',  'N_fert', 'Y_corn', 'L_change', 'P', 'G',  'E', 'W')]
+latex_table_dt <- w_dt[,c('policy_name', 'policy_val','NRT',  'N_fert', 'Y_corn', 'L_change', 'P', 'G',  'E', 'W')]
 
 cols_1 <- c('N_fert', 'Y_corn', 'L_change', 'P', 'G',  'E', 'W')
 latex_table_dt[,(cols_1) := round(.SD,1), .SDcols=cols_1]
@@ -889,7 +895,7 @@ setnames(latex_table_dt, c('policy_name', 'policy_val', 'N_fert', 'Y_corn', 'L_c
          c('policy', 'level', 'N rate (kg/ha)', 'Y_corn (kg/ha)', 'L change (%)', 'Profits ($/ha)', 'G ($/ha)',  'E ($/ha)', 'W ($/ha)'))
 
 latex_table_xt <- xtable(latex_table_dt, type = "latex", auto = TRUE, label = 'tab:w_maximization', 
-                         caption = 'Indicators for the level that maximized W for each policy and NRS combination, ordered by their W. 
+                         caption = 'Indicators for the level that maximized W for each policy and NRT combination, ordered by their W. 
                          The base-level system is also shown as a benchmark')
 
 #make L in %. Change N red name to L reduction target
@@ -908,28 +914,28 @@ print(latex_table_xt, file = "./n_policy_box/Data/figures/w_maximization.tex", i
 unique(perfomances_dt4$policy)
 
 policies_f <- c("fee_0", "ratio_9", "fee_8", 'nred_0.85', 'nred_0.7')
-NRSs_f <- c('static', 'dynamic')
+NRTs_f <- c('static', 'dynamic')
 
-table_dt <- perfomances_dt4[policy %in% policies_f & NRS %in% NRSs_f]
-table_dt[policy == 'fee_0' & NRS == 'static', order := 1]
-table_dt[policy == 'fee_0' & NRS == 'dynamic', order := 2] #science
-table_dt[policy == 'yr_0.9' & NRS == 'static', order := 3] #ecological model
-table_dt[policy == 'ratio_9' & NRS == 'static', order := 4] #tax
-table_dt[policy == 'fee_8' & NRS == 'static', order := 5] #fee
-table_dt[policy == 'nred_0.85' & NRS == 'dynamic', order := 6] #ecological model + science
-table_dt[policy == 'ratio_9' & NRS == 'dynamic', order := 7] #tax+science
-table_dt[policy == 'fee_8' & NRS == 'dynamic', order := 8] #fee+science
-table_dt[policy == 'nred_0.7' & NRS == 'dynamic', order := 9] #ecological model strong  + science
+table_dt <- perfomances_dt4[policy %in% policies_f & NRT %in% NRTs_f]
+table_dt[policy == 'fee_0' & NRT == 'static', order := 1]
+table_dt[policy == 'fee_0' & NRT == 'dynamic', order := 2] #science
+table_dt[policy == 'yr_0.9' & NRT == 'static', order := 3] #ecological model
+table_dt[policy == 'ratio_9' & NRT == 'static', order := 4] #tax
+table_dt[policy == 'fee_8' & NRT == 'static', order := 5] #fee
+table_dt[policy == 'nred_0.85' & NRT == 'dynamic', order := 6] #ecological model + science
+table_dt[policy == 'ratio_9' & NRT == 'dynamic', order := 7] #tax+science
+table_dt[policy == 'fee_8' & NRT == 'dynamic', order := 8] #fee+science
+table_dt[policy == 'nred_0.7' & NRT == 'dynamic', order := 9] #ecological model strong  + science
 table_dt <- table_dt[order(order)]
 
 #---------------------------------------------------------------------------
 # BEST OPTION 1: FARMERS FOCUSED. Given a yield restriction of 90%, what is the maximum we could reduce N leaching hurting the less the farmers 
 # and not caring about the externality cost (we are already sending less N, that's it my friends)
 
-table_dt <- perfomances_dt4[ NRS %in% NRSs_f]
-baselevel_Lleach <- table_dt[policy == 'fee_0' & NRS == 1, L] 
-baselevel_Y_corn <- table_dt[policy == 'fee_0' & NRS == 1, Y_corn ]
-baselevel_nfert <- table_dt[policy == 'fee_0' & NRS == 1, N_fert ]
+table_dt <- perfomances_dt4[ NRT %in% NRTs_f]
+baselevel_Lleach <- table_dt[policy == 'fee_0' & NRT == 1, L] 
+baselevel_Y_corn <- table_dt[policy == 'fee_0' & NRT == 1, Y_corn ]
+baselevel_nfert <- table_dt[policy == 'fee_0' & NRT == 1, N_fert ]
 
 table_dt[,Y_corn_red := round((Y_corn / baselevel_Y_corn),2)]
 
@@ -945,13 +951,13 @@ table_dt <- table_dt[order(-soc_benefits)]
 table_dt
 
 #---------------------------------------------------------------------------
-# BEST OPTION 2: considering a cost of the externality, what NRS would maximize the welfare of the society
-NRSs_f <- c('static','dynamic','4')
-table_dt <- perfomances_dt4[ NRS %in% NRSs_f]
-baselevel_n <- table_dt[policy == 'fee_0' & NRS == 1, L] 
+# BEST OPTION 2: considering a cost of the externality, what NRT would maximize the welfare of the society
+NRTs_f <- c('static','dynamic','4')
+table_dt <- perfomances_dt4[ NRT %in% NRTs_f]
+baselevel_n <- table_dt[policy == 'fee_0' & NRT == 1, L] 
 table_dt[,abatement := baselevel_n - L]
 table_dt[,abat_prop := round((abatement)/ baselevel_n,2)]
-baselevel_Y_corn <- table_dt[policy == 'fee_0' & NRS == 1, Y_corn ]
+baselevel_Y_corn <- table_dt[policy == 'fee_0' & NRT == 1, Y_corn ]
 table_dt[,Y_corn_red := round((Y_corn / baselevel_Y_corn),2)]
 
 table_dt[,soc_benefits := P + G]
@@ -961,7 +967,7 @@ table_dt[,soc_welfare := soc_benefits - externatility ]
 table_dt <- table_dt[order(-soc_welfare)][1:40]
 table_dt
 
-baselevel_benefits <- table_dt[policy == 'fee_0' & NRS == 1, soc_benefits] 
+baselevel_benefits <- table_dt[policy == 'fee_0' & NRT == 1, soc_benefits] 
 table_dt[,abat_cost := (soc_benefits - baselevel_benefits)/abatement]
 
 
@@ -986,14 +992,14 @@ rmse_dt <- perfomances_dt[stringr::str_detect(string = perfomances_dt$policy, pa
                             RMSE = mlr::measureRMSE(truth = N_fert_12, response = N_fert),
                             overpred = sum(overpred)/.N,
                             subpred = sum(subpred)/.N,
-                            angulo = sum(angulo)/.N), by = .( NRS, policy)][order(-P)]
+                            angulo = sum(angulo)/.N), by = .( NRT, policy)][order(-P)]
 
 rmse_dt[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
 rmse_dt[,policy_name := lapply(policy, function(x) str_split(x, pattern = '_')[[1]][1])]
-rmse_dt <- rmse_dt[ NRS %in% c('static','dynamic','3','4','5')]
+rmse_dt <- rmse_dt[ NRT %in% c('static','dynamic','3','4','5')]
 
 plot_1 <- ggplot(rmse_dt)+
-  geom_line(aes(x = policy_val, y =  RMSE, colour = NRS)) +
+  geom_line(aes(x = policy_val, y =  RMSE, colour = NRT)) +
   scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
   geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
@@ -1006,7 +1012,7 @@ ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/rmse.jpg", width =
        units = 'in')
 
 plot_1 <- ggplot(rmse_dt)+
-  geom_line(aes(x = policy_val, y =  overpred, colour = NRS))+
+  geom_line(aes(x = policy_val, y =  overpred, colour = NRT))+
   scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
   geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
@@ -1015,7 +1021,7 @@ plot_1 <- ggplot(rmse_dt)+
   theme(panel.grid = element_blank())
 
 plot_2 <- ggplot(rmse_dt)+
-  geom_line(aes(x = policy_val, y =  subpred, colour = NRS))+
+  geom_line(aes(x = policy_val, y =  subpred, colour = NRT))+
   scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N:Corn price ratio')+
   geom_vline(xintercept = Pn/Pc, linetype = 'dashed', color = 'grey', size = 1)+
@@ -1027,7 +1033,7 @@ grid.arrange(plot_1 , plot_2)
 
 #---------------------------------------------------------------------------
 # BOXPLOT OF EXPOST RATES
-boxplot_dt <- perfomances_dt[stringr::str_detect(string = perfomances_dt$policy, pattern = 'ratio') & NRS ==12]
+boxplot_dt <- perfomances_dt[stringr::str_detect(string = perfomances_dt$policy, pattern = 'ratio') & NRT ==12]
 boxplot_dt[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
 boxplot_dt[,policy_name := lapply(policy, function(x) str_split(x, pattern = '_')[[1]][1])]
 class(boxplot_dt$policy_val)
@@ -1042,7 +1048,7 @@ plot_1 <- ggplot(boxplot_dt)+
   theme(panel.grid = element_blank())
 plot_1
 
-ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/boxplot_NRS12.jpg", width = 5, height = 5,
+ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/boxplot_NRT12.jpg", width = 5, height = 5,
        units = 'in')
 
 plot_1 <- ggplot(boxplot_dt[policy_val %in% c(2,8,15)])+
@@ -1055,38 +1061,38 @@ plot_1 <- ggplot(boxplot_dt[policy_val %in% c(2,8,15)])+
 
 plot_1
 
-ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/boxplot_NRS12.jpg", width = 5, height = 5,
+ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/boxplot_NRT12.jpg", width = 5, height = 5,
        units = 'in')
 
 
 #---------------------------------------------------------------------------
 #Value of information 
 # MAKE A MAP OF ECONOMIC VALUE OF INFORMATION SS
-profits_dt <- perfomances_dt4[policy_name == 'ratio'  & NRS %in% c(1,2,4,5)]
+profits_dt <- perfomances_dt4[policy_name == 'ratio'  & NRT %in% c(1,2,4,5)]
 ggplot(profits_dt)+
-  geom_line(aes(x = policy_val, y =  P, colour = NRS))
+  geom_line(aes(x = policy_val, y =  P, colour = NRT))
 
 value_long_dt <- data.table()
-value_dt <- perfomances_dt4[policy_name == 'ratio'  & NRS %in% c(1,2)]
-value_dt[NRS == 1, P := -P]
+value_dt <- perfomances_dt4[policy_name == 'ratio'  & NRT %in% c(1,2)]
+value_dt[NRT == 1, P := -P]
 value_dt <- value_dt[, .(P = sum(P)), by = .(policy_val)]
 value_dt[, variable := 'val_info']
 value_long_dt <- rbind(value_long_dt, value_dt)
 
-value_dt <- perfomances_dt4[policy_name == 'ratio'  & NRS %in% c(2,4)]
-value_dt[NRS == 2, P := -P]
+value_dt <- perfomances_dt4[policy_name == 'ratio'  & NRT %in% c(2,4)]
+value_dt[NRT == 2, P := -P]
 value_dt <- value_dt[, .(P = sum(P)), by = .(policy_val)]
 value_dt[, variable := 'val_ss']
 value_long_dt <- rbind(value_long_dt, value_dt)
 
-value_dt <- perfomances_dt4[policy_name == 'ratio'  & NRS %in% c(2,3)]
-value_dt[NRS == 2, P := -P]
+value_dt <- perfomances_dt4[policy_name == 'ratio'  & NRT %in% c(2,3)]
+value_dt[NRT == 2, P := -P]
 value_dt <- value_dt[, .(P = sum(P)), by = .(policy_val)]
 value_dt[, variable := 'val_tech']
 value_long_dt <- rbind(value_long_dt, value_dt)
 
-value_dt <- perfomances_dt4[policy_name == 'ratio'  & NRS %in% c(4,5)]
-value_dt[NRS == 4, P := -P]
+value_dt <- perfomances_dt4[policy_name == 'ratio'  & NRT %in% c(4,5)]
+value_dt[NRT == 4, P := -P]
 value_dt <- value_dt[, .(P = sum(P)), by = .(policy_val)]
 value_dt[, variable := 'val_tech_ss']
 value_long_dt <- rbind(value_long_dt, value_dt)
@@ -1110,7 +1116,7 @@ ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/valueISST_by_ratio
 # nred CHART #===============================================================
 #==========================================================================
 unique(perfomances_dt4$policy_name)
-plot_dt <- perfomances_dt4[policy_name == 'nred' & NRS %in% c('1_ok','dynamic','3','4','5')  ] 
+plot_dt <- perfomances_dt4[policy_name == 'nred' & NRT %in% c('1_ok','dynamic','3','4','5')  ] 
 
 plot_dt[,soc_benefits := P + G]
 target_n <- baselevel_n * (1-0.45) #to accomplish the 45% reduction goal
@@ -1119,7 +1125,7 @@ plot_dt[,soc_welfare := soc_benefits - externatility ]
 plot_dt[order(-soc_welfare)][1:40]
 
 
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NRS'), measure.vars = c('Y_corn', 'L', 'N_fert', 
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_val', 'NRT'), measure.vars = c('Y_corn', 'L', 'N_fert', 
                                                                                  'P', 'externatility','soc_welfare'))
 plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate']
 plot_dt_long[variable == 'L', plot_name := 'b) N Leaching']
@@ -1137,7 +1143,7 @@ hline_dt[plot_name == 'c) Yield', y_line := baselevel_Y_corn*0.95]
 hline_dt[plot_name == 'c) Yield', y_label := '95% baselevel']
 
 plot_1 <- ggplot()+
-  geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRS)) +
+  geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRT)) +
   geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
   geom_text(data = hline_dt, aes(x = .95, y = y_line, label =y_label ))+
   facet_grid(plot_name~., scales = "free") +
@@ -1156,7 +1162,7 @@ ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/nred_all_vars_part
 plot_dt_long2 <- plot_dt_long[!variable %in% c('N_fert', 'L', 'Y_corn')] 
 
 plot_1 <- ggplot(plot_dt_long2)+
-  geom_line(aes(x = policy_val, y =  value, colour = NRS)) +
+  geom_line(aes(x = policy_val, y =  value, colour = NRT)) +
   facet_grid(plot_name~., scales = "free") +
   # scale_x_continuous(breaks = seq(1,20,1), labels = seq(1,20,1)) + 
   xlab('N reduction level')+
@@ -1174,7 +1180,7 @@ ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/nred_all_vars_part
 #==========================================================================
 # FEE CHART
 
-plot_dt <- perfomances_dt4[policy_name == 'fee' & NRS == 'static'] 
+plot_dt <- perfomances_dt4[policy_name == 'fee' & NRT == 'static'] 
 
 plot_dt1 <- melt(plot_dt, id.vars = 'policy_val', measure.vars = c('Y_corn', 'L', 'N_fert', 'P', 'G'))
 plot_dt2 <- melt(plot_dt[policy_val == 6], id.vars = 'policy_val', measure.vars = c('Y_corn', 'L', 'N_fert', 'P', 'G'))
@@ -1194,14 +1200,14 @@ ggplot(plot_dt3) +
 # cols <- c( 'RMSE', 'MAE', 'RMSE_MAE')
 # rmse_dt[, (cols) := lapply(.SD, function(x) round(x,1)), .SDcols = cols]
 
-# rmse_dt[,NRS := factor(NRS, levels= c('static', 'dynamic', '3','4', '5', '6', '7', '8', '9', '10', '11', '12'))]
+# rmse_dt[,NRT := factor(NRT, levels= c('static', 'dynamic', '3','4', '5', '6', '7', '8', '9', '10', '11', '12'))]
 
-# (p1 <- ggplot(rmse_dt, aes(x = NRS, y = RMSE))+
+# (p1 <- ggplot(rmse_dt, aes(x = NRT, y = RMSE))+
 #     geom_bar(stat="identity") )
-# rmse_dt[,NRS := as.integer(NRS)]
-# rmse_dt <- rmse_dt[order(NRS)]
+# rmse_dt[,NRT := as.integer(NRT)]
+# rmse_dt <- rmse_dt[order(NRT)]
 
-# perfomances_dt4[,NRS := as.integer(NRS)]
+# perfomances_dt4[,NRT := as.integer(NRT)]
 latex_table_dt <- perfomances_dt4[,-'corn_avg_ha']
 
 cols_1 <- c('Y_corn', 'L', 'leach_ext', 'N_fert', 'P')
@@ -1223,25 +1229,25 @@ print(xtable(latex_table_dt, type = "latex", auto = TRUE, label = 'tab:state_out
 ?print.xtable
 ?xtable
 
-latex_table_dt[NRS==2, ]$Profits - latex_table_dt[NRS==1, ]$Profits 
-latex_table_dt[NRS==4, ]$Profits - latex_table_dt[NRS==1, ]$Profits #Value of infomation
-latex_table_dt[NRS==5, ]$Profits - latex_table_dt[NRS==4, ]$Profits #Ex-ante Value of T
-latex_table_dt[NRS==12, ]$Profits - latex_table_dt[NRS==11, ]$Profits #Ex-ost Value of T
+latex_table_dt[NRT==2, ]$Profits - latex_table_dt[NRT==1, ]$Profits 
+latex_table_dt[NRT==4, ]$Profits - latex_table_dt[NRT==1, ]$Profits #Value of infomation
+latex_table_dt[NRT==5, ]$Profits - latex_table_dt[NRT==4, ]$Profits #Ex-ante Value of T
+latex_table_dt[NRT==12, ]$Profits - latex_table_dt[NRT==11, ]$Profits #Ex-ost Value of T
 
 
-latex_table_dt[NRS==2, ]$'N leaching' - latex_table_dt[NRS==1, ]$'N leaching'
-latex_table_dt[NRS==4, ]$'N leaching' - latex_table_dt[NRS==1, ]$'N leaching' #EB of infomation
-latex_table_dt[NRS==5, ]$'N leaching' - latex_table_dt[NRS==4, ]$'N leaching' #EB of T
+latex_table_dt[NRT==2, ]$'N leaching' - latex_table_dt[NRT==1, ]$'N leaching'
+latex_table_dt[NRT==4, ]$'N leaching' - latex_table_dt[NRT==1, ]$'N leaching' #EB of infomation
+latex_table_dt[NRT==5, ]$'N leaching' - latex_table_dt[NRT==4, ]$'N leaching' #EB of T
 
--(latex_table_dt[NRS==4, 'N leaching'] - latex_table_dt[NRS==1, 'N leaching'])/latex_table_dt[NRS==1, 'N leaching'] #% Decrease in N leaching
--(latex_table_dt[NRS==4, 'N leach ext'] - latex_table_dt[NRS==1, 'N leach ext'])/latex_table_dt[NRS==1, 'N leach ext'] #% Decrease in N leaching extreme
--(latex_table_dt[NRS==4, 'N rate'] - latex_table_dt[NRS==1, 'N rate'])/latex_table_dt[NRS==1, 'N rate'] #% Decrease in N use
+-(latex_table_dt[NRT==4, 'N leaching'] - latex_table_dt[NRT==1, 'N leaching'])/latex_table_dt[NRT==1, 'N leaching'] #% Decrease in N leaching
+-(latex_table_dt[NRT==4, 'N leach ext'] - latex_table_dt[NRT==1, 'N leach ext'])/latex_table_dt[NRT==1, 'N leach ext'] #% Decrease in N leaching extreme
+-(latex_table_dt[NRT==4, 'N rate'] - latex_table_dt[NRT==1, 'N rate'])/latex_table_dt[NRT==1, 'N rate'] #% Decrease in N use
 
 #=====================================================================================================================
-# MRTN vs Minimum NRS
-reg_NRS_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_NRS_stuff.rds")
-NRS_minimum_regional <- reg_NRS_stuff$NRS_minimum_regional
-rm(reg_NRS_stuff)
+# MRTN vs Minimum NRT
+reg_NRT_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_NRT_stuff.rds")
+NRT_minimum_regional <- reg_NRT_stuff$NRT_minimum_regional
+rm(reg_NRT_stuff)
 
 mrtn_dt <- data.table(region = c(3,3,2,2,1,1), 
                       prev_crop = c(0,1,0,1,0,1),
@@ -1249,27 +1255,27 @@ mrtn_dt <- data.table(region = c(3,3,2,2,1,1),
 mrtn_dt <- mrtn_dt[prev_crop == 0]
 mrtn_dt[,MRTN_rate := round(MRTN_Rate_lbN_ac * 1.12,0)] #1 pound per acre = 1.12 kilograms per hectare
 
-NRS_minimum_regional2 <- merge(NRS_minimum_regional, mrtn_dt[,-c('prev_crop','MRTN_Rate_lbN_ac')], by = c('region'))
-# NRS_minimum_regional2[,prev_crop := ifelse(prev_crop == 0, 'Soybean', 'Corn')]
-NRS_minimum_regional2[,region := ifelse(region == 1, '1_South', ifelse(region == 2, '2_Central', '3_North'))]
-setnames(NRS_minimum_regional2, 'eonr_pred', 'NRS1_rate')
-NRS_minimum_regional2[order(-region)]
+NRT_minimum_regional2 <- merge(NRT_minimum_regional, mrtn_dt[,-c('prev_crop','MRTN_Rate_lbN_ac')], by = c('region'))
+# NRT_minimum_regional2[,prev_crop := ifelse(prev_crop == 0, 'Soybean', 'Corn')]
+NRT_minimum_regional2[,region := ifelse(region == 1, '1_South', ifelse(region == 2, '2_Central', '3_North'))]
+setnames(NRT_minimum_regional2, 'eonr_pred', 'NRT1_rate')
+NRT_minimum_regional2[order(-region)]
 
-print.xtable(xtable(NRS_minimum_regional2, type = "latex", auto = TRUE, 
-                    label = 'tab:NRS1', 
-                    caption = 'NRS 1 predictions paired with MRTN recommendations for the same region'),
-             file = "./n_policy_box/Data/figures/NRS1.tex", include.rownames=FALSE)
+print.xtable(xtable(NRT_minimum_regional2, type = "latex", auto = TRUE, 
+                    label = 'tab:NRT1', 
+                    caption = 'NRT 1 predictions paired with MRTN recommendations for the same region'),
+             file = "./n_policy_box/Data/figures/NRT1.tex", include.rownames=FALSE)
 
 #=====================================================================================================================
 #-----------------------------------------VALUE OF INFORMATION--------------------------------------------------------
 #=====================================================================================================================
-# MAKE A MAP OF TOTAL LEACHING WITH NRS 1 AND REDUCTION WITH NRS 4
-value_dt <- perfomances_dt4[NRS %in% c(1, 4), .(id_10, NRS, L, corn_avg_ha, leach_ext)]
+# MAKE A MAP OF TOTAL LEACHING WITH NRT 1 AND REDUCTION WITH NRT 4
+value_dt <- perfomances_dt4[NRT %in% c(1, 4), .(id_10, NRT, L, corn_avg_ha, leach_ext)]
 
 value_dt[, L_cell := L * corn_avg_ha]
 value_dt[, leach_ext_cell := leach_ext * corn_avg_ha]
 
-value_dt <- dcast(value_dt, id_10 ~ NRS, value.var = c('L_cell', 'leach_ext_cell', 'L'))
+value_dt <- dcast(value_dt, id_10 ~ NRT, value.var = c('L_cell', 'leach_ext_cell', 'L'))
 value_dt[,L_4 := NULL]
 
 # setnames(value_dt, c('static', '4'), c('L_m1', 'L_m2'))
@@ -1312,13 +1318,13 @@ breaks_n <- c(50000,100000,200000,300000,400000)
               main.title.size = 1.2,
               legend.position = c('left', 'bottom'))) #Leaching with MRTN (baseline_characterization_map)
 #---------------------------------------------------------------------------------------------------
-# MAKE A MAP OF RMSE (In what areas are the NRSs more off?) -----
-rmse_map_dt <- perfomances_dt[NRS %in% c(1,4) ,.(RMSE = mlr::measureRMSE(truth = N_fert_12, response = N_fert),
+# MAKE A MAP OF RMSE (In what areas are the NRTs more off?) -----
+rmse_map_dt <- perfomances_dt[NRT %in% c(1,4) ,.(RMSE = mlr::measureRMSE(truth = N_fert_12, response = N_fert),
                                                  MAE = mlr::measureMAE(truth = N_fert_12, response = N_fert),
                                                  subpred = sum(subpred)/.N,
-                                                 overpred = sum(overpred)/.N), by = .(id_10, NRS)]
+                                                 overpred = sum(overpred)/.N), by = .(id_10, NRT)]
 
-rmse_map_dt2 <- dcast(rmse_map_dt, id_10 ~ NRS, value.var = c('RMSE', 'MAE', 'subpred', 'overpred'))
+rmse_map_dt2 <- dcast(rmse_map_dt, id_10 ~ NRT, value.var = c('RMSE', 'MAE', 'subpred', 'overpred'))
 
 
 rmse_map_sf <- merge(grid10_tiles_sf7, rmse_map_dt2, by = 'id_10', all.x = T)
@@ -1326,40 +1332,40 @@ rmse_map_sf <- merge(grid10_tiles_sf7, rmse_map_dt2, by = 'id_10', all.x = T)
 tm_shape(rmse_map_sf) + tm_polygons(c('RMSE_1', 'RMSE_4', 'overpred_4', 'subpred_4'))
 
 #---------------------------------------------------------------------------------------------------
-# MAKE A MAP OF EONR for NRS 1, 4, 12 -----
-rates_map_dt <-  perfomances_dt3[NRS %in% c(1,4, 12)] 
+# MAKE A MAP OF EONR for NRT 1, 4, 12 -----
+rates_map_dt <-  perfomances_dt3[NRT %in% c(1,4, 12)] 
 
-rates_map_dt2 <- dcast(rates_map_dt, id_10 ~ NRS, value.var = c('L','N_fert', 'P', 'Y_corn'))
+rates_map_dt2 <- dcast(rates_map_dt, id_10 ~ NRT, value.var = c('L','N_fert', 'P', 'Y_corn'))
 
 rates_map_sf <- merge(grid10_tiles_sf7, rates_map_dt2, by = 'id_10', all.x = T)
 
-rates_map_sf <- merge(grid10_tiles_sf7, rates_map_dt[,.(id_10, NRS, Y_corn, L, N_fert, P)], by = 'id_10', all = T)
+rates_map_sf <- merge(grid10_tiles_sf7, rates_map_dt[,.(id_10, NRT, Y_corn, L, N_fert, P)], by = 'id_10', all = T)
 
-empty_cells_sf <- rates_map_sf[is.na(rates_map_sf$NRS),]
-rates_map_sf2  <- rates_map_sf[!is.na(rates_map_sf$NRS),]
+empty_cells_sf <- rates_map_sf[is.na(rates_map_sf$NRT),]
+rates_map_sf2  <- rates_map_sf[!is.na(rates_map_sf$NRT),]
 
 
-for(NRS_n in c(1,4,12)){
-  rates_map_sf2 <- rbind(rates_map_sf2, empty_cells_sf %>% mutate(NRS = NRS_n))
+for(NRT_n in c(1,4,12)){
+  rates_map_sf2 <- rbind(rates_map_sf2, empty_cells_sf %>% mutate(NRT = NRT_n))
   
 }
 
-rates_map_sf3 <- melt(rates_map_sf2, id.vars = c("id_10", "geometry", 'NRS'), measure.vars = c("Y_corn", "L", "N_fert", "P"))
+rates_map_sf3 <- melt(rates_map_sf2, id.vars = c("id_10", "geometry", 'NRT'), measure.vars = c("Y_corn", "L", "N_fert", "P"))
 rates_map_sf3 <- st_sf(rates_map_sf3)
 
 nrow(grid10_tiles_sf7)*3
 
-rates_map_sf3$NRS <- factor(rates_map_sf3$NRS, levels = c(1,4,12))
+rates_map_sf3$NRT <- factor(rates_map_sf3$NRT, levels = c(1,4,12))
 
 tm_shape(rates_map_sf3) + tm_polygons('value')+
-  tm_facets(c("NRS", "variable"), ncol = 3, free.scales= T, as.layers = T)
+  tm_facets(c("NRT", "variable"), ncol = 3, free.scales= T, as.layers = T)
 
 (p1 <- tm_shape(rates_map_sf3[rates_map_sf3$variable == 'Y_corn',]) + 
     tm_polygons('value',  
                 title = c("Y_corn (kg/ha)"),
                 palette = "Greys", 
                 colorNA = 'white')+
-    tm_facets(c("NRS"), free.scales = F, as.layers = T) +
+    tm_facets(c("NRT"), free.scales = F, as.layers = T) +
     tm_layout(legend.outside = F))
 
 (p2 <- tm_shape(rates_map_sf3[rates_map_sf3$variable == 'L',]) + 
@@ -1368,17 +1374,17 @@ tm_shape(rates_map_sf3) + tm_polygons('value')+
                 title = c("N Leaching (kg/ha)"),
                 palette = "Greys", 
                 colorNA = 'white')+
-    tm_facets(c("NRS"), free.scales = F, as.layers = T) +
+    tm_facets(c("NRT"), free.scales = F, as.layers = T) +
     tm_layout(legend.outside = F, 
               panel.label.height = 0
     ))
 
 
 rates_map_sf4 <- rates_map_sf3
-rates_map_sf4[  rates_map_sf4$variable == 'N_fert' & rates_map_sf4$NRS ==  1 &   rates_map_sf4$value == 180 & 
+rates_map_sf4[  rates_map_sf4$variable == 'N_fert' & rates_map_sf4$NRT ==  1 &   rates_map_sf4$value == 180 & 
                   !(is.na(rates_map_sf4$value)),]$value <- 0
 
-rates_map_sf4[  rates_map_sf4$variable == 'N_fert' & rates_map_sf4$NRS ==  1 & !(is.na(rates_map_sf4$value)),]$value %>% table()
+rates_map_sf4[  rates_map_sf4$variable == 'N_fert' & rates_map_sf4$NRT ==  1 & !(is.na(rates_map_sf4$value)),]$value %>% table()
 
 (p3 <- tm_shape(rates_map_sf3[rates_map_sf3$variable == 'N_fert',]) + 
     tm_polygons('value',
@@ -1386,7 +1392,7 @@ rates_map_sf4[  rates_map_sf4$variable == 'N_fert' & rates_map_sf4$NRS ==  1 & !
                 palette = "Greys", 
                 title = c("N Fert (kg/ha)"),
                 colorNA = 'white') +
-    tm_facets(c("NRS"), free.scales = T) +
+    tm_facets(c("NRT"), free.scales = T) +
     tm_layout(legend.outside = F, 
               panel.label.height = 0,
               legend.position = c('left', 'bottom')
@@ -1398,7 +1404,7 @@ rates_map_sf4[  rates_map_sf4$variable == 'N_fert' & rates_map_sf4$NRS ==  1 & !
                 title = c("P ($/ha)"),
                 palette = "Greys", 
                 colorNA = 'white')+
-    tm_facets(c("NRS"), free.scales = F, as.layers = T) +
+    tm_facets(c("NRT"), free.scales = F, as.layers = T) +
     tm_layout(legend.outside = F, 
               panel.label.height = 0
     ))
@@ -1409,14 +1415,14 @@ tmap_save(tmap_arrange(p1,p2,p3,p4, ncol = 1), "./n_policy_box/Data/figures/appe
           units = 'in')
 #---------------------------------------------------------------------------------------------------
 # MAKE A MAP OF ECONOMIC VALUE OF INFORMATION SS
-value_dt <- perfomances_dt4[NRS %in% c(1,4)]
+value_dt <- perfomances_dt4[NRT %in% c(1,4)]
 
 #make one negative
-value_dt[NRS == 1, Y_corn := -Y_corn]
-value_dt[NRS == 1, L := -L]
-value_dt[NRS == 1, leach_ext := -leach_ext]
-value_dt[NRS == 1, N_fert := -N_fert]
-value_dt[NRS == 1, P := -P]
+value_dt[NRT == 1, Y_corn := -Y_corn]
+value_dt[NRT == 1, L := -L]
+value_dt[NRT == 1, leach_ext := -leach_ext]
+value_dt[NRT == 1, N_fert := -N_fert]
+value_dt[NRT == 1, P := -P]
 
 # Add values by group
 value_dt <- value_dt[, .(Y_corn =  sum(Y_corn),
@@ -1425,7 +1431,7 @@ value_dt <- value_dt[, .(Y_corn =  sum(Y_corn),
                          N_fert = sum(N_fert),
                          P = sum(P)), by = .(id_10)]
 
-# baseline_leaching_dt <- perfomances_dt3[NRS == 1, .(id_10, baseline_leach = L)]
+# baseline_leaching_dt <- perfomances_dt3[NRT == 1, .(id_10, baseline_leach = L)]
 # value_dt <- merge(value_dt, baseline_leaching_dt, by = 'id_10')
 # 
 # ggplot(data = value_dt, aes(x = baseline_leach, y = P)) +
@@ -1451,7 +1457,7 @@ breaks_n <- c(-60000,-40000,-10000,0)
               main.title.size = 1.2,
               title.snap.to.legend = F,
               legend.width = 1,
-              legend.position = c('left', 'bottom'))) #Enviromental benefit of NRS 4
+              legend.position = c('left', 'bottom'))) #Enviromental benefit of NRT 4
 
 
 value_sf <- dplyr::mutate(value_sf, P_r = round(P, 0))
@@ -1481,7 +1487,7 @@ breaks_n <- c(-20,0,10,20, 30,40)
               main.title.size = 1.2,
               title.snap.to.legend = F,
               legend.width = 1,
-              legend.position = c('left', 'bottom'))) #Economic V of NRS 4
+              legend.position = c('left', 'bottom'))) #Economic V of NRT 4
 
 tmap_save(tmap_arrange(p1, p2, p3, p4, ncol = 2) , "./n_policy_box/Data/figures/information_characterization_map.jpg", 
           width = 10, height = 10,
@@ -1491,14 +1497,14 @@ tmap_save(tmap_arrange(p1, p2, p3, p4, ncol = 2) , "./n_policy_box/Data/figures/
 #-----------------------------------------VALUE OF TECHNOLOGY--------------------------------------------------------
 #=====================================================================================================================
 #1) MAKE A MAP OF VALUE TECHNOLOGY (EX POST VALUE)
-#Select the two NRSs of interest
-value_dt <- perfomances_dt3[NRS %in% c(11,12)]
+#Select the two NRTs of interest
+value_dt <- perfomances_dt3[NRT %in% c(11,12)]
 #make one negative
-value_dt[NRS == 11, Y_corn := -Y_corn]
-value_dt[NRS == 11, L := -L]
-value_dt[NRS == 11, leach_ext := -leach_ext]
-value_dt[NRS == 11, N_fert := -N_fert]
-value_dt[NRS == 11, P := -P]
+value_dt[NRT == 11, Y_corn := -Y_corn]
+value_dt[NRT == 11, L := -L]
+value_dt[NRT == 11, leach_ext := -leach_ext]
+value_dt[NRT == 11, N_fert := -N_fert]
+value_dt[NRT == 11, P := -P]
 
 # Add values by group
 value_post_dt <- value_dt[, .(Y_corn =  sum(Y_corn),
@@ -1531,13 +1537,13 @@ breaks_n <- c(min(value_post_dt$P), 5,10,15, 20, max(value_post_dt$P))
 
 #---------------------------------------------------------------------------
 #2) MAKE A MAP OF VALUE TECHNOLOGY (EX ANTE VALUE)
-value_dt <- perfomances_dt3[NRS %in% c(4,5)]
+value_dt <- perfomances_dt3[NRT %in% c(4,5)]
 #make one negative
-value_dt[NRS == 4, Y_corn := -Y_corn]
-value_dt[NRS == 4, L := -L]
-value_dt[NRS == 4, leach_ext := -leach_ext]
-value_dt[NRS == 4, N_fert := -N_fert]
-value_dt[NRS == 4, P := -P]
+value_dt[NRT == 4, Y_corn := -Y_corn]
+value_dt[NRT == 4, L := -L]
+value_dt[NRT == 4, leach_ext := -leach_ext]
+value_dt[NRT == 4, N_fert := -N_fert]
+value_dt[NRT == 4, P := -P]
 
 # Add values by group
 value_ante_dt <- value_dt[, .(Y_corn =  sum(Y_corn),
@@ -1595,13 +1601,13 @@ ggplot(data = value_comp_dt, aes(x= P_post, y = P_ante)) +
 # 3) MAKE A MAP OF TECHNOLOGY MARKET CAP BY CELL
 
 # MAKE A MAP OF VALUE TECHNOLOGY (EX ANTE VALUE)
-value_dt <- perfomances_dt3[NRS %in% c(4,5)]
+value_dt <- perfomances_dt3[NRT %in% c(4,5)]
 #make one negative
-value_dt[NRS == 4, Y_corn := -Y_corn]
-value_dt[NRS == 4, L := -L]
-value_dt[NRS == 4, leach_ext := -leach_ext]
-value_dt[NRS == 4, N_fert := -N_fert]
-value_dt[NRS == 4, P := -P]
+value_dt[NRT == 4, Y_corn := -Y_corn]
+value_dt[NRT == 4, L := -L]
+value_dt[NRT == 4, leach_ext := -leach_ext]
+value_dt[NRT == 4, N_fert := -N_fert]
+value_dt[NRT == 4, P := -P]
 
 # Add values by group
 value_dt <- value_dt[, .(Y_corn =  sum(Y_corn),
@@ -1616,7 +1622,7 @@ value_dt2[,mkt_value := P * corn_avg_ha]
 value_dt2[,.(sum(mkt_value))]
 
 value_sf <- merge(grid10_tiles_sf7, value_dt2[,.(id_10, mkt_value)], by = 'id_10', all.x = T) %>%
-  dplyr::mutate(NRS = 'ex_ante')
+  dplyr::mutate(NRT = 'ex_ante')
 
 
 sum(value_sf$mkt_value, na.rm = TRUE)
@@ -1656,19 +1662,19 @@ st_write(value_sf, "./n_policy_box/Data/shapefiles/vr_cell_value_sf.shp", delete
 # 4) MAKE A MAP OF TECHNOLOGY MARKET CAP BY FIELD (for QGIS)
 # AGGREGATE THE DATA TO CELL X Z LEVEL CONSIDERING THE AREA
 names(perfomances_dt)
-do_not_aggregate = c('id_10', 'id_field','region','NRS', 'tech')
+do_not_aggregate = c('id_10', 'id_field','region','NRT', 'tech')
 do_aggregate =  c("Y_corn", "L", "N_fert","P")
 
 perfomances_field_dt <- aggregate_by_area(data_dt = perfomances_dt, variables = do_aggregate, 
                                           weight = 'area_ha', by_c = do_not_aggregate) #cell x z level (mukey and field are out)
 
 # MAKE A MAP OF VALUE TECHNOLOGY (EX ANTE VALUE)
-value_dt <- perfomances_field_dt[NRS %in% c(4,5)]
+value_dt <- perfomances_field_dt[NRT %in% c(4,5)]
 #make one negative
-value_dt[NRS == 4, Y_corn := -Y_corn]
-value_dt[NRS == 4, L := -L]
-value_dt[NRS == 4, N_fert := -N_fert]
-value_dt[NRS == 4, P := -P]
+value_dt[NRT == 4, Y_corn := -Y_corn]
+value_dt[NRT == 4, L := -L]
+value_dt[NRT == 4, N_fert := -N_fert]
+value_dt[NRT == 4, P := -P]
 
 # Add values by group
 value_dt <- value_dt[, .(Y_corn =  sum(Y_corn),
@@ -1681,7 +1687,7 @@ value_dt <- value_dt[, .(Y_corn =  sum(Y_corn),
 # value_dt[,.(sum(mkt_value))]
 
 value_sf <- merge(grid10_fields_sf2, value_dt[,.(id_10, id_field, n_policy)], by = c('id_10', 'id_field'), all.x = T) %>%
-  dplyr::mutate(NRS = 'ex_ante')
+  dplyr::mutate(NRT = 'ex_ante')
 
 value_sf <- value_sf[!is.na(value_sf$n_policy),]
 
@@ -1697,28 +1703,28 @@ st_write(value_sf, "./n_policy_box/Data/shapefiles/vr_field_value_sf.shp", delet
 
 
 #---------------------------------------------------------------------------
-# MAKE A MAP OF THE BEST NRS
-#Select the two NRSs of interest
-best_NRS_dt <- perfomances_dt3[NRS %in% 1:10]
-# best_NRS_dt[NRS == 5, P := P-3]
-best_NRS_dt <- best_NRS_dt[,.SD[P==max(P)], by = id_10]
+# MAKE A MAP OF THE BEST NRT
+#Select the two NRTs of interest
+best_NRT_dt <- perfomances_dt3[NRT %in% 1:10]
+# best_NRT_dt[NRT == 5, P := P-3]
+best_NRT_dt <- best_NRT_dt[,.SD[P==max(P)], by = id_10]
 
-best_NRS_dt[,.N, by = .(NRS)][order(-N)]
+best_NRT_dt[,.N, by = .(NRT)][order(-N)]
 
-value_sf <- merge(grid10_tiles_sf7, best_NRS_dt[,.(id_10, NRS)], 
+value_sf <- merge(grid10_tiles_sf7, best_NRT_dt[,.(id_10, NRT)], 
                   by = 'id_10', all = T)
 
-value_sf <- dplyr::mutate(value_sf, NRS = ifelse(NRS <6, NA, NRS))
+value_sf <- dplyr::mutate(value_sf, NRT = ifelse(NRT <6, NA, NRT))
 
 
-(p <- tm_shape(value_sf) + tm_polygons(c('NRS'), n =10)+
-    tm_text('NRS')+
+(p <- tm_shape(value_sf) + tm_polygons(c('NRT'), n =10)+
+    tm_text('NRT')+
     tm_layout(legend.text.size = 0.7,
-              main.title = paste('Best NRS by cell'),
+              main.title = paste('Best NRT by cell'),
               main.title.position = "center",
               main.title.size = 1.2))
 
-tmap_save(p, "./n_policy_box/Data/figures/best_NRS_map.jpg")
+tmap_save(p, "./n_policy_box/Data/figures/best_NRT_map.jpg")
 
 #==============================================================================================================
 #==============================================================================================================
@@ -1728,9 +1734,9 @@ tmap_save(p, "./n_policy_box/Data/figures/best_NRS_map.jpg")
 
 
 yc_yearly_dt3 <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
-reg_NRS_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_NRS_stuff.rds")
-training_z <- reg_NRS_stuff$training_z
-rm(reg_NRS_stuff)
+reg_NRT_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_NRT_stuff.rds")
+training_z <- reg_NRT_stuff$training_z
+rm(reg_NRT_stuff)
 
 # tile_n = 10
 cell_n = 765#755#763#765
@@ -1742,7 +1748,7 @@ testing_set_dt <- perfomances_dt[id_10 == cell_n]
 testing_set_dt[,mean(Y_corn), by = mukey]
 
 testing_set_plot <- testing_set_dt[mukey == mukey_n]
-testing_set_plot[,NRS := factor(NRS, levels= c('static', 'dynamic', '3','4', '5', '6', '7', '8', '9', '10', '11', '12'))]
+testing_set_plot[,NRT := factor(NRT, levels= c('static', 'dynamic', '3','4', '5', '6', '7', '8', '9', '10', '11', '12'))]
 ic_field_plot <- yc_yearly_dt3[mukey == mukey_n & id_10 == cell_n ] %>% .[!z %in% training_z ]
 
 # testing_set_plot[,z := gsub(pattern = 'A', replacement = 'z', x = z)]
@@ -1762,7 +1768,7 @@ z_labels <- ic_field_plot[N_fert == max(ic_field_plot$N_fert), .(N_fert, Y_corn,
 z_labels[seq(1, nrow(z_labels), by = 2), N_fert := N_fert - 50]
 
 ggplot() +
-  geom_point(data = testing_set_plot, aes(x = N_fert, y = Y_corn, colour = NRS, size = NRS)) +
+  geom_point(data = testing_set_plot, aes(x = N_fert, y = Y_corn, colour = NRT, size = NRT)) +
   geom_line(data = ic_field_plot, aes(x = N_fert, y = Y_corn, group=z), show.legend = FALSE) +
   scale_size_manual(values=c(rep(2, 11), 4)) +
   scale_color_manual(values=colors_sample)+
@@ -1774,11 +1780,11 @@ ggplot() +
 
 
 # (plot_n1 <- ggplot() +
-#     geom_point(data = testing_set_plot[z == z_n & NRS == '12' & prev_crop == 1], 
-#                aes(x = N_fert, y = Y_corn ,  size = NRS)) +
+#     geom_point(data = testing_set_plot[z == z_n & NRT == '12' & prev_crop == 1], 
+#                aes(x = N_fert, y = Y_corn ,  size = NRT)) +
 #     geom_line(data = ic_field_plot[z == z_n & prev_crop == 1], aes(x = N_fert, y = Y_corn, linetype = "Yield")) +
-#     geom_point(data = testing_set_plot[z == z_n & NRS == '12' & prev_crop == 1], 
-#                aes(x = N_fert, y = L*150,  size = NRS)) +
+#     geom_point(data = testing_set_plot[z == z_n & NRT == '12' & prev_crop == 1], 
+#                aes(x = N_fert, y = L*150,  size = NRT)) +
 #     geom_line(data = ic_field_plot[z == z_n & prev_crop == 1], aes(x = N_fert, y = L*150, linetype = "N Leaching")) +
 #     # scale_size_manual(values=c(rep(2, 11), 4)) +
 #     ## scale_color_manual(values=colors_sample)+
@@ -1808,7 +1814,7 @@ z_n = 23
 ic_field_plot2 <- melt(ic_field_plot[z == z_n ], id.vars = 'N_fert', measure.vars = c('Y_corn', 'L'))
 ic_field_plot2[variable == 'L', value := value * 150]
 
-testing_set_plot2 <- melt(testing_set_plot[z == z_n & NRS == '12'], id.vars = 'N_fert', measure.vars = c('Y_corn', 'L'))
+testing_set_plot2 <- melt(testing_set_plot[z == z_n & NRT == '12'], id.vars = 'N_fert', measure.vars = c('Y_corn', 'L'))
 testing_set_plot2[variable == 'L', value := value * 150]
 
 
@@ -1837,7 +1843,7 @@ exclude_z = testing_set_plot[Y_corn == min(Y_corn)]$z[1]
 (plot_n2 <- ggplot() +
     
     geom_line(data = ic_field_plot[ !(z == exclude_z) ], aes(x = N_fert, y = Y_corn, group = z), show.legend = F) +
-    geom_point(data = testing_set_plot[NRS == '12' & !(z == exclude_z) ], aes(x = N_fert, y = Y_corn , shape = 'EONR'), size = 2) +
+    geom_point(data = testing_set_plot[NRT == '12' & !(z == exclude_z) ], aes(x = N_fert, y = Y_corn , shape = 'EONR'), size = 2) +
     scale_shape_manual( values = 16,
                         labels = c(bquote (paste('EONR'^'ex post')))) +
     # scale_color_manual(values=colors_sample)+
@@ -1855,9 +1861,9 @@ exclude_z = testing_set_plot[Y_corn == min(Y_corn)]$z[1]
     guides(color = FALSE) + #remove legend for color
     annotate("text", x=300, y=15000, label= "b)", size = 10)) 
 
-summary(testing_set_plot[NRS == '12']$N_fert)
+summary(testing_set_plot[NRT == '12']$N_fert)
 
-perfomances_champaign_dt <- perfomances_dt[id_10 %in% unique(dplyr::filter(grid10_tiles_sf7, county_name == 'Champaign')$id_10) & NRS == 12]
+perfomances_champaign_dt <- perfomances_dt[id_10 %in% unique(dplyr::filter(grid10_tiles_sf7, county_name == 'Champaign')$id_10) & NRT == 12]
 
 (plot_n3 <- ggplot() + 
     geom_density(data = perfomances_champaign_dt, aes( x= N_fert,  y = ..density..), alpha = 0.4)+
@@ -1915,19 +1921,19 @@ grid.arrange(grid.arrange(plot_n1, plot_n2, nrow=1), plot_n3, nrow = 2)
 
 
 #---------------------------------------------------------------------------
-# MAKE A MAP OF THE BEST NRS
-#Select the two NRSs of interest
-best_NRS_dt <- perfomances_dt3[NRS %in% 1:10]
-best_NRS_dt <- best_NRS_dt[,.SD[P==max(P)], by = id_10]
-best_NRS_dt <- merge(best_NRS_dt, perfomances_dt3[NRS == 1, .(id_10, P_1 = P)], by = 'id_10')
-best_NRS_dt[,P_improve := P-P_1]
+# MAKE A MAP OF THE BEST NRT
+#Select the two NRTs of interest
+best_NRT_dt <- perfomances_dt3[NRT %in% 1:10]
+best_NRT_dt <- best_NRT_dt[,.SD[P==max(P)], by = id_10]
+best_NRT_dt <- merge(best_NRT_dt, perfomances_dt3[NRT == 1, .(id_10, P_1 = P)], by = 'id_10')
+best_NRT_dt[,P_improve := P-P_1]
 
-best_NRS_dt[,.N, by = .(region, NRS)]
+best_NRT_dt[,.N, by = .(region, NRT)]
 
-best_NRS_sf <- merge(grid10_tiles_sf7, best_NRS_dt, by = 'id_10', all.x = T)
+best_NRT_sf <- merge(grid10_tiles_sf7, best_NRT_dt, by = 'id_10', all.x = T)
 
-(p <- tm_shape(best_NRS_sf) + tm_polygons(c('NRS','P_improve'), n =10)+
-    tm_text('NRS')+
+(p <- tm_shape(best_NRT_sf) + tm_polygons(c('NRT','P_improve'), n =10)+
+    tm_text('NRT')+
     tm_layout(legend.text.size = 0.7,
               main.title = paste('VALUE OF TECHNOLOGY AND INFORMATION'),
               main.title.position = "center",
@@ -1957,14 +1963,14 @@ ic_field_dt[, P := Y_corn * Pc - N_fert * Pn]
 
 performance_set_dt <- filter_dt_in_dt(perfomances_dt , filter_dt = mukey_n, return_table = TRUE)
 
-performance_set_dt[,NRS := as.character(NRS)]
+performance_set_dt[,NRT := as.character(NRT)]
 
-performance_set_dt[prev_crop == 0 & NRS != 11, .N, by = .(NRS, z)]
+performance_set_dt[prev_crop == 0 & NRT != 11, .N, by = .(NRT, z)]
 
 # P plot with P at eonr
 (plot_n <- ggplot() +
-    geom_point(data = performance_set_dt[prev_crop == 0 & NRS != 11], aes(x = N_fert, y = P, colour = NRS)) +
-    geom_point(data = performance_set_dt[prev_crop == 0 & NRS == 11], aes(x = N_fert, y = P), size = 3, show.legend = FALSE) +
+    geom_point(data = performance_set_dt[prev_crop == 0 & NRT != 11], aes(x = N_fert, y = P, colour = NRT)) +
+    geom_point(data = performance_set_dt[prev_crop == 0 & NRT == 11], aes(x = N_fert, y = P), size = 3, show.legend = FALSE) +
     geom_line(data = ic_field_dt[prev_crop == 0], aes(x = N_fert, y = P, group=interaction(z)), show.legend = FALSE) +
     ggtitle(paste('P plot with P at eonr', mukey_n$mukey)))
 
@@ -1972,8 +1978,8 @@ ggsave(plot_n, filename = "./n_policy_box/Data/figures/yield_curve_example.jpg")
 
 # Lo3 plot with leaching at eonr
 (plot_n <- ggplot() +
-    geom_point(data = performance_set_dt[prev_crop == 0 & NRS != 11], aes(x = N_fert, y = L2, colour = NRS)) +
-    geom_point(data = performance_set_dt[prev_crop == 0 & NRS == 11], aes(x = N_fert, y = L2), size = 3, show.legend = FALSE) +
+    geom_point(data = performance_set_dt[prev_crop == 0 & NRT != 11], aes(x = N_fert, y = L2, colour = NRT)) +
+    geom_point(data = performance_set_dt[prev_crop == 0 & NRT == 11], aes(x = N_fert, y = L2), size = 3, show.legend = FALSE) +
     geom_line(data = ic_field_dt[prev_crop == 0], aes(x = N_fert, y = L2, group=interaction(z)), show.legend = FALSE) +
     ggtitle(paste('Lo3 plot with leaching at eonr', mukey_n$mukey)))
 
