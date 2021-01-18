@@ -2,10 +2,10 @@ rm(list=ls())
 
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # codes_folder <-'C:/Users/germa/Documents'#Dell
-setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-codes_folder <-'C:/Users/germanm2/Documents'#CPSC
-# setwd('~')#Server
-# codes_folder <-'~' #Server
+# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+setwd('~')#Server
+codes_folder <-'~' #Server
 
 
 source('./Codes_useful/R.libraries.R')
@@ -30,11 +30,9 @@ if(T){
   
   perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
   perfomances_dt[,.N, .(id_10, id_field, policy, NRT)] %>% .[,N] %>% table() #number of z by field SHould be all equal
-  perfomances_dt[,.N, .(policy, NRT)]%>% .[,N] %>% table() #number of treatments (policy sublevels x NRT). SHould be all equal
+  perfomances_dt[,.N, .(policy, NRT)]%>% .[,N] %>% table() #number of replications (fielz x z). SHould be all equal
   table(perfomances_dt$NRT) #obs by NRT. SHould be all equal
-  
-  summary(perfomances_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, policy, NRT, z)]$area_ha)
-  
+
   #-------------------------------------------------------------------------
   #Make profits relative to the zero rate
   if(FALSE){

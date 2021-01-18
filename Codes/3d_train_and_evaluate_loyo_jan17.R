@@ -12,8 +12,7 @@ source('./Codes_useful/gm_functions.R')
 source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 library(randomForest)
 library(reticulate)
-library(ranger)
-library(mlr)
+
 # use_condaenv('GEOANN', conda = '/opt/anaconda3/condabin/conda')
 # source_python("./n_policy_git/Codes/3c_cnn_functions_sep10.py")
 
@@ -177,25 +176,7 @@ for(z_n in z_seq){
       dev.off() 
     }
     
-    # =========================================================================================================================================================
-    # CREATE THE RANGER-RF
-    # source('~/n_policy_git/Codes/3e_ranger_hyperparameters.R')
-    # # Train a model
-    blocking_year <- factor(training_eonr_dt$year)
-    
-    
-    learner_rf = makeLearner("regr.ranger",
-                             num.trees = 1700,
-                             min.node.size = 50,
-                             mtry = 5) #instructions
-    
-    regr_task = mlr::makeRegrTask(data = training_eonr_dt[,c('eonr', low_var, high_var), with = FALSE], 
-                                  target = "eonr", blocking = blocking_year) #task = data
-    
-    tsk = subsetTask(regr_task, features = c(low_var, high_var))#specify the features to avoid using the year
-    
-    # mcaffinity(1:20)
-    ranger_rf <- train(learner_rf, task = regr_task)
+   
     #===================================================================================================================
     # EVALUATION
     
@@ -231,38 +212,9 @@ for(z_n in z_seq){
     results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'rfhigh'][,policy := paste0('ratio_', level_n)]
     
     if(level_n == 5){ratio5_recommendations_list[['rfhigh']] <- prediction_set_aggregated_dt}
-    #===================================================================================================================
-    # 3) RANGER-RF
-    # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
     
-    prediction_set_aggregated_dt[,eonr_pred := round(predict(ranger_rf , newdata = prediction_set_aggregated_dt[,c(low_var, high_var), with = FALSE])$data$response/10)*10] 
+    saveRDS(ratio5_recommendations_list, paste0("./n_policy_box/Data/files_rds/field_performances_tmp/ratio5_recommendations_list",z_n, ".rds"))
     
-    
-    evaluation_set_tmp <- merge(evaluation_set_dt,
-                             prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-      .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
-      .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
-    
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'rfranger'][,policy := paste0('ratio_', level_n)]
-    
-    if(level_n == 5){ratio5_recommendations_list[['rfranger']] <- prediction_set_aggregated_dt}
-    #===================================================================================================================
-    # 3) EXPOST
-
-    evaluation_set_tmp <-  evaluation_set_dt %>% 
-      .[, .SD[ P == max( P)], by = .(id_10, id_field, z)] %>%
-      .[, .SD[ N_fert == min(N_fert)], by = .(id_10, id_field, z)] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
-    
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'expost'][,policy := paste0('ratio_', level_n)]
-    
-    #===================================================================================================================
-    if(level_n == 5){saveRDS(ratio5_recommendations_list, "./n_policy_box/Data/files_rds/ratio5_recommendations_list.rds")}
   }#end of ratio loop
   
   
@@ -367,25 +319,6 @@ for(z_n in z_seq){
       dev.off() 
     }
     
-    # =========================================================================================================================================================
-    # CREATE THE RANGER-RF
-    # source('~/n_policy_git/Codes/3e_ranger_hyperparameters.R')
-    # # Train a model
-    blocking_year <- factor(training_eonr_dt$year)
-    
-    
-    learner_rf = makeLearner("regr.ranger",
-                             num.trees = 1700,
-                             min.node.size = 50,
-                             mtry = 5) #instructions
-    
-    regr_task = mlr::makeRegrTask(data = training_eonr_dt[,c('eonr', low_var, high_var), with = FALSE], 
-                                  target = "eonr", blocking = blocking_year) #task = data
-    
-    tsk = subsetTask(regr_task, features = c(low_var, high_var))#specify the features to avoid using the year
-    
-    # mcaffinity(1:20)
-    ranger_rf <- train(learner_rf, task = regr_task)
     #===================================================================================================================
     # EVALUATION
     
@@ -419,35 +352,7 @@ for(z_n in z_seq){
     
     results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'rfhigh'][,policy := paste0('leach_', level_n)]
     
-    #===================================================================================================================
-    # 3) RANGER-RF
-    # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
     
-    prediction_set_aggregated_dt[,eonr_pred := round(predict(ranger_rf , newdata = prediction_set_aggregated_dt[,c(low_var, high_var), with = FALSE])$data$response/10)*10] 
-    
-    
-    evaluation_set_tmp <- merge(evaluation_set_dt,
-                             prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-      .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
-      .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
-    
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'rfranger'][,policy := paste0('leach_', level_n)]
-    
-    
-    #===================================================================================================================
-    # 3) EXPOST
-    
-    evaluation_set_tmp <-  evaluation_set_dt %>% 
-      .[, .SD[ P == max( P)], by = .(id_10, id_field, z)] %>%
-      .[, .SD[ N_fert == min(N_fert)], by = .(id_10, id_field, z)] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
-    
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'expost'][,policy := paste0('leach_', level_n)]
     #===================================================================================================================
   } #end of leaching loop
   
@@ -549,26 +454,7 @@ for(z_n in z_seq){
       dev.off() 
     }
     
-    # =========================================================================================================================================================
-    # CREATE THE RANGER-RF
-    # source('~/n_policy_git/Codes/3e_ranger_hyperparameters.R')
-    # # Train a model
-    blocking_year <- factor(training_eonr_dt$year)
-    
-    
-    learner_rf = makeLearner("regr.ranger",
-                             num.trees = 1700,
-                             min.node.size = 50,
-                             mtry = 5) #instructions
-    
-    regr_task = mlr::makeRegrTask(data = training_eonr_dt[,c('eonr', low_var, high_var), with = FALSE], 
-                                  target = "eonr", blocking = blocking_year) #task = data
-    
-    tsk = subsetTask(regr_task, features = c(low_var, high_var))#specify the features to avoid using the year
-    
-    # mcaffinity(1:20)
-    ranger_rf <- train(learner_rf, task = regr_task)
-    #===================================================================================================================
+     #===================================================================================================================
     # EVALUATION
     
     #Prepare the data
@@ -602,35 +488,7 @@ for(z_n in z_seq){
     
     results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'rfhigh'][,policy := paste0('bal_', level_n)]
     
-    #===================================================================================================================
-    # 3) RANGER-RF
-    # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
     
-    prediction_set_aggregated_dt[,eonr_pred := round(predict(ranger_rf , newdata = prediction_set_aggregated_dt[,c(low_var, high_var), with = FALSE])$data$response/10)*10] 
-    
-    
-    evaluation_set_tmp <- merge(evaluation_set_dt,
-                                prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-      .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
-      .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
-    
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'rfranger'][,policy := paste0('bal_', level_n)]
-    
-    
-    #===================================================================================================================
-    # 3) EXPOST
-    
-    evaluation_set_tmp <-  evaluation_set_dt %>% 
-      .[, .SD[ P == max( P)], by = .(id_10, id_field, z)] %>%
-      .[, .SD[ N_fert == min(N_fert)], by = .(id_10, id_field, z)] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
-    
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'expost'][,policy := paste0('bal_', level_n)]
     #===================================================================================================================
   } #end of balance loop
   
@@ -644,13 +502,11 @@ for(z_n in z_seq){
   evaluation_set_dt <- yc_field_dt2[station != 1 & z == z_n]
   prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
   
-  ratio5_recommendations_list <- readRDS("./n_policy_box/Data/files_rds/ratio5_recommendations_list.rds")
-  
   red_seq <- unique(sort(c(seq(0,30, by = 1), seq(18,19, by = 0.1))))
   
   for(level_n in red_seq){
-    # level_n = 5
-    
+    # level_n = 10
+    ratio5_recommendations_list <- readRDS(paste0("./n_policy_box/Data/files_rds/field_performances_tmp/ratio5_recommendations_list",z_n, ".rds"))
     #===================================================================================================================
     # EVALUATION
     
@@ -659,7 +515,7 @@ for(z_n in z_seq){
     evaluation_set_dt[, G := 0] #gov collection
     #===================================================================================================================
     # 1) STATIC MRTN
-    static_mrtn_dt <- ratio5_recommendations_list$static_mrtn
+    static_mrtn_dt <- copy(ratio5_recommendations_list$static_mrtn)
     static_mrtn_dt[, eonr_pred := round(eonr_pred*((100-level_n)/100)/10)*10]
     
     # the NRT is trained with z1-10 and testing is evaluated with z11-25
@@ -673,7 +529,7 @@ for(z_n in z_seq){
     # 2) RFHIGH
     # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
     
-    prediction_set_aggregated_dt <- ratio5_recommendations_list$rfhigh
+    prediction_set_aggregated_dt <- copy(ratio5_recommendations_list$rfhigh)
     prediction_set_aggregated_dt[, eonr_pred := round(eonr_pred*((100-level_n)/100)/10)*10]
     
     evaluation_set_tmp <- merge(evaluation_set_dt,
@@ -686,35 +542,7 @@ for(z_n in z_seq){
     
     results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'rfhigh'][,policy := paste0('red_', level_n)]
     
-    #===================================================================================================================
-    # 3) RANGER-RF
-    # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
     
-    prediction_set_aggregated_dt <- ratio5_recommendations_list$rfranger
-    prediction_set_aggregated_dt[, eonr_pred := round(eonr_pred*((100-level_n)/100)/10)*10] 
-    
-    evaluation_set_tmp <- merge(evaluation_set_dt,
-                                prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-      .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
-      .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
-    
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'rfranger'][,policy := paste0('red_', level_n)]
-    
-    
-    #===================================================================================================================
-    # 3) EXPOST
-    
-    evaluation_set_tmp <-  evaluation_set_dt %>% 
-      .[, .SD[ P == max( P)], by = .(id_10, id_field, z)] %>%
-      .[, .SD[ N_fert == min(N_fert)], by = .(id_10, id_field, z)] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
-    
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'expost'][,policy := paste0('red_', level_n)]
     #===================================================================================================================
     
   }#end of reduction loop
@@ -795,25 +623,7 @@ for(z_n in z_seq){
       dev.off() 
     }
     
-    # =========================================================================================================================================================
-    # CREATE THE RANGER-RF
-    # source('~/n_policy_git/Codes/3e_ranger_hyperparameters.R')
-    # # Train a model
-    blocking_year <- factor(training_eonr_dt$year)
     
-    
-    learner_rf = makeLearner("regr.ranger",
-                             num.trees = 1700,
-                             min.node.size = 50,
-                             mtry = 5) #instructions
-    
-    regr_task = mlr::makeRegrTask(data = training_eonr_dt[,c('eonr', low_var, high_var), with = FALSE], 
-                                  target = "eonr", blocking = blocking_year) #task = data
-    
-    tsk = subsetTask(regr_task, features = c(low_var, high_var))#specify the features to avoid using the year
-    
-    # mcaffinity(1:20)
-    ranger_rf <- train(learner_rf, task = regr_task)
     #===================================================================================================================
     # EVALUATION
     
@@ -848,35 +658,6 @@ for(z_n in z_seq){
     
     results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'rfhigh'][,policy := paste0('lag_', level_n)]
     
-    #===================================================================================================================
-    # 3) RANGER-RF
-    # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
-    
-    prediction_set_aggregated_dt[,eonr_pred := round(predict(ranger_rf , newdata = prediction_set_aggregated_dt[,c(low_var, high_var), with = FALSE])$data$response/10)*10] 
-    
-    
-    evaluation_set_tmp <- merge(evaluation_set_dt,
-                                prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-      .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
-      .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
-    
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'rfranger'][,policy := paste0('lag_', level_n)]
-    
-    
-    #===================================================================================================================
-    # 3) EXPOST
-    
-    evaluation_set_tmp <-  evaluation_set_dt %>% 
-      .[, .SD[ P == max( P)], by = .(id_10, id_field, z)] %>%
-      .[, .SD[ N_fert == min(N_fert)], by = .(id_10, id_field, z)] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
-    
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'expost'][,policy := paste0('lag_', level_n)]
     #===================================================================================================================
   } #end of lag loop
   perfomances_z_tmp <- rbindlist(results_list)
