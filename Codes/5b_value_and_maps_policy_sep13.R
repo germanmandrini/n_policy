@@ -21,11 +21,7 @@ if(T){
   grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
   
   perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
-  setnames(perfomances_dt, 'NRS', 'NRT')
-  perfomances_dt[NRT == 'staticmrtn', NRT := 'static']
-  perfomances_dt[NRT == 'rfhigh', NRT := 'dynamic']
 
-  
   perfomances_dt[,.(area_ha = sum(area_ha)), by = .(policy, NRT, id_10, id_field, z)]$area_ha %>% summary()
   
   perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
@@ -133,6 +129,7 @@ if(T){
   
   #---------------------------------------------------------------------------
   # Some cleaning
+  field_perfomances_dt2[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
   perfomances_dt5[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
   perfomances_dt5[,policy_name := as.character(lapply(policy, function(x) str_split(x, pattern = '_')[[1]][1]))]
   

@@ -114,7 +114,7 @@ for(z_n in z_seq){
   prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
   
   
-  ratio_seq <- sort(c(seq(5, 20, by = 1)))
+  ratio_seq <- 5#sort(c(seq(5, 20, by = 1)))
   ratio5_recommendations_list <- list()
   
   for(level_n in ratio_seq){
@@ -162,17 +162,17 @@ for(z_n in z_seq){
     
     best.m = 6
     
-    rfhigh <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
+    dynamic <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
                            data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
                            strata = year, #I think it will bootstrap by year
                            importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
     
-    varImpPlot(rfhigh, type=2)
-    plot(rfhigh)
+    varImpPlot(dynamic, type=2)
+    plot(dynamic)
     
     if(level_n == 5){
       pdf("./n_policy_box/Data/figures/VarImportancePlot.pdf")
-      varImpPlot(rfhigh, type=2, main = '')
+      varImpPlot(dynamic, type=2, main = '')
       dev.off() 
     }
     
@@ -192,14 +192,14 @@ for(z_n in z_seq){
       .[N_fert == eonr_pred] %>%
       .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'staticmrtn'][,policy := paste0('ratio_', level_n)]
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'static'][,policy := paste0('ratio_', level_n)]
     
     if(level_n == 5){ratio5_recommendations_list[['static_mrtn']] <- static_mrtn_dt}
     #===================================================================================================================
-    # 2) RFHIGH
+    # 2) dynamic
     # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
     
-    prediction_set_aggregated_dt[,eonr_pred := round(predict(rfhigh, prediction_set_aggregated_dt)/10,0)*10]
+    prediction_set_aggregated_dt[,eonr_pred := round(predict(dynamic, prediction_set_aggregated_dt)/10,0)*10]
     
     evaluation_set_tmp <- merge(evaluation_set_dt,
                              prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
@@ -209,290 +209,290 @@ for(z_n in z_seq){
     
     evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'rfhigh'][,policy := paste0('ratio_', level_n)]
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'dynamic'][,policy := paste0('ratio_', level_n)]
     
-    if(level_n == 5){ratio5_recommendations_list[['rfhigh']] <- prediction_set_aggregated_dt}
+    if(level_n == 5){ratio5_recommendations_list[['dynamic']] <- prediction_set_aggregated_dt}
     
     saveRDS(ratio5_recommendations_list, paste0("./n_policy_box/Data/files_rds/field_performances_tmp/ratio5_recommendations_list",z_n, ".rds"))
     
   }#end of ratio loop
   
   
-  
-  # =========================================================================================================================================================
-  # CREATE THE LEACHING FEE MODEL
-  source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
-  
-  #Load datasets again
-  training_set_dt <- yc_field_dt2[station == 1 & z != z_n]
-  evaluation_set_dt <- yc_field_dt2[station != 1 & z == z_n]
-  prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
-  
-  #Update threholds
-  leach_threshold <- training_set_dt[N_fert == 100, .(L_thr = quantile(L, probs = 0.5)), region][order(region)]
-  
-  training_set_dt <- merge(training_set_dt, leach_threshold, by = 'region')
-  
-  training_set_dt[,L_extra := L - L_thr]
-  training_set_dt[L_extra <= 0, L_extra := 0]
-  training_set_dt$L_extra %>% summary()
-  
-  evaluation_set_dt <- merge(evaluation_set_dt, leach_threshold, by = 'region')
-  
-  evaluation_set_dt[,L_extra := L - L_thr]
-  evaluation_set_dt[L_extra <= 0, L_extra := 0]
-  
-  leach_seq <-  sort(c(seq(0, 30, by = 2)))
-  
-  set.seed(123)
-  
-  for(level_n in leach_seq){
-    # level_n = 5
-    print(level_n)
+  if(FALSE){
+    # =========================================================================================================================================================
+    # CREATE THE LEACHING FEE MODEL
+    source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
     
-    # training_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
+    #Load datasets again
+    training_set_dt <- yc_field_dt2[station == 1 & z != z_n]
+    evaluation_set_dt <- yc_field_dt2[station != 1 & z == z_n]
+    prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
     
-    training_set_dt[, P := Y_corn * Pc - N_fert * Pn - L_extra * level_n] #update profits
+    #Update threholds
+    leach_threshold <- training_set_dt[N_fert == 100, .(L_thr = quantile(L, probs = 0.5)), region][order(region)]
     
-    training_set_dt[, P1 := Y_corn * Pc - N_fert * Pn]
-    training_set_dt[, P2 := Y_corn * Pc - N_fert * Pn - L_extra * level_n] #update profits
+    training_set_dt <- merge(training_set_dt, leach_threshold, by = 'region')
     
-    plot_dt <- training_set_dt[, .(P1 = mean(P1), 
-                             P2 = mean(P2), 
-                             L_extra = round(mean(L_extra),0)), by = .(region, N_fert)][order(region, N_fert)]
+    training_set_dt[,L_extra := L - L_thr]
+    training_set_dt[L_extra <= 0, L_extra := 0]
+    training_set_dt$L_extra %>% summary()
     
-    ggplot() + 
-      geom_line(data = plot_dt, aes(x = N_fert, y = P1, color = region))+
-      geom_point(data = plot_dt[,.SD[P1 == max(P1)], by = region], aes(x = N_fert, y = P1))+
-      geom_line(data = plot_dt, aes(x = N_fert, y = P2, color = region), linetype = 'dashed')+
-      geom_point(data = plot_dt[,.SD[P2 == max(P2)], by = region], aes(x = N_fert, y = P2))
+    evaluation_set_dt <- merge(evaluation_set_dt, leach_threshold, by = 'region')
     
+    evaluation_set_dt[,L_extra := L - L_thr]
+    evaluation_set_dt[L_extra <= 0, L_extra := 0]
+    
+    leach_seq <-  sort(c(seq(0, 30, by = 2)))
+    
+    set.seed(123)
+    
+    for(level_n in leach_seq){
+      # level_n = 5
+      print(level_n)
+      
+      # training_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
+      
+      training_set_dt[, P := Y_corn * Pc - N_fert * Pn - L_extra * level_n] #update profits
+      
+      training_set_dt[, P1 := Y_corn * Pc - N_fert * Pn]
+      training_set_dt[, P2 := Y_corn * Pc - N_fert * Pn - L_extra * level_n] #update profits
+      
+      plot_dt <- training_set_dt[, .(P1 = mean(P1), 
+                               P2 = mean(P2), 
+                               L_extra = round(mean(L_extra),0)), by = .(region, N_fert)][order(region, N_fert)]
+      
+      ggplot() + 
+        geom_line(data = plot_dt, aes(x = N_fert, y = P1, color = region))+
+        geom_point(data = plot_dt[,.SD[P1 == max(P1)], by = region], aes(x = N_fert, y = P1))+
+        geom_line(data = plot_dt, aes(x = N_fert, y = P2, color = region), linetype = 'dashed')+
+        geom_point(data = plot_dt[,.SD[P2 == max(P2)], by = region], aes(x = N_fert, y = P2))
+      
+      
+      # =========================================================================================================================================================
+      # CREATE THE STATIC MRTN
+      training_mrtn_dt <- training_set_dt[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
+      
+      static_data <- aggregate_by_area(data_dt = training_mrtn_dt, variables = c('P'), 
+                                       weight = 'area_ha', by_c = c('region', 'N_fert'))
+      
+      static_mrtn_dt  <- static_data %>% 
+        .[, .SD[ P == max( P)], by = .(region)] %>%
+        .[, .SD[ N_fert == min( N_fert)], by = .(region)] %>%
+        .[,.(region, eonr_pred = N_fert)] %>%
+        .[order(region)]
+      
+      
+      (plot1 <- ggplot() +
+          geom_line(data = static_data, aes(x = N_fert, y = P, color = region), size = 1.5)+
+          geom_point(data = static_data[,.SD[P == max(P)], by = region], aes(x = N_fert, y = P), size = 3) +
+          # geom_point(data = static_data[P_diff >= -level_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2, size = 3)+
+          ylab('Profits ($/ha)')+
+          theme_bw() +
+          xlab('N rate (kg/ha)'))
+      
+      # =========================================================================================================================================================
+      # CREATE THE RF-HIGH
+      training_eonr_dt  <- training_set_dt[, .SD[ P == max(P)], by = .(id_10, id_field, z)] %>%
+        .[, .SD[ N_fert == min( N_fert)], by = .(id_10, id_field, z)] %>%
+        .[,c('N_fert', low_var, high_var, 'year'), with = FALSE]
+      
+      setnames(training_eonr_dt, 'N_fert', 'eonr')
+      
+      # RF Model 2------------------------
+      # mtry <- tuneRF(training_eonr_dt2[,c(pred_vars), with = FALSE],training_eonr_dt2$eonr, mtryStart = 6, ntreeTry=1000,
+      #                 stepFactor=1.1,improve=0.01, trace=TRUE, plot=TRUE) # ,mtryStart = 5
+      # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+      
+      best.m = 6
+      
+      dynamic <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
+                             data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
+                             strata = year, #I think it will bootstrap by year
+                             importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
+      
+      varImpPlot(dynamic, type=2)
+      plot(dynamic)
+      
+      if(level_n == 5){
+        pdf("./n_policy_box/Data/figures/VarImportancePlot.pdf")
+        varImpPlot(dynamic, type=2, main = '')
+        dev.off() 
+      }
+      
+      #===================================================================================================================
+      # EVALUATION
+      
+      #Prepare the data
+      evaluation_set_dt[, P := Y_corn * Pc - N_fert * Pn - L_extra * level_n] #update profits
+      evaluation_set_dt[, G := L_extra * level_n] #gov collectionn
+      #===================================================================================================================
+      # 1) STATIC MRTN
+      
+      # the NRT is trained with z1-10 and testing is evaluated with z11-25
+      evaluation_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
+                               by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+        .[N_fert == eonr_pred] %>%
+        .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+  
+      
+      results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'static'][,policy := paste0('leach_', level_n)]
+      #===================================================================================================================
+      # 2) dynamic
+      # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
+      
+      prediction_set_aggregated_dt[,eonr_pred := round(predict(dynamic, prediction_set_aggregated_dt)/10,0)*10]
+      
+      evaluation_set_tmp <- merge(evaluation_set_dt,
+                               prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+        .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
+        .[N_fert == eonr_pred] %>%
+        .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+      
+      evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+      
+      results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'dynamic'][,policy := paste0('leach_', level_n)]
+      
+      
+      #===================================================================================================================
+    } #end of leaching loop
     
     # =========================================================================================================================================================
-    # CREATE THE STATIC MRTN
-    training_mrtn_dt <- training_set_dt[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
+    # CREATE THE BALANCE FEE MODEL
+    source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
     
-    static_data <- aggregate_by_area(data_dt = training_mrtn_dt, variables = c('P'), 
-                                     weight = 'area_ha', by_c = c('region', 'N_fert'))
+    #Load datasets again
+    training_set_dt <- yc_field_dt2[station == 1 & z != z_n]
+    evaluation_set_dt <- yc_field_dt2[station != 1 & z == z_n]
+    prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
     
-    static_mrtn_dt  <- static_data %>% 
-      .[, .SD[ P == max( P)], by = .(region)] %>%
-      .[, .SD[ N_fert == min( N_fert)], by = .(region)] %>%
-      .[,.(region, eonr_pred = N_fert)] %>%
-      .[order(region)]
-    
-    
-    (plot1 <- ggplot() +
-        geom_line(data = static_data, aes(x = N_fert, y = P, color = region), size = 1.5)+
-        geom_point(data = static_data[,.SD[P == max(P)], by = region], aes(x = N_fert, y = P), size = 3) +
-        # geom_point(data = static_data[P_diff >= -level_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2, size = 3)+
-        ylab('Profits ($/ha)')+
-        theme_bw() +
-        xlab('N rate (kg/ha)'))
-    
-    # =========================================================================================================================================================
-    # CREATE THE RF-HIGH
-    training_eonr_dt  <- training_set_dt[, .SD[ P == max(P)], by = .(id_10, id_field, z)] %>%
-      .[, .SD[ N_fert == min( N_fert)], by = .(id_10, id_field, z)] %>%
-      .[,c('N_fert', low_var, high_var, 'year'), with = FALSE]
-    
-    setnames(training_eonr_dt, 'N_fert', 'eonr')
-    
-    # RF Model 2------------------------
-    # mtry <- tuneRF(training_eonr_dt2[,c(pred_vars), with = FALSE],training_eonr_dt2$eonr, mtryStart = 6, ntreeTry=1000,
-    #                 stepFactor=1.1,improve=0.01, trace=TRUE, plot=TRUE) # ,mtryStart = 5
-    # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
-    
-    best.m = 6
-    
-    rfhigh <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
-                           data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
-                           strata = year, #I think it will bootstrap by year
-                           importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
-    
-    varImpPlot(rfhigh, type=2)
-    plot(rfhigh)
-    
-    if(level_n == 5){
-      pdf("./n_policy_box/Data/figures/VarImportancePlot.pdf")
-      varImpPlot(rfhigh, type=2, main = '')
-      dev.off() 
-    }
-    
-    #===================================================================================================================
-    # EVALUATION
-    
-    #Prepare the data
-    evaluation_set_dt[, P := Y_corn * Pc - N_fert * Pn - L_extra * level_n] #update profits
-    evaluation_set_dt[, G := L_extra * level_n] #gov collectionn
-    #===================================================================================================================
-    # 1) STATIC MRTN
-    
-    # the NRT is trained with z1-10 and testing is evaluated with z11-25
-    evaluation_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
-                             by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-      .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-
-    
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'staticmrtn'][,policy := paste0('leach_', level_n)]
-    #===================================================================================================================
-    # 2) RFHIGH
-    # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
-    
-    prediction_set_aggregated_dt[,eonr_pred := round(predict(rfhigh, prediction_set_aggregated_dt)/10,0)*10]
-    
-    evaluation_set_tmp <- merge(evaluation_set_dt,
-                             prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-      .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
-      .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
-    
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'rfhigh'][,policy := paste0('leach_', level_n)]
-    
-    
-    #===================================================================================================================
-  } #end of leaching loop
+    #Update threholds
   
-  # =========================================================================================================================================================
-  # CREATE THE BALANCE FEE MODEL
-  source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
+    training_set_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
+    bal_threshold <- training_set_dt[N_fert == 100, .(N_balance_thr = quantile(N_balance, probs = 0.5)), region][order(region)]
+    training_set_dt <- merge(training_set_dt[,-'N_balance_thr'], bal_threshold, by = 'region')
+    
+    training_set_dt[,N_extra := N_balance - N_balance_thr]
+    training_set_dt[N_extra <= 0, N_extra := 0]
+    #evaluation set
+    evaluation_set_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
+    evaluation_set_dt <- merge(evaluation_set_dt[,-'N_balance_thr'], bal_threshold, by = 'region')
   
-  #Load datasets again
-  training_set_dt <- yc_field_dt2[station == 1 & z != z_n]
-  evaluation_set_dt <- yc_field_dt2[station != 1 & z == z_n]
-  prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
+    evaluation_set_dt[,N_extra := N_balance - N_balance_thr]
+    evaluation_set_dt[N_extra <= 0, N_extra := 0]
+    
+    
+    bal_seq <- sort(seq(0, 5, by = 0.25))
+    
+    set.seed(123)
+    
+    for(level_n in bal_seq){
+      # level_n = 5
+      print(level_n)
+      
+      # training_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
+      training_set_dt[, P := Y_corn * Pc - N_fert * Pn - N_extra * level_n]#update profits
+      training_set_dt[, P1 := Y_corn * Pc - N_fert * Pn]
+      training_set_dt[, P2 := Y_corn * Pc - N_fert * Pn - N_extra * level_n]
+      
+      plot_dt <- training_set_dt[, .(P1 = mean(P1), 
+                               P2 = mean(P2), 
+                               N_extra = round(mean(N_extra),0)), by = .(region, N_fert)][order(region, N_fert)]
+      ggplot() + 
+        geom_line(data = plot_dt, aes(x = N_fert, y = P1, color = region))+
+        geom_point(data = plot_dt[,.SD[P1 == max(P1)], by = region], aes(x = N_fert, y = P1))+
+        geom_line(data = plot_dt, aes(x = N_fert, y = P2, color = region), linetype = 'dashed')+
+        geom_point(data = plot_dt[,.SD[P2 == max(P2)], by = region], aes(x = N_fert, y = P2))
+      
+      # =========================================================================================================================================================
+      # CREATE THE STATIC MRTN
+      training_mrtn_dt <- training_set_dt[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
+      
+      static_data <- aggregate_by_area(data_dt = training_mrtn_dt, variables = c('P'), 
+                                       weight = 'area_ha', by_c = c('region', 'N_fert'))
+      
+      static_mrtn_dt  <- static_data %>% 
+        .[, .SD[ P == max( P)], by = .(region)] %>%
+        .[, .SD[ N_fert == min( N_fert)], by = .(region)] %>%
+        .[,.(region, eonr_pred = N_fert)] %>%
+        .[order(region)]
+      
+      
+      (plot1 <- ggplot() +
+          geom_line(data = static_data, aes(x = N_fert, y = P, color = region), size = 1.5)+
+          geom_point(data = static_data[,.SD[P == max(P)], by = region], aes(x = N_fert, y = P), size = 3) +
+          # geom_point(data = static_data[P_diff >= -level_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2, size = 3)+
+          ylab('Profits ($/ha)')+
+          theme_bw() +
+          xlab('N rate (kg/ha)'))
+      
+      # =========================================================================================================================================================
+      # CREATE THE RF-HIGH
+      training_eonr_dt  <- training_set_dt[, .SD[ P == max(P)], by = .(id_10, id_field, z)] %>%
+        .[, .SD[ N_fert == min( N_fert)], by = .(id_10, id_field, z)] %>%
+        .[,c('N_fert', low_var, high_var, 'year'), with = FALSE]
+      
+      setnames(training_eonr_dt, 'N_fert', 'eonr')
+      
+      # RF Model 2------------------------
+      # mtry <- tuneRF(training_eonr_dt2[,c(pred_vars), with = FALSE],training_eonr_dt2$eonr, mtryStart = 6, ntreeTry=1000,
+      #                 stepFactor=1.1,improve=0.01, trace=TRUE, plot=TRUE) # ,mtryStart = 5
+      # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+      
+      best.m = 6
+      
+      dynamic <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
+                             data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
+                             strata = year, #I think it will bootstrap by year
+                             importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
+      
+      varImpPlot(dynamic, type=2)
+      plot(dynamic)
+      
+      if(level_n == 5){
+        pdf("./n_policy_box/Data/figures/VarImportancePlot.pdf")
+        varImpPlot(dynamic, type=2, main = '')
+        dev.off() 
+      }
+      
+       #===================================================================================================================
+      # EVALUATION
+      
+      #Prepare the data
+      evaluation_set_dt[, P := Y_corn * Pc - N_fert * Pn - N_extra * level_n]#update profits
+      evaluation_set_dt[, G := N_extra * level_n] #gov collection
+      
+      #===================================================================================================================
+      # 1) STATIC MRTN
+      
+      # the NRT is trained with z1-10 and testing is evaluated with z11-25
+      evaluation_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
+                                  by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+        .[N_fert == eonr_pred] %>%
+        .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+      
+      
+      results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'static'][,policy := paste0('bal_', level_n)]
+      #===================================================================================================================
+      # 2) dynamic
+      # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
+      
+      prediction_set_aggregated_dt[,eonr_pred := round(predict(dynamic, prediction_set_aggregated_dt)/10,0)*10]
+      
+      evaluation_set_tmp <- merge(evaluation_set_dt,
+                                  prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+        .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
+        .[N_fert == eonr_pred] %>%
+        .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+      
+      evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+      
+      results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'dynamic'][,policy := paste0('bal_', level_n)]
+      
+      
+      #===================================================================================================================
+    } #end of balance loop
   
-  #Update threholds
-
-  training_set_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
-  bal_threshold <- training_set_dt[N_fert == 100, .(N_balance_thr = quantile(N_balance, probs = 0.5)), region][order(region)]
-  training_set_dt <- merge(training_set_dt[,-'N_balance_thr'], bal_threshold, by = 'region')
-  
-  training_set_dt[,N_extra := N_balance - N_balance_thr]
-  training_set_dt[N_extra <= 0, N_extra := 0]
-  #evaluation set
-  evaluation_set_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
-  evaluation_set_dt <- merge(evaluation_set_dt[,-'N_balance_thr'], bal_threshold, by = 'region')
-
-  evaluation_set_dt[,N_extra := N_balance - N_balance_thr]
-  evaluation_set_dt[N_extra <= 0, N_extra := 0]
-  
-  
-  bal_seq <- sort(seq(0, 5, by = 0.25))
-  
-  set.seed(123)
-  
-  for(level_n in bal_seq){
-    # level_n = 5
-    print(level_n)
-    
-    # training_set_dt[, P := Y_corn * Pc - N_fert * Pn]  #update profits
-    training_set_dt[, P := Y_corn * Pc - N_fert * Pn - N_extra * level_n]#update profits
-    training_set_dt[, P1 := Y_corn * Pc - N_fert * Pn]
-    training_set_dt[, P2 := Y_corn * Pc - N_fert * Pn - N_extra * level_n]
-    
-    plot_dt <- training_set_dt[, .(P1 = mean(P1), 
-                             P2 = mean(P2), 
-                             N_extra = round(mean(N_extra),0)), by = .(region, N_fert)][order(region, N_fert)]
-    ggplot() + 
-      geom_line(data = plot_dt, aes(x = N_fert, y = P1, color = region))+
-      geom_point(data = plot_dt[,.SD[P1 == max(P1)], by = region], aes(x = N_fert, y = P1))+
-      geom_line(data = plot_dt, aes(x = N_fert, y = P2, color = region), linetype = 'dashed')+
-      geom_point(data = plot_dt[,.SD[P2 == max(P2)], by = region], aes(x = N_fert, y = P2))
-    
-    # =========================================================================================================================================================
-    # CREATE THE STATIC MRTN
-    training_mrtn_dt <- training_set_dt[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
-    
-    static_data <- aggregate_by_area(data_dt = training_mrtn_dt, variables = c('P'), 
-                                     weight = 'area_ha', by_c = c('region', 'N_fert'))
-    
-    static_mrtn_dt  <- static_data %>% 
-      .[, .SD[ P == max( P)], by = .(region)] %>%
-      .[, .SD[ N_fert == min( N_fert)], by = .(region)] %>%
-      .[,.(region, eonr_pred = N_fert)] %>%
-      .[order(region)]
-    
-    
-    (plot1 <- ggplot() +
-        geom_line(data = static_data, aes(x = N_fert, y = P, color = region), size = 1.5)+
-        geom_point(data = static_data[,.SD[P == max(P)], by = region], aes(x = N_fert, y = P), size = 3) +
-        # geom_point(data = static_data[P_diff >= -level_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2, size = 3)+
-        ylab('Profits ($/ha)')+
-        theme_bw() +
-        xlab('N rate (kg/ha)'))
-    
-    # =========================================================================================================================================================
-    # CREATE THE RF-HIGH
-    training_eonr_dt  <- training_set_dt[, .SD[ P == max(P)], by = .(id_10, id_field, z)] %>%
-      .[, .SD[ N_fert == min( N_fert)], by = .(id_10, id_field, z)] %>%
-      .[,c('N_fert', low_var, high_var, 'year'), with = FALSE]
-    
-    setnames(training_eonr_dt, 'N_fert', 'eonr')
-    
-    # RF Model 2------------------------
-    # mtry <- tuneRF(training_eonr_dt2[,c(pred_vars), with = FALSE],training_eonr_dt2$eonr, mtryStart = 6, ntreeTry=1000,
-    #                 stepFactor=1.1,improve=0.01, trace=TRUE, plot=TRUE) # ,mtryStart = 5
-    # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
-    
-    best.m = 6
-    
-    rfhigh <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
-                           data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
-                           strata = year, #I think it will bootstrap by year
-                           importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
-    
-    varImpPlot(rfhigh, type=2)
-    plot(rfhigh)
-    
-    if(level_n == 5){
-      pdf("./n_policy_box/Data/figures/VarImportancePlot.pdf")
-      varImpPlot(rfhigh, type=2, main = '')
-      dev.off() 
-    }
-    
-     #===================================================================================================================
-    # EVALUATION
-    
-    #Prepare the data
-    evaluation_set_dt[, P := Y_corn * Pc - N_fert * Pn - N_extra * level_n]#update profits
-    evaluation_set_dt[, G := N_extra * level_n] #gov collection
-    
-    #===================================================================================================================
-    # 1) STATIC MRTN
-    
-    # the NRT is trained with z1-10 and testing is evaluated with z11-25
-    evaluation_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
-                                by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-      .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'staticmrtn'][,policy := paste0('bal_', level_n)]
-    #===================================================================================================================
-    # 2) RFHIGH
-    # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
-    
-    prediction_set_aggregated_dt[,eonr_pred := round(predict(rfhigh, prediction_set_aggregated_dt)/10,0)*10]
-    
-    evaluation_set_tmp <- merge(evaluation_set_dt,
-                                prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-      .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
-      .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
-    
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'rfhigh'][,policy := paste0('bal_', level_n)]
-    
-    
-    #===================================================================================================================
-  } #end of balance loop
-  
- 
+  }#end of if false chunk
   # =========================================================================================================================================================
   # VOLUNTARY REDUCTION (REDUCE RATIO 5 RECOMENDATIONS)
   source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
@@ -524,12 +524,12 @@ for(z_n in z_seq){
       .[N_fert == eonr_pred] %>%
       .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'staticmrtn'][,policy := paste0('red_', level_n)]
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'static'][,policy := paste0('red_', level_n)]
     #===================================================================================================================
-    # 2) RFHIGH
+    # 2) dynamic
     # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
     
-    prediction_set_aggregated_dt <- copy(ratio5_recommendations_list$rfhigh)
+    prediction_set_aggregated_dt <- copy(ratio5_recommendations_list$dynamic)
     prediction_set_aggregated_dt[, eonr_pred := round(eonr_pred*((100-level_n)/100)/10)*10]
     
     evaluation_set_tmp <- merge(evaluation_set_dt,
@@ -540,147 +540,150 @@ for(z_n in z_seq){
     
     evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'rfhigh'][,policy := paste0('red_', level_n)]
+    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'dynamic'][,policy := paste0('red_', level_n)]
     
     
     #===================================================================================================================
     
   }#end of reduction loop
   
+  if(FALSE){
   
-  
-  # =========================================================================================================================================================
-  # CREATE THE LAG MODEL
-  source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
-  
-  #Load datasets again
-  training_set_dt <- yc_field_dt2[station == 1 & z != z_n]
-  evaluation_set_dt <- yc_field_dt2[station != 1 & z == z_n]
-  prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
-  
-  lag_seq <- seq(0,50,5)
-  
-  set.seed(123)
-  
-  for(level_n in lag_seq){
-    # level_n = 5
-    print(level_n)
-
-    training_set_dt[, P := Y_corn * Pc - N_fert * Pn]#update profits
     # =========================================================================================================================================================
-    # CREATE THE STATIC MRTN
-    training_mrtn_dt <- training_set_dt[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
+    # CREATE THE LAG MODEL
+    source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
     
+    #Load datasets again
+    training_set_dt <- yc_field_dt2[station == 1 & z != z_n]
+    evaluation_set_dt <- yc_field_dt2[station != 1 & z == z_n]
+    prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
     
-    static_data <- aggregate_by_area(data_dt = training_mrtn_dt, variables = c('P'), 
-                                     weight = 'area_ha', by_c = c('region', 'N_fert')) %>% 
-      .[,P_max := max(P), region] %>%
-      .[,P_diff := P - P_max]
+    lag_seq <- seq(0,50,5)
     
-    static_mrtn_dt  <- static_data[P_diff >= -level_n] %>% # get out of the flat zone: lowest rate withing diff_n usd difference from max Profit
-      .[, .SD[ N_fert == min( N_fert)], by = .(region)] %>%
-      .[,.(region, eonr_pred = N_fert)] %>%
-      .[order(region)]
+    set.seed(123)
     
-    (plot1 <- ggplot() + 
-        geom_line(data = static_data, aes(x = N_fert, y = P, color = region), size = 1.5)+
-        geom_point(data = static_data[,.SD[P == max(P)], by = region], aes(x = N_fert, y = P), size = 3) +
-        geom_point(data = static_data[P_diff >= -level_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2, size = 3)+
-        ylab('Profits ($/ha)')+
-        theme_bw() +
-        xlab('N rate (kg/ha)'))
-    
-    
-    # =========================================================================================================================================================
-    # CREATE THE RF-HIGH
-    training_eonr_dt <- copy(training_set_dt)
-    training_eonr_dt[,P_max := max(P), .(id_10, id_field, z)]
-    training_eonr_dt[,P_diff := P - P_max]
-    
-    training_eonr_dt  <- training_eonr_dt[P_diff >= -level_n] %>% # get out of the flat zone: lowest rate withing 10 usd difference from max Profit
-      .[, .SD[ N_fert == min( N_fert)], by = .(id_10, id_field, z)] 
-    
-    setnames(training_eonr_dt, 'N_fert', 'eonr')
-    
-    # RF Model 2------------------------
-    # mtry <- tuneRF(training_eonr_dt2[,c(pred_vars), with = FALSE],training_eonr_dt2$eonr, mtryStart = 6, ntreeTry=1000,
-    #                 stepFactor=1.1,improve=0.01, trace=TRUE, plot=TRUE) # ,mtryStart = 5
-    # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
-    
-    best.m = 6
-    
-    rfhigh <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
-                           data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
-                           strata = year, #I think it will bootstrap by year
-                           importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
-    
-    varImpPlot(rfhigh, type=2)
-    plot(rfhigh)
-    
-    if(level_n == 5){
-      pdf("./n_policy_box/Data/figures/VarImportancePlot.pdf")
-      varImpPlot(rfhigh, type=2, main = '')
-      dev.off() 
-    }
-    
-    
-    #===================================================================================================================
-    # EVALUATION
-    
-    #Prepare the data
-    evaluation_set_dt[, P := Y_corn * Pc - N_fert * Pn]#update profits
-    evaluation_set_dt[, G :=0] #gov collection
-    
-    #===================================================================================================================
-    # 1) STATIC MRTN
-    
-    # the NRT is trained with z1-10 and testing is evaluated with z11-25
-    evaluation_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
-                                by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-      .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'staticmrtn'][,policy := paste0('lag_', level_n)]
-    #===================================================================================================================
-    # 2) RFHIGH
-    # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
-    
-    prediction_set_aggregated_dt[,eonr_pred := round(predict(rfhigh, prediction_set_aggregated_dt)/10,0)*10]
-    
-    evaluation_set_tmp <- merge(evaluation_set_dt,
-                                prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
-      .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
-      .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
-    
-    evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
-    
-    results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'rfhigh'][,policy := paste0('lag_', level_n)]
-    
-    #===================================================================================================================
-  } #end of lag loop
+    for(level_n in lag_seq){
+      # level_n = 5
+      print(level_n)
+  
+      training_set_dt[, P := Y_corn * Pc - N_fert * Pn]#update profits
+      # =========================================================================================================================================================
+      # CREATE THE STATIC MRTN
+      training_mrtn_dt <- training_set_dt[Yld_response > Yld_response_threshold] #Needs to be here, to use updated profits 
+      
+      
+      static_data <- aggregate_by_area(data_dt = training_mrtn_dt, variables = c('P'), 
+                                       weight = 'area_ha', by_c = c('region', 'N_fert')) %>% 
+        .[,P_max := max(P), region] %>%
+        .[,P_diff := P - P_max]
+      
+      static_mrtn_dt  <- static_data[P_diff >= -level_n] %>% # get out of the flat zone: lowest rate withing diff_n usd difference from max Profit
+        .[, .SD[ N_fert == min( N_fert)], by = .(region)] %>%
+        .[,.(region, eonr_pred = N_fert)] %>%
+        .[order(region)]
+      
+      (plot1 <- ggplot() + 
+          geom_line(data = static_data, aes(x = N_fert, y = P, color = region), size = 1.5)+
+          geom_point(data = static_data[,.SD[P == max(P)], by = region], aes(x = N_fert, y = P), size = 3) +
+          geom_point(data = static_data[P_diff >= -level_n][, .SD[ N_fert == min( N_fert)], by = .(region)], aes(x = N_fert, y = P), shape = 2, size = 3)+
+          ylab('Profits ($/ha)')+
+          theme_bw() +
+          xlab('N rate (kg/ha)'))
+      
+      
+      # =========================================================================================================================================================
+      # CREATE THE RF-HIGH
+      training_eonr_dt <- copy(training_set_dt)
+      training_eonr_dt[,P_max := max(P), .(id_10, id_field, z)]
+      training_eonr_dt[,P_diff := P - P_max]
+      
+      training_eonr_dt  <- training_eonr_dt[P_diff >= -level_n] %>% # get out of the flat zone: lowest rate withing 10 usd difference from max Profit
+        .[, .SD[ N_fert == min( N_fert)], by = .(id_10, id_field, z)] 
+      
+      setnames(training_eonr_dt, 'N_fert', 'eonr')
+      
+      # RF Model 2------------------------
+      # mtry <- tuneRF(training_eonr_dt2[,c(pred_vars), with = FALSE],training_eonr_dt2$eonr, mtryStart = 6, ntreeTry=1000,
+      #                 stepFactor=1.1,improve=0.01, trace=TRUE, plot=TRUE) # ,mtryStart = 5
+      # best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+      
+      best.m = 6
+      
+      dynamic <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
+                             data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
+                             strata = year, #I think it will bootstrap by year
+                             importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
+      
+      varImpPlot(dynamic, type=2)
+      plot(dynamic)
+      
+      if(level_n == 5){
+        pdf("./n_policy_box/Data/figures/VarImportancePlot.pdf")
+        varImpPlot(dynamic, type=2, main = '')
+        dev.off() 
+      }
+      
+      
+      #===================================================================================================================
+      # EVALUATION
+      
+      #Prepare the data
+      evaluation_set_dt[, P := Y_corn * Pc - N_fert * Pn]#update profits
+      evaluation_set_dt[, G :=0] #gov collection
+      
+      #===================================================================================================================
+      # 1) STATIC MRTN
+      
+      # the NRT is trained with z1-10 and testing is evaluated with z11-25
+      evaluation_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
+                                  by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+        .[N_fert == eonr_pred] %>%
+        .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+      
+      
+      results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'static'][,policy := paste0('lag_', level_n)]
+      #===================================================================================================================
+      # 2) dynamic
+      # GET THE RECOMMENDATION FOR THE Z11-30 FOR EACH id_field
+      
+      prediction_set_aggregated_dt[,eonr_pred := round(predict(dynamic, prediction_set_aggregated_dt)/10,0)*10]
+      
+      evaluation_set_tmp <- merge(evaluation_set_dt,
+                                  prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
+        .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
+        .[N_fert == eonr_pred] %>%
+        .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+      
+      evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
+      
+      results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'dynamic'][,policy := paste0('lag_', level_n)]
+      
+      #===================================================================================================================
+    } #end of lag loop
+  }#end of if false chunk
   perfomances_z_tmp <- rbindlist(results_list)
   
-  saveRDS(perfomances_z_tmp, paste0("./n_policy_box/Data/files_rds/field_performances_tmp/field_performance_", z_n,'.rds'))
+  saveRDS(perfomances_z_tmp, paste0("./n_policy_box/Data/files_rds/field_performances_tmp/field_performances_", z_n,'.rds'))
 
 }#end of z_n
 
-
+# 
 # load all the results
 perfomances_list <- list()
-files_path <- list.files("./n_policy_box/Data/files_rds/field_performances_tmp", full.names = TRUE)
+files_path <- list.files("./n_policy_box/Data/files_rds/field_performances_tmp", full.names = TRUE, pattern = 'field_performances_')
+
 for(file_n in files_path){
   # file_n = files_path[1]
   perfomances_list[[length(perfomances_list)+1]] <- readRDS(file_n)
-  
+
 }
 field_perfomances_dt <- rbindlist(perfomances_list)
+
+
 field_perfomances_dt[,.N, z][order(z)]
 
 field_perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, .(id_10)] %>% .[,N] %>% table() #number of fields by cell
 field_perfomances_dt[,.N, .(id_10, id_field, policy, NRT, z)] %>% .[,.N, .(NRT)] #field x year by NRT
-
 
 saveRDS(field_perfomances_dt, "./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
 
