@@ -91,15 +91,14 @@ if(T){
   #---------
   #Calculate net_balance
   perfomances_dt4[,net_balance := P - P_base + G]
-  
+  perfomances_dt4[,policy_cost := P_base - P -  + G]
   #---------
   #remove yields modifications of more that 5%
   perfomances_dt4[,Y_corn_change := Y_corn/Y_base]
-  
+  perfomances_dt4 <- perfomances_dt4[Y_corn_change >=0.95 & Y_corn_change <= 1.05] #remove yields modifications of more that 5%
   #---------------------------------------------------------------------------
   # Some cleaning
-  perfomances_dt4[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
-  perfomances_dt4[,policy_name := as.character(lapply(policy, function(x) str_split(x, pattern = '_')[[1]][1]))]
+  perfomances_dt4[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
   
   colsToDelete <- c('L_base', 'Y_base', 'P_base','Y_corn_change')
   set(perfomances_dt4,, colsToDelete, NULL)
@@ -107,7 +106,7 @@ if(T){
   saveRDS(perfomances_dt4, "./n_policy_box/Data/files_rds/perfomances_dt4.rds")
   #---------------------------------------------------------------------------
   # AGGREGATE AGAIN AT THE STATE LEVEL, CONSIDERING THE CORN PRODUCTION OF THE CELL
-  perfomances_dt5 <- aggregate_by_area(data_dt = perfomances_dt4, 
+  perfomances_dt5 <- aggregate_by_area(data_dt = perfomances_dt3, #use perfomances_dt3 to avoid the 95% rule by region
                                        variables = c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G"), 
                                        weight = 'corn_avg_ha', by_c = c('policy', 'NRT')) #state level, weighted by corn_ha
   # ---------
@@ -129,9 +128,7 @@ if(T){
   
   #---------------------------------------------------------------------------
   # Some cleaning
-  field_perfomances_dt2[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
-  perfomances_dt5[,policy_val := as.numeric(str_extract(policy,pattern = '[0-9.]+'))]
-  perfomances_dt5[,policy_name := as.character(lapply(policy, function(x) str_split(x, pattern = '_')[[1]][1]))]
+  perfomances_dt5[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
   
   colsToDelete <- c('L1', 'L2', 'corn_avg_ha', 'L_base', 'Y_base', 'P_base','Y_corn_change')
   set(perfomances_dt5,, colsToDelete, NULL)
