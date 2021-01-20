@@ -18,10 +18,14 @@ source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 if(FALSE){
   grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds") 
   grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
-  grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
+  # grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
   
   perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
-
+  perfomances_dt <- perfomances_dt[!(NRT == 'static' & policy != 'ratio_5')]
+  perfomances_dt <- merge(perfomances_dt, unique(grid10_soils_dt5[,.(id_10, region_eq)]), by = 'id_10')
+  
+  
+  
   perfomances_dt[,.(area_ha = sum(area_ha)), by = .(policy, NRT, id_10, id_field, z)]$area_ha %>% summary()
   
   perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
@@ -48,7 +52,7 @@ if(FALSE){
   #-------------------------------------------------------------------------
   # AGGREGATE THE DATA TO CELL LEVEL (not by area)
   names(perfomances_dt)
-  do_not_aggregate = c('policy','id_10', 'region','NRT')
+  do_not_aggregate = c('policy','id_10', 'region_eq','NRT')
   
   perfomances_dt3 <- perfomances_dt[,.(Y_corn = mean(Y_corn), 
                                         Y_soy = mean(Y_soy),
@@ -63,7 +67,7 @@ if(FALSE){
   saveRDS(perfomances_dt3, "./n_policy_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
   perfomances_dt3 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
   #---------------------------------------------------------------------------
-  # AGGREGATE AGAIN BY REGION CONSIDERING THE CORN PRODUCTION OF THE CELL
+  # AGGREGATE AGAIN BY region_eq CONSIDERING THE CORN PRODUCTION OF THE CELL
   grid10_tiles_dt <- data.table(grid10_tiles_sf7)[,.N, .(id_tile,id_10, corn_avg_ha,corn5_tile )][,-'N']
   grid10_tiles_dt[,.(corn_avg_ha = sum(corn_avg_ha))]
   summary(grid10_tiles_dt$corn_avg_ha)
@@ -73,13 +77,13 @@ if(FALSE){
   
   perfomances_dt4 <- aggregate_by_area(data_dt = perfomances_dt3, 
                                        variables = c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G"), 
-                                       weight = 'corn_avg_ha', by_c = c('policy','NRT', 'region')) #region level, weighted by corn_ha
+                                       weight = 'corn_avg_ha', by_c = c('policy','NRT', 'region_eq')) #region_eq level, weighted by corn_ha
   
   # ---------
   # Make leaching relative to baselevel
-  baselevel_dt <- perfomances_dt4[policy == 'ratio_5' & NRT == 'static', .(region, L_base = L, Y_base = Y_corn, P_base = P)]
+  baselevel_dt <- perfomances_dt4[policy == 'ratio_5' & NRT == 'static', .(region_eq, L_base = L, Y_base = Y_corn, P_base = P)]
   
-  perfomances_dt4 <- merge(perfomances_dt4, baselevel_dt, by = 'region')
+  perfomances_dt4 <- merge(perfomances_dt4, baselevel_dt, by = 'region_eq')
   perfomances_dt4[,L_change := round((L / L_base) - 1,3)*100 ]
   
   #---------
@@ -102,7 +106,7 @@ if(FALSE){
   saveRDS(perfomances_dt4, "./n_policy_box/Data/files_rds/perfomances_dt4.rds")
   #---------------------------------------------------------------------------
   # AGGREGATE AGAIN AT THE STATE LEVEL, CONSIDERING THE CORN PRODUCTION OF THE CELL
-  perfomances_dt5 <- aggregate_by_area(data_dt = perfomances_dt3, #use perfomances_dt3 to avoid the 95% rule by region
+  perfomances_dt5 <- aggregate_by_area(data_dt = perfomances_dt3, #use perfomances_dt3 to avoid the 95% rule by region_eq
                                        variables = c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G"), 
                                        weight = 'corn_avg_ha', by_c = c('policy', 'NRT')) #state level, weighted by corn_ha
   # ---------
@@ -271,15 +275,15 @@ percent20_dt[,lb_removed := kg_removed *2.20462]
 percent20_dt[,cost_red_dlr_lb := policy_cost/lb_removed]
 
 #---------------------------------------------------------------------------
-# REGION LEVEL PLOT 
+# region_eq LEVEL PLOT 
 
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 
-plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'leach', 'bal', 'red') & NRT %in% c('static', 'dynamic')] 
+plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'leach', 'bal', 'red') & NRT %in% c('dynamic')] 
 
 
 
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val',  'region', 'NRT'), measure.vars = c('L_change', 'L', 'policy_cost', 'abatement_cost'))
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val',  'region_eq', 'NRT'), measure.vars = c('L_change', 'L', 'policy_cost', 'abatement_cost'))
 
 plot_dt_long[,y_labels := factor(variable, levels = c( 'L_change', 'L', 'policy_cost', 'abatement_cost'),
                                  labels = c(expression("N Leaching ("*'%'*" change)"),
@@ -297,7 +301,7 @@ plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal'
 
 
 ggplot(data = plot_dt_long) +
-  geom_line(aes(x = policy_val, y =  value, linetype = NRT, color = region), size = 1)+
+  geom_line(aes(x = policy_val, y =  value, linetype = NRT, color = region_eq), size = 1)+
   scale_linetype_manual(values = c("dashed", "solid"))+
   facet_free(y_labels~x_labels,
              labeller = label_parsed,
@@ -318,34 +322,63 @@ ggplot(data = plot_dt_long) +
 
 
 ggsave(plot = p, 
-       filename = "./n_policy_box/Data/figures/policies_multiplot_region.pdf", width = 831/300*3, height = 963/300*3,
+       filename = "./n_policy_box/Data/figures/policies_multiplot_region_eq.pdf", width = 831/300*3, height = 963/300*3,
        units = 'in')
 
 #=============================================================================================================================================
 # ABATEMENT COST OPTIMIZATION
-# Plot: leaching reduction vs abatement cost, using the sublevel of the policy by region that leads to the same abatement cost across regions.
+# Plot: leaching reduction vs abatement cost, using the sublevel of the policy by region_eq that leads to the same abatement cost across region_eqs.
 # and using the same sublevel for the whole state
 
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 
 abatement_dt <- perfomances_dt4[policy_name %in% c('ratio') & NRT %in% c('dynamic')] #, 'leach', 'bal', 'red'
-min(abatement_dt$abatement_cost)
+
+abatement_dt[, L_next := data.table::shift(L, n=1, fill=NA, type="lag"), by = region_eq]
+abatement_dt[, P_next := data.table::shift(P, n=1, fill=NA, type="lag"), by = region_eq]
+abatement_dt[, L_next := L-L_next]
+abatement_dt[, P_next := P-P_next]
+abatement_dt[, abat_mg := P_next/L_next]
+
+
+abatement_list <- list()
+keep <- TRUE
+
+while(keep){
+  
+  abatement_dt[,region_rows := .N, by = region_eq]
+  select_this <- abatement_dt[abat_mg == min(abat_mg, na.rm = T) ]
+  
+  abatement_dt <- abatement_dt[!(region_eq == select_this$region_eq & policy_val <= select_this$policy_val)] #policy_val lower than selected
+  
+  abatement_selected_dt <- abatement_dt[, .SD[ policy_cost  == max(policy_cost )], by = .(region_eq, NRT, policy_name)] %>%
+    .[, .SD[ policy_val == min( policy_val)], by = .(region_eq, NRT, policy_name)]
+  
+  keep = nrow(abatement_dt) > 6#length(unique(abatement_dt$region_eq))
+  
+  abatement_list[[length(abatement_list)+1]] <- abatement_selected_dt[,loop := length(abatement_list)+1]
+}
+
+
 
 abatement_list <- list()
 abat_seq <- seq(-1, -5, -0.5)
 for(cost_n in abat_seq){
-  # cost_n = -2
+  # cost_n = -0.5
   abatement_tmp <-abatement_dt[abatement_cost > cost_n] %>% 
-    .[, .SD[ L == min( L)], by = .(region, NRT, policy_name)] %>%
-    .[, .SD[ policy_val == min( policy_val)], by = .(region, NRT, policy_name)]
+    .[, .SD[ L == min( L)], by = .(region_eq, NRT, policy_name)] %>%
+    .[, .SD[ policy_val == min( policy_val)], by = .(region_eq, NRT, policy_name)]
+  
+  
+  
   abatement_list[[length(abatement_list)+1]] <- abatement_tmp[,abatement_cost_target := cost_n]
 }
 
-abatement_regions_dt <- rbindlist(abatement_list)
-abatement_regions_dt[,.N, by = .(abatement_cost_target)]
+abatement_region_eqs_dt <- rbindlist(abatement_list)
+abatement_region_eqs_dt[,.N, by = .(abatement_cost_target)]
 
 # State agregation
-abatement_state_dt <- aggregate_by_area(data_dt = abatement_regions_dt, #use perfomances_dt3 to avoid the 95% rule by region
+abatement_state_dt <- aggregate_by_area(data_dt = abatement_region_eqs_dt, #use perfomances_dt3 to avoid the 95% rule by region_eq
                                      variables = c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G"), 
                                      weight = 'corn_avg_ha', by_c = c('policy_name', 'abatement_cost_target')) #state level, weighted by corn_ha
 # ---------
@@ -381,7 +414,7 @@ uniform_vs_opt_dt <- rbind(abatement_state_dt, uniform_state_dt, fill= T)
 ggplot(data = uniform_vs_opt_dt) +
   geom_line(aes(x = -L_change, y =  policy_cost , color = policy_name, linetype = sublevels), size = 1)
 
-abatement_regions_dt[abatement_cost_target ==  -1.5]
+abatement_region_eqs_dt[abatement_cost_target ==  -1.5]
 perfomances_dt4[policy == 'ratio_9' & NRT == 'dynamic']
 
 
@@ -418,29 +451,32 @@ perfomances_dt3 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt3.rds") 
 # Make leaching relative to baselevel
 baselevel_dt <- perfomances_dt3[policy == 'ratio_5' & NRT == 'static', .(id_10, L_base = L, Y_base = Y_corn, P_base = P)]
 
-map_dt <- merge(perfomances_dt3[policy == 'ratio_10' & NRT == 'dynamic'], baselevel_dt, by = 'id_10')
+map_dt <- merge(perfomances_dt3[NRT == 'dynamic'], baselevel_dt, by = 'id_10')
 map_dt[,L_change := round((L / L_base) - 1,3)*100 ]
 
 #---------
 #Calculate policy_cost
 map_dt[,policy_cost := P  + G - P_base]
 map_dt[,abat_cost := policy_cost/(L_base-  L)]
-#---------
-#remove yields modifications of more that 5%
-map_dt[,Y_corn_change := Y_corn/Y_base]
-# map_dt <- map_dt[Y_corn_change >=0.95 & Y_corn_change <= 1.05] #remove yields modifications of more that 5%
+
 #---------------------------------------------------------------------------
 # Some cleaning
 map_dt[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
 map_dt[,policy_val := as.numeric(policy_val)]
 
+map_dt2 <- map_dt[abat_cost > -1 & policy_name == 'ratio'] %>% 
+  .[, .SD[ L == min( L)], by = .(id_10, NRT, policy_name)] %>%
+  .[, .SD[ policy_val == min( policy_val)], by = .(id_10, NRT, policy_name)]
+
 colsToDelete <- c('L_base', 'Y_base', 'P_base','Y_corn_change')
 set(map_dt,, colsToDelete, NULL)
 
+hist(map_dt2$abat_cost)
 
-value_sf <- merge(grid10_tiles_sf7, map_dt[,.(id_10, abat_cost)], by = 'id_10', all.x = T)
+grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds") 
+value_sf <- merge(grid10_tiles_sf7, map_dt2[,.(id_10, policy_val)], by = 'id_10', all.x = T)
 
-tm_shape(value_sf) + tm_polygons('abat_cost)'
+tm_shape(value_sf) + tm_polygons(c('policy_val', 'region_eq'), n=10)
 
 (p1 <- tm_shape(value_sf) + tm_polygons(c('corn_avg_ha'), 
                                         n =10, 
@@ -458,7 +494,7 @@ tm_shape(value_sf) + tm_polygons('abat_cost)'
 
 
 #--------------------------------------------------------------------------------
-# Regional table
+# region_eqal table
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 percent20_dt <- readRDS("./n_policy_box/Data/files_rds/percent20_dt.rds")
 
@@ -466,25 +502,25 @@ percent20_dt <- percent20_dt[NRT == 'static',.(policy, NRT)]
 percent20_dt <- rbind(data.table(policy = c('ratio_5'), NRT = c('static')), 
                       percent20_dt)
 
-region_dt <- filter_dt_in_dt(perfomances_dt4, filter_dt = percent20_dt, return_table = T)
-region_dt[region == 1,region_lab := '1-South']
-region_dt[region == 2,region_lab := '2-Central']
-region_dt[region == 3,region_lab := '3-North']
+region_eq_dt <- filter_dt_in_dt(perfomances_dt4, filter_dt = percent20_dt, return_table = T)
+region_eq_dt[region_eq == 1,region_eq_lab := '1-South']
+region_eq_dt[region_eq == 2,region_eq_lab := '2-Central']
+region_eq_dt[region_eq == 3,region_eq_lab := '3-North']
 
-region_dt_base <- region_dt[policy == 'ratio_5', .(region_lab, Y_corn, L, N_fert, P)]
-region_dt_20down <- region_dt[policy != 'ratio_5', .(region_lab, policy_name, NRT, Y_corn, L, N_fert, P, G, net_balance)]
+region_eq_dt_base <- region_eq_dt[policy == 'ratio_5', .(region_eq_lab, Y_corn, L, N_fert, P)]
+region_eq_dt_20down <- region_eq_dt[policy != 'ratio_5', .(region_eq_lab, policy_name, NRT, Y_corn, L, N_fert, P, G, net_balance)]
 
-region_dt2 <- merge(region_dt_20down, region_dt_base, by = 'region_lab', suffixes = c("", "_base"))
-region_dt2[, Y_corn_diff := Y_corn - Y_corn_base]
-region_dt2[, L_diff := L - L_base]
-region_dt2[, N_fert_diff := N_fert - N_fert_base]
-region_dt2[, P_diff := P - P_base]
-region_dt2[, policy_cost := P + G - P_base]
-region_dt2 <- region_dt2[,.(region_lab, policy_name, NRT, Y_corn, L, N_fert, P, G,Y_corn_diff, L_diff, N_fert_diff, P_diff, policy_cost)]
-region_dt2[order(-region_lab)]
-region_dt2[,.(L_diff = mean(L_diff),
+region_eq_dt2 <- merge(region_eq_dt_20down, region_eq_dt_base, by = 'region_eq_lab', suffixes = c("", "_base"))
+region_eq_dt2[, Y_corn_diff := Y_corn - Y_corn_base]
+region_eq_dt2[, L_diff := L - L_base]
+region_eq_dt2[, N_fert_diff := N_fert - N_fert_base]
+region_eq_dt2[, P_diff := P - P_base]
+region_eq_dt2[, policy_cost := P + G - P_base]
+region_eq_dt2 <- region_eq_dt2[,.(region_eq_lab, policy_name, NRT, Y_corn, L, N_fert, P, G,Y_corn_diff, L_diff, N_fert_diff, P_diff, policy_cost)]
+region_eq_dt2[order(-region_eq_lab)]
+region_eq_dt2[,.(L_diff = mean(L_diff),
               N_fert_diff = mean(N_fert_diff),
-              net_balance = mean(net_balance)), by = .(NRT, region_lab) ]
+              net_balance = mean(net_balance)), by = .(NRT, region_eq_lab) ]
 
 #--------------------------------------------------------------------------------
 # N Balance
@@ -496,20 +532,20 @@ perfomances_dt2[,N_balance := N_fert - Y_corn * 11/1000]
 perfomances_dt2[,L_ton_grain := L/(Y_corn / 1000)]
 balance_dt <- perfomances_dt2[policy == 'ratio_5']
 
-balance_dt[region == 1,region_lab := '1-South']
-balance_dt[region == 2,region_lab := '2-Central']
-balance_dt[region == 3,region_lab := '3-North']
+balance_dt[region_eq == 1,region_eq_lab := '1-South']
+balance_dt[region_eq == 2,region_eq_lab := '2-Central']
+balance_dt[region_eq == 3,region_eq_lab := '3-North']
 
 
 (p1 <- ggplot(data = balance_dt)+ geom_density(aes(x = N_balance, colour = NRT), size =1)+
-  facet_free(region_lab~.)+
+  facet_free(region_eq_lab~.)+
   ggtitle('N Balance'))
 
 ggsave(plot = p1, 
        filename = "./n_policy_box/Data/figures/balance1.png")
 
 (p2 <- ggplot(data = balance_dt)+ geom_density(aes(x = L2, colour = NRT), size =1)+
-  facet_free(region_lab~.)+
+  facet_free(region_eq_lab~.)+
   ggtitle('Leaching'))
 
 ggsave(plot = p2, 
@@ -518,7 +554,7 @@ ggsave(plot = p2,
 (p3 <- ggplot(data = balance_dt[sample(1:nrow(balance_dt), 5000)], aes(x = N_balance, y = L)) + 
   geom_point()+
   geom_smooth()+
-  facet_free(region_lab~.))
+  facet_free(region_eq_lab~.))
 
 ggsave(plot = p3, 
        filename = "./n_policy_box/Data/figures/balance3.png")
@@ -526,7 +562,7 @@ ggsave(plot = p3,
 (p4 <- ggplot(data = balance_dt[sample(1:nrow(balance_dt), 5000)], aes(x = N_balance, y = L_ton_grain)) + 
   geom_point()+
   geom_smooth()+
-  facet_free(region_lab~.))
+  facet_free(region_eq_lab~.))
 
 ggsave(plot = p4, 
        filename = "./n_policy_box/Data/figures/balance4.png")
@@ -537,7 +573,7 @@ ggsave(plot = p4,
 yc_yearly_dt3 <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
 
 
-#Add regions and areas
+#Add region_eqs and areas
 grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds")
 areas_dt <- data.table(grid10_soils_dt5) %>% .[,.(area_ha = sum(area_ha)), by = .(id_10, mukey)]
 
@@ -546,29 +582,29 @@ areas_dt <- grid10_soils_dt5[,.(area_ha = sum(area_ha)), by = .(id_10, mukey)]
 state_agg_dt <- merge(yc_yearly_dt3[,-c('area_ha')], areas_dt, by = c('id_10', 'mukey'))
 
 state_agg_dt2  <- aggregate_by_area(data_dt = state_agg_dt, variables = c('Y_corn', 'Y_soy', 'L1','L2'), 
-                                    weight = 'area_ha', by_c = c('N_fert', 'region'))# %>% .[,-'area_ha']
+                                    weight = 'area_ha', by_c = c('N_fert', 'region_eq'))# %>% .[,-'area_ha']
 
 state_agg_dt2[,N_balance := N_fert - Y_corn * 11/1000]
 state_agg_dt2[,L := L1 + L2]
 state_agg_dt2[,L_ton_grain := L/(Y_corn / 1000)]
 
-state_agg_dt2[region == 1,region_lab := '1-South']
-state_agg_dt2[region == 2,region_lab := '2-Central']
-state_agg_dt2[region == 3,region_lab := '3-North']
+state_agg_dt2[region_eq == 1,region_eq_lab := '1-South']
+state_agg_dt2[region_eq == 2,region_eq_lab := '2-Central']
+state_agg_dt2[region_eq == 3,region_eq_lab := '3-North']
 
 ggplot() + 
   geom_line(data = state_agg_dt2, aes(x = N_fert, y = L_ton_grain))+
-  geom_point(data = state_agg_dt2[,.SD[L_ton_grain == min(L_ton_grain)], by = region], aes(x = N_fert, y = L_ton_grain))+
-  facet_free(region_lab~.)
+  geom_point(data = state_agg_dt2[,.SD[L_ton_grain == min(L_ton_grain)], by = region_eq], aes(x = N_fert, y = L_ton_grain))+
+  facet_free(region_eq_lab~.)
 
 ggplot(data = state_agg_dt2) + 
   geom_point( aes(x = N_balance, y = L))+
-  facet_free(region_lab~.)
+  facet_free(region_eq_lab~.)
 
 ggplot(data = state_agg_dt2) + 
   geom_point( aes(x = N_balance, y = L_ton_grain))+
   geom_point( aes(x = N_balance, y =  Y_corn/1000))+
-  facet_free(region_lab~.)
+  facet_free(region_eq_lab~.)
 
 #-----------------------------------------------------------------------------------------------------#
 #POSTER
@@ -1323,24 +1359,24 @@ latex_table_dt[NRT==5, ]$'N leaching' - latex_table_dt[NRT==4, ]$'N leaching' #E
 #=====================================================================================================================
 # MRTN vs Minimum NRT
 reg_NRT_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_NRT_stuff.rds")
-NRT_minimum_regional <- reg_NRT_stuff$NRT_minimum_regional
+NRT_minimum_region_eqal <- reg_NRT_stuff$NRT_minimum_region_eqal
 rm(reg_NRT_stuff)
 
-mrtn_dt <- data.table(region = c(3,3,2,2,1,1), 
+mrtn_dt <- data.table(region_eq = c(3,3,2,2,1,1), 
                       prev_crop = c(0,1,0,1,0,1),
                       MRTN_Rate_lbN_ac = c(161, 200, 175, 193,187, 192))
 mrtn_dt <- mrtn_dt[prev_crop == 0]
 mrtn_dt[,MRTN_rate := round(MRTN_Rate_lbN_ac * 1.12,0)] #1 pound per acre = 1.12 kilograms per hectare
 
-NRT_minimum_regional2 <- merge(NRT_minimum_regional, mrtn_dt[,-c('prev_crop','MRTN_Rate_lbN_ac')], by = c('region'))
-# NRT_minimum_regional2[,prev_crop := ifelse(prev_crop == 0, 'Soybean', 'Corn')]
-NRT_minimum_regional2[,region := ifelse(region == 1, '1_South', ifelse(region == 2, '2_Central', '3_North'))]
-setnames(NRT_minimum_regional2, 'eonr_pred', 'NRT1_rate')
-NRT_minimum_regional2[order(-region)]
+NRT_minimum_region_eqal2 <- merge(NRT_minimum_region_eqal, mrtn_dt[,-c('prev_crop','MRTN_Rate_lbN_ac')], by = c('region_eq'))
+# NRT_minimum_region_eqal2[,prev_crop := ifelse(prev_crop == 0, 'Soybean', 'Corn')]
+NRT_minimum_region_eqal2[,region_eq := ifelse(region_eq == 1, '1_South', ifelse(region_eq == 2, '2_Central', '3_North'))]
+setnames(NRT_minimum_region_eqal2, 'eonr_pred', 'NRT1_rate')
+NRT_minimum_region_eqal2[order(-region_eq)]
 
-print.xtable(xtable(NRT_minimum_regional2, type = "latex", auto = TRUE, 
+print.xtable(xtable(NRT_minimum_region_eqal2, type = "latex", auto = TRUE, 
                     label = 'tab:NRT1', 
-                    caption = 'NRT 1 predictions paired with MRTN recommendations for the same region'),
+                    caption = 'NRT 1 predictions paired with MRTN recommendations for the same region_eq'),
              file = "./n_policy_box/Data/figures/NRT1.tex", include.rownames=FALSE)
 
 #=====================================================================================================================
@@ -1739,7 +1775,7 @@ st_write(value_sf, "./n_policy_box/Data/shapefiles/vr_cell_value_sf.shp", delete
 # 4) MAKE A MAP OF TECHNOLOGY MARKET CAP BY FIELD (for QGIS)
 # AGGREGATE THE DATA TO CELL X Z LEVEL CONSIDERING THE AREA
 names(perfomances_dt)
-do_not_aggregate = c('id_10', 'id_field','region','NRT', 'tech')
+do_not_aggregate = c('id_10', 'id_field','region_eq','NRT', 'tech')
 do_aggregate =  c("Y_corn", "L", "N_fert","P")
 
 perfomances_field_dt <- aggregate_by_area(data_dt = perfomances_dt, variables = do_aggregate, 
@@ -2005,7 +2041,7 @@ best_NRT_dt <- best_NRT_dt[,.SD[P==max(P)], by = id_10]
 best_NRT_dt <- merge(best_NRT_dt, perfomances_dt3[NRT == 1, .(id_10, P_1 = P)], by = 'id_10')
 best_NRT_dt[,P_improve := P-P_1]
 
-best_NRT_dt[,.N, by = .(region, NRT)]
+best_NRT_dt[,.N, by = .(region_eq, NRT)]
 
 best_NRT_sf <- merge(grid10_tiles_sf7, best_NRT_dt, by = 'id_10', all.x = T)
 
@@ -2094,7 +2130,7 @@ all_perfomances_dt[id_10 == 5, .(Y_corn_1 = sum(Y_corn_1), area_ha = sum(area_ha
 
 
 # MAKE A DT
-economics_field_dt <- merge(n_regional_noss_dt2, n_regional_ss_dt2) %>% merge(eonr_ur_dt2) %>% merge(eonr_vr_dt2)
+economics_field_dt <- merge(n_region_eqal_noss_dt2, n_region_eqal_ss_dt2) %>% merge(eonr_ur_dt2) %>% merge(eonr_vr_dt2)
 economics_field_dt[,area_ha := sum(area_dt$area_ha)]
 economics_field_dt[,val_ss_ha := (P_reg_ss - P_reg_no_ss)/area_ha]
 economics_field_dt[,val_info_ha := (P_ur - P_reg_no_ss)/area_ha]
@@ -2169,7 +2205,7 @@ tmap_save(p, "./n_policy_box/Data/figures/profits.jpg")
 dat.m <- melt(economics_dt,id.vars= c('id_10', 'id_field',  'z'), measure.vars=c('val_ss_ha','val_info_ha', 'val_tech_ha'))
 (p <- ggplot(dat.m) +
     geom_boxplot(aes(x=variable, y=value, color=variable)) +
-    # scale_color_discrete(name = "REGION") +
+    # scale_color_discrete(name = "region_eq") +
     ggtitle('Value of information and technology')+    
     theme_bw() +
     theme(axis.text=element_text(size=12),
