@@ -220,30 +220,43 @@ if(FALSE){
 
 #======================================================================================
 # GET REGIONS - they will have the same amount of corn cells on them
-# if(FALSE){
-#   grid10_tiles_sf5 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles.sf5.rds") 
-#   # 
-#   # tm_shape(grid10_tiles_sf5) + tm_polygons("county_name")
-#   # 
-#   # grid10_tiles_sf5 <- st_transform(grid10_tiles_sf5, 4326)
-#   # regions_dt <- data.table(grid10_tiles_sf5[, c('id_10', 'corn5_cell')], st_coordinates(st_centroid(grid10_tiles_sf5))) %>% .[,-'geometry']
-#   # setnames(regions_dt, c('X', 'Y'), c('long', 'lat'))
-#   # lat_min <- min(regions_dt$lat)
-#   # lat_max <- max(regions_dt$lat)
-#   # regions_dt[, region := .bincode(regions_dt$lat, breaks=c(lat_min-1, quantile(rep(regions_dt$lat, regions_dt$corn5_cell), c(0.333333, 0.66666)), lat_max +1))]
-#   # regions_dt[,.(corn5_cell = sum(corn5_cell)), by = region]
-#   
-#   
-#   
+if(FALSE){
+  grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds")
+  #
+  tm_shape(grid10_tiles_sf7) + tm_polygons("county_name")
+
+  # grid10_tiles_sf7 <- st_transform(grid10_tiles_sf7, 4326)
+  regions_dt <- data.table(grid10_tiles_sf7[, c('id_10', 'corn_avg_ha')], st_coordinates(st_centroid(grid10_tiles_sf7))) %>% .[,-'geometry']
+  setnames(regions_dt, c('X', 'Y'), c('long', 'lat'))
+  lat_min <- min(regions_dt$lat)
+  lat_max <- max(regions_dt$lat)
+  regions_dt[, region_eq := .bincode(regions_dt$lat, breaks=c(lat_min-1, quantile(rep(regions_dt$lat, regions_dt$corn_avg_ha ), c(0.333333, 0.66666)), lat_max +1))]
+  regions_dt[,.(corn_avg_ha  = sum(corn_avg_ha )), by = region_eq]
+  regions_dt[region_eq == 1, region_eq_lab := '1-South']
+  regions_dt[region_eq == 2, region_eq_lab := '2-Central']
+  regions_dt[region_eq == 3, region_eq_lab := '3-North']
+  regions_dt[,region_eq := NULL]
+  setnames(regions_dt, 'region_eq_lab', 'region_eq')
+  
+  # Add the region to both spatial files
+  grid10_tiles_sf7 <- merge(grid10_tiles_sf7, regions_dt[,.(id_10, region_eq)], by = 'id_10')
+  tm_shape(grid10_tiles_sf7) + tm_polygons(c("region", "region_eq"))
+  saveRDS(grid10_tiles_sf7, "./n_policy_box/Data/Grid/grid10_tiles_sf7.rds") 
+  
+  grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds")
+  grid10_soils_dt5 <- left_join(grid10_soils_dt5, regions_dt[,.(id_10, region_eq)], by = 'id_10')
+  saveRDS(grid10_soils_dt5, "./n_policy_box/Data/Grid/grid10_soils_dt5.rds")
 #   #----------
 #   # Fix the file by hand and load again
-#       # rid10_region <- grid10_tiles_sf7 %>% group_by(region) %>% summarize()
-#       # 
-#       # #install.packages('smoothr')
-#       # library(smoothr)
-#       # area_thresh <- units::set_units(10*10+10, km^2)
-#       # grid10_region2 <- fill_holes(grid10_region, threshold = area_thresh)
-#       # st_write(grid10_region, "./n_policy_box/Data/shapefiles/grid10_region.shp", delete_dsn = TRUE)
+  # grid10_region_df <- dplyr::select(grid10_tiles_sf7, id_10, corn_avg_ha) %>%
+  #   merge(regions_dt[,.(id_10, region_us)], by = 'id_10') %>%
+  #   group_by(region_us) %>% summarize()
+  # 
+  #     #install.packages('smoothr')
+  #     library(smoothr)
+  #     area_thresh <- units::set_units(10*10+10, km^2)
+  #     grid10_region_df <- fill_holes(grid10_region_df, threshold = area_thresh)
+  #     st_write(grid10_region_df, "./n_policy_box/Data/shapefiles/grid10_region_df.shp", delete_dsn = TRUE)
 # 
 #   grid10_region_by_hand <- sf::read_sf('./n_policy_box/Data/shapefiles/grid10_region_by_hand.shp')
 #   grid10_region_by_hand <- st_transform(grid10_region_by_hand, crs = st_crs(grid10_tiles_sf5))
@@ -260,7 +273,7 @@ if(FALSE){
 #   
 #   yc_yearly_dt3 <- merge(yc_yearly_dt3, regions_dt, by = 'id_10')
 #   
-# }
+}
 # 
 # grid10_tiles_sf6 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf6.rds") 
 # grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") 
