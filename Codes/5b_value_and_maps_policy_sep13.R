@@ -354,32 +354,6 @@ ggplot(data = plot_dt_long) +
     plot.margin =  unit(c(1,1,1,1), "lines")
   )
 
-(p <- ggplot() +
-    # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRT)) +
-    # scale_colour_manual(values = c("black", "brown"))+
-    geom_line(data = plot_dt_long, aes(x = policy_val, y =  value, color = NRT, linetype = region), size = 1) +
-    # scale_linetype_manual(values = c("dashed", "solid"))+
-    # geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
-    # geom_text(data = hline_dt, aes(x = 5, y = y_line+50, label =y_label ), hjust = 'left', vjust = 'center') +
-    # scale_color_manual(values=c("royalblue2", "tomato3"))+   
-    # geom_text(data = ann_text[variable %in% unique(plot_dt_long$variable)], aes(y = value, x = x, label = lab), 
-    #           hjust = 0, size = 8) +
-    #   coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest
-    #                   clip = 'off') +   # This keeps the labels from disappearing
-    facet_free(y_labels~x_labels,
-               labeller = label_parsed,
-               scales="free",
-               switch = 'x') +
-    theme_bw()+
-    theme(# panel.grid = element_blank(), 
-      strip.background.x = element_blank(),
-      strip.placement.x = "outside",
-      # panel.spacing = unit(1.5, "lines"),
-      axis.title.x=element_blank(),
-      axis.title.y=element_blank(),
-      legend.position = "bottom",
-      plot.margin =  unit(c(1,1,1,1), "lines")
-    ))
 
 ggsave(plot = p, 
        filename = "./n_policy_box/Data/figures/policies_multiplot_region.pdf", width = 831/300*3, height = 963/300*3,
