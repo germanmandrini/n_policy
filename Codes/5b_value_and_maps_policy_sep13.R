@@ -92,7 +92,7 @@ if(T){
   #Calculate net_balance
   # perfomances_dt4[,net_balance := P + G]
   perfomances_dt4[,policy_cost := P  + G - P_base]
-  perfomances_dt4[,policy_cost_kgN := policy_cost/(L_base-  L)]
+  perfomances_dt4[,abatement_cost := policy_cost/(L_base-  L)]
   #---------
   #remove yields modifications of more that 5%
   perfomances_dt4[,Y_corn_change := Y_corn/Y_base]
@@ -120,7 +120,7 @@ if(T){
   
   #---------
   #Calculate net_balance + 
-  perfomances_dt5,policy_cost := P  + G - P_base]
+  perfomances_dt5[,abatement_cost := policy_cost/(L_base-  L)]
   
   #---------
   #remove yields modifications of more that 5%
@@ -317,9 +317,9 @@ plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'leach', 'bal', 'red') & 
 
 
 
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val',  'region', 'NRT'), measure.vars = c('L_change', 'L', 'policy_cost', 'policy_cost_kgN'))
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val',  'region', 'NRT'), measure.vars = c('L_change', 'L', 'policy_cost', 'abatement_cost'))
 
-plot_dt_long[,y_labels := factor(variable, levels = c( 'L_change', 'L', 'policy_cost', 'policy_cost_kgN'),
+plot_dt_long[,y_labels := factor(variable, levels = c( 'L_change', 'L', 'policy_cost', 'abatement_cost'),
                                  labels = c(expression("N Leaching ("*'%'*" change)"),
                                             expression("N Leaching (kg " * ha^"-1"*")"),
                                             expression("Policy cost ($ " * ha^"-1" * yr^"-1"* ")"),
@@ -358,6 +358,26 @@ ggplot(data = plot_dt_long) +
 ggsave(plot = p, 
        filename = "./n_policy_box/Data/figures/policies_multiplot_region.pdf", width = 831/300*3, height = 963/300*3,
        units = 'in')
+
+#---------------------------------------------------------------------------
+# SAME ABATEMENT COST PER REGION VS SAME SUBLEVEL FOR THE STATE
+# Plot: leaching reduction vs abatement cost, using the sublevel of the policy by region that leads to the same abatement cost across regions.
+# and using the same sublevel for the whole state
+
+perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
+
+abatement_dt <- perfomances_dt4[policy_name %in% c('ratio', 'leach', 'bal', 'red') & NRT %in% c('static', 'dynamic')] 
+
+for(cost_n in 1:4){
+  cost_n = -2
+  abatement_dt[abatement_cost > cost_n]
+  
+  
+}
+
+
+
+
 #--------------------------------------------------------------------------------
 # Regional table
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
