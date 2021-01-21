@@ -138,101 +138,11 @@ if(FALSE){
   
 }  
 
-#--------------------------------------------------
-# STATE LEVEL PLOT 
-perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
-
-perfomances_dt5[policy %in% c('ratio_5', 'leach_0', 'bal_0', 'red_1', 'lag_0') & NRT == 'static']
-perfomances_dt5[policy %in% c('ratio_5', 'leach_0', 'bal_0', 'red_1') & NRT == 'dynamic']
-
-
-plot_dt <- perfomances_dt5[policy_name %in% c('ratio', 'leach', 'bal', 'red') & NRT %in% c('static', 'dynamic')] 
-
-# plot_dt[policy_name%in% c('red'), policy_val  := (1-policy_val )*100]
-
-# plot_dt[policy_name%in% c('nred') & NRT == 'dynamic' & policy_val > 15, policy_val  := -round(L_change) ]
-# plot_dt[policy_name%in% c('nred') & NRT == 'dynamic' & policy_val > 15]
-
-baselevel_L <- plot_dt[policy == 'ratio_5' & NRT == 'static', L]
-baselevel_Y_corn <- plot_dt[policy == 'ratio_5' & NRT == 'static', Y_corn ]
-
-
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'NRT'), measure.vars = c('Y_corn', 'L_change', 'N_fert', 
-                                                                                               'P', 'G', 'net_balance'))
-
-plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'Y_corn', 'P', 'G', 'net_balance'),
-                                 labels = c(expression("N Fertilizer \n (N kg " * ha^"-1" *yr^"-1"* ")"), 
-                                            expression("N Leaching\n ("*'%'*" change)"),
-                                            expression("Corn Yield \n (kg N " * ha^"-1" *yr^"-1"* ")"), 
-                                            expression("Farm profits \n ($ " * ha^"-1" * yr^"-1"* ")"),
-                                            expression("Gov. collections \n ($ " * ha^"-1" * yr^"-1"* ")"),
-                                            expression("Net income \n ($ " * ha^"-1" * yr^"-1"* ")")))]
-
-
-
-plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
-                                 labels = c(expression("N:Corn price"*" ratio"),
-                                            expression("Leaching fee ($ " * kg^"-1" * ha^"-1"*")"),
-                                            expression("N balance fee($ " * kg^"-1" * ha^"-1"*")"),
-                                            expression("N reduction (%"*")")))]
-plot_dt_long[,policy_val := as.numeric(policy_val)]
-
-# plot_dt_long[variable == 'N_fert', plot_name := 'a) N Rate kg/ha']
-# plot_dt_long[variable == 'L', plot_name := 'b) L (% change)']
-# plot_dt_long[variable == 'Y_corn', plot_name := 'c) Yield kg/ha']
-# plot_dt_long[variable == 'P', plot_name := 'd) Profits $/ha']
-# plot_dt_long[variable == 'G', plot_name := 'e) G $/ha']
-# plot_dt_long[variable == 'E', plot_name := 'f) E $/ha']
-# plot_dt_long[variable == 'W', plot_name := 'g) W $/ha']
-# plot_dt_long[order(variable)]
-
-#use https://ggplot2.tidyverse.org/reference/labellers.html
-hline_dt <- data.table(unique(plot_dt_long[,.(policy_name, variable, y_labels, x_labels)]))
-hline_dt[variable == 'Y_corn', y_line := baselevel_Y_corn*0.95]
-hline_dt[policy_name == 'ratio' & variable == 'Y_corn', y_label := '95% base-level']
-
-plot_dt_long[,.N, .(NRT, policy_name, variable)]
-
-ggplot(data = plot_dt_long) +
-  geom_line(aes(x = policy_val, y =  value, color = NRT), size = 1)+
-  facet_wrap(variable~policy_name, scales="free", ncol = 4)
-
-
-(p <- ggplot(data = plot_dt_long) +
-   # geom_line(data = plot_dt_long1, aes(x = policy_val, y =  value, colour = NRT)) +
-   # scale_colour_manual(values = c("black", "brown"))+
-   geom_line(aes(x = policy_val, y =  value, color = NRT), size = 1) +
-   # scale_linetype_manual(values = c("dashed", "solid"))+
-   # geom_hline(data = hline_dt, aes(yintercept = y_line), linetype = 'dashed', color = 'grey', size = 1)+
-   # geom_text(data = hline_dt, aes(x = 5, y = y_line+50, label =y_label ), hjust = 'left', vjust = 'center') +
-   # scale_color_manual(values=c("royalblue2", "tomato3"))+   
-   # geom_text(data = ann_text[variable %in% unique(plot_dt_long$variable)], aes(y = value, x = x, label = lab), 
-   #           hjust = 0, size = 8) +
-   #   coord_cartesian(xlim = c(min(plot_dt_long$policy_val), max(plot_dt_long$policy_val)), # This focuses the x-axis on the range of interest
-   #                   clip = 'off') +   # This keeps the labels from disappearing
-   facet_free(y_labels~x_labels,
-              labeller = label_parsed,
-              scales="free",
-              switch = 'x') +
-   theme_bw()+
-   theme(# panel.grid = element_blank(), 
-     strip.background.x = element_blank(),
-     strip.placement.x = "outside",
-     # panel.spacing = unit(1.5, "lines"),
-     axis.title.x=element_blank(),
-     axis.title.y=element_blank(),
-     legend.position = "bottom",
-     plot.margin =  unit(c(1,1,1,1), "lines")
-   ))
-
-ggsave(plot = p, 
-       filename = "./n_policy_box/Data/figures/policies_multiplot.pdf", width = 831/300*3, height = 963/300*3,
-       units = 'in')
 
 # Elasticity of Demand Point-Slope Formula: https://pressbooks.bccampus.ca/uvicecon103/chapter/4-2-elasticity/
 if(FALSE){
   
-  elasticity_dt <- perfomances_dt5[policy_name == 'ratio' & NRT == 'static' & policy_val %in% c(5,6)]
+  elasticity_dt <- perfomances_dt5[policy_name == 'ratio' & NRT == 'dynamic' & policy_val %in% c(5,6)]
   
   d_quantity <- (elasticity_dt[policy_val == 6, N_fert]  - elasticity_dt[policy_val == 5, N_fert])/
     elasticity_dt[policy_val == 5, N_fert]
@@ -257,9 +167,9 @@ if(FALSE){
   percent20_dt <- perfomances_dt5[ L_change < -19]
   percent20_dt <- percent20_dt[, .SD[ policy_val == min(policy_val)], by = .(NRT, policy_name)]
   saveRDS(percent20_dt, "./n_policy_box/Data/files_rds/percent20_dt.rds")
-  percent20_dt[policy_name == 'ratio' & NRT == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
-  percent20_dt[policy_name == 'leach' & NRT == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
-  percent20_dt[policy_name == 'bal' & NRT == 'static', G] * IL_corn_area_ha / 1000000 #million in IL
+  percent20_dt[policy_name == 'ratio' & NRT == 'dynamic', G] * IL_corn_area_ha / 1000000 #million in IL
+  percent20_dt[policy_name == 'leach' & NRT == 'dynamic', G] * IL_corn_area_ha / 1000000 #million in IL
+  percent20_dt[policy_name == 'bal' & NRT == 'dynamic', G] * IL_corn_area_ha / 1000000 #million in IL
 }
 IL_corn_area_ha * 10 / 1000000
 
@@ -275,21 +185,42 @@ percent20_dt[,lb_removed := kg_removed *2.20462]
 percent20_dt[,cost_red_dlr_lb := policy_cost/lb_removed]
 
 #---------------------------------------------------------------------------
-# region_eq LEVEL PLOT 
+# REGION LEVEL PLOT 
 
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
+perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 
-plot_dt <- perfomances_dt4[policy_name %in% c('ratio', 'leach', 'bal', 'red') & NRT %in% c('dynamic')] 
+plot_dt1 <- perfomances_dt4[policy_name %in% c('ratio', 'leach', 'bal', 'red') & NRT %in% c('dynamic')] 
+plot_dt2 <- perfomances_dt5[policy_name %in% c('ratio', 'leach', 'bal', 'red') & NRT %in% c('dynamic')] %>%
+  .[,region_eq := 'State']
+
+plot_dt <- rbind(plot_dt1, plot_dt2, fill = T)
+
+
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'region_eq'), measure.vars = c('Y_corn', 'L', 'N_fert', 
+                                                                                               'P', 'G', 'policy_cost',
+                                                                                               'abatement_cost'))
+
+plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L', 'Y_corn', 'P', 'G', 'policy_cost', 'abatement_cost'),
+                                 labels = c(expression("N Fert (kg " * ha^"-1"* ")"), 
+                                            expression("N Leach (kg " * ha^"-1"*")"),
+                                            expression("Yield (kg " * ha^"-1" * ")"), 
+                                            expression("Farm profits ($ " * ha^"-1" * ")"),
+                                            expression("G. collections ($ " * ha^"-1" * ")"),
+                                            expression("Pol. cost ($ " * ha^"-1" * ")"),
+                                            expression("Abat. cost ($ " * kg*N^"-1" * ha^"-1"* ")")))]
 
 
 
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val',  'region_eq', 'NRT'), measure.vars = c('L_change', 'L', 'policy_cost', 'abatement_cost'))
-
-plot_dt_long[,y_labels := factor(variable, levels = c( 'L_change', 'L', 'policy_cost', 'abatement_cost'),
-                                 labels = c(expression("N Leaching ("*'%'*" change)"),
-                                            expression("N Leaching (kg " * ha^"-1"*")"),
-                                            expression("Policy cost ($ " * ha^"-1" * yr^"-1"* ")"),
-                                            expression("Abatement cost ($ " * kg^"-1" * ha^"-1"* ")")))]
+# plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val',  'region_eq', 'NRT'), measure.vars = c('L_change', 'L', 'policy_cost', 
+#                                                                                                              'abatement_cost'))
+# 
+# 
+# plot_dt_long[,y_labels := factor(variable, levels = c( 'L_change', 'L', 'policy_cost', 'abatement_cost'),
+#                                  labels = c(expression("N Leaching ("*'%'*" change)"),
+#                                             expression("N Leaching (kg " * ha^"-1"*")"),
+#                                             expression("Policy cost ($ " * ha^"-1" * yr^"-1"* ")"),
+#                                             expression("Abatement cost ($ " * kg^"-1" * ha^"-1"* ")")))]
 
 
 
@@ -301,8 +232,8 @@ plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal'
 
 
 ggplot(data = plot_dt_long) +
-  geom_line(aes(x = policy_val, y =  value, linetype = NRT, color = region_eq), size = 1)+
-  scale_linetype_manual(values = c("dashed", "solid"))+
+  geom_line(aes(x = policy_val, y =  value, linetype = region_eq, color = region_eq), size = 1)+
+  scale_linetype_manual(values = c("dashed", "dashed", "dashed", "solid"))+
   facet_free(y_labels~x_labels,
              labeller = label_parsed,
              scales="free",
@@ -313,6 +244,7 @@ ggplot(data = plot_dt_long) +
     strip.placement.x = "outside",
     strip.background.y = element_blank(),
     strip.placement.y = "outside",
+    legend.title = element_blank(),
     # panel.spacing = unit(1.5, "lines"),
     axis.title.x=element_blank(),
     axis.title.y=element_blank(),
@@ -325,172 +257,6 @@ ggsave(plot = p,
        filename = "./n_policy_box/Data/figures/policies_multiplot_region_eq.pdf", width = 831/300*3, height = 963/300*3,
        units = 'in')
 
-#=============================================================================================================================================
-# ABATEMENT COST OPTIMIZATION
-# Plot: leaching reduction vs abatement cost, using the sublevel of the policy by region_eq that leads to the same abatement cost across region_eqs.
-# and using the same sublevel for the whole state
-
-perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
-
-abatement_dt <- perfomances_dt4[policy_name %in% c('ratio') & NRT %in% c('dynamic')] #, 'leach', 'bal', 'red'
-
-abatement_dt[, L_next := data.table::shift(L, n=1, fill=NA, type="lag"), by = region_eq]
-abatement_dt[, P_next := data.table::shift(P, n=1, fill=NA, type="lag"), by = region_eq]
-abatement_dt[, L_next := L-L_next]
-abatement_dt[, P_next := P-P_next]
-abatement_dt[, abat_mg := P_next/L_next]
-
-
-abatement_list <- list()
-keep <- TRUE
-
-while(keep){
-  
-  abatement_dt[,region_rows := .N, by = region_eq]
-  select_this <- abatement_dt[abat_mg == min(abat_mg, na.rm = T) ]
-  
-  abatement_dt <- abatement_dt[!(region_eq == select_this$region_eq & policy_val <= select_this$policy_val)] #policy_val lower than selected
-  
-  abatement_selected_dt <- abatement_dt[, .SD[ policy_cost  == max(policy_cost )], by = .(region_eq, NRT, policy_name)] %>%
-    .[, .SD[ policy_val == min( policy_val)], by = .(region_eq, NRT, policy_name)]
-  
-  keep = nrow(abatement_dt) > 6#length(unique(abatement_dt$region_eq))
-  
-  abatement_list[[length(abatement_list)+1]] <- abatement_selected_dt[,loop := length(abatement_list)+1]
-}
-
-
-
-abatement_list <- list()
-abat_seq <- seq(-1, -5, -0.5)
-for(cost_n in abat_seq){
-  # cost_n = -0.5
-  abatement_tmp <-abatement_dt[abatement_cost > cost_n] %>% 
-    .[, .SD[ L == min( L)], by = .(region_eq, NRT, policy_name)] %>%
-    .[, .SD[ policy_val == min( policy_val)], by = .(region_eq, NRT, policy_name)]
-  
-  
-  
-  abatement_list[[length(abatement_list)+1]] <- abatement_tmp[,abatement_cost_target := cost_n]
-}
-
-abatement_region_eqs_dt <- rbindlist(abatement_list)
-abatement_region_eqs_dt[,.N, by = .(abatement_cost_target)]
-
-# State agregation
-abatement_state_dt <- aggregate_by_area(data_dt = abatement_region_eqs_dt, #use perfomances_dt3 to avoid the 95% rule by region_eq
-                                     variables = c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G"), 
-                                     weight = 'corn_avg_ha', by_c = c('policy_name', 'abatement_cost_target')) #state level, weighted by corn_ha
-# ---------
-# Make leaching relative to baselevel
-perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
-baselevel_dt <- perfomances_dt5[policy == 'ratio_5' & NRT == 'static', .( L_base = L, Y_base = Y_corn, P_base = P)]
-
-abatement_state_dt <- cbind(abatement_state_dt, baselevel_dt)
-abatement_state_dt[,L_change := round((L / L_base) - 1,3)*100 ]
-
-#---------
-#Calculate policy_cost
-abatement_state_dt[,policy_cost := P  + G - P_base]
-abatement_state_dt[,abatement_cost := policy_cost/(L_base-  L)]
-
-#---------
-#remove yields modifications of more that 5%
-abatement_state_dt[,Y_corn_change := Y_corn/Y_base]
-abatement_state_dt <- abatement_state_dt[Y_corn_change >=0.95 & Y_corn_change <= 1.05] #remove yields modifications of more that 5%
-
-# Some cleaning
-colsToDelete <- c('L1', 'L2', 'corn_avg_ha', 'L_base', 'Y_base', 'P_base','Y_corn_change')
-set(abatement_state_dt,, colsToDelete, NULL)
-
-#---------
-# L reduction vs policy cost with optimization
-abatement_state_dt[,sublevels := 'abatement']
-uniform_state_dt <- perfomances_dt5[,sublevels := 'uniform'][NRT == 'dynamic' & policy_name == 'ratio']
-
-
-uniform_vs_opt_dt <- rbind(abatement_state_dt, uniform_state_dt, fill= T)
-
-ggplot(data = uniform_vs_opt_dt) +
-  geom_line(aes(x = -L_change, y =  policy_cost , color = policy_name, linetype = sublevels), size = 1)
-
-abatement_region_eqs_dt[abatement_cost_target ==  -1.5]
-perfomances_dt4[policy == 'ratio_9' & NRT == 'dynamic']
-
-
-
-ggplot(data = abatement_state_dt) +
-  geom_line(aes(x = L_change, y =  policy_cost , linetype = NRT), size = 1)+
-  # scale_linetype_manual(values = c("dashed", "solid"))+
-  facet_free(y_labels~x_labels,
-             labeller = label_parsed,
-             scales="free",
-             switch = 'both') +
-  theme_bw()+
-  theme(# panel.grid = element_blank(), 
-    strip.background.x = element_blank(),
-    strip.placement.x = "outside",
-    strip.background.y = element_blank(),
-    strip.placement.y = "outside",
-    # panel.spacing = unit(1.5, "lines"),
-    axis.title.x=element_blank(),
-    axis.title.y=element_blank(),
-    legend.position = "bottom",
-    plot.margin =  unit(c(1,1,1,1), "lines")
-  )
-
-
-
-
-#=============================================================================================================================================
-#=============================================================================================================================================
-# MAKE A MAP OF ABATEMENT COST
-perfomances_dt3 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
-
-# ---------
-# Make leaching relative to baselevel
-baselevel_dt <- perfomances_dt3[policy == 'ratio_5' & NRT == 'static', .(id_10, L_base = L, Y_base = Y_corn, P_base = P)]
-
-map_dt <- merge(perfomances_dt3[NRT == 'dynamic'], baselevel_dt, by = 'id_10')
-map_dt[,L_change := round((L / L_base) - 1,3)*100 ]
-
-#---------
-#Calculate policy_cost
-map_dt[,policy_cost := P  + G - P_base]
-map_dt[,abat_cost := policy_cost/(L_base-  L)]
-
-#---------------------------------------------------------------------------
-# Some cleaning
-map_dt[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
-map_dt[,policy_val := as.numeric(policy_val)]
-
-map_dt2 <- map_dt[abat_cost > -1 & policy_name == 'ratio'] %>% 
-  .[, .SD[ L == min( L)], by = .(id_10, NRT, policy_name)] %>%
-  .[, .SD[ policy_val == min( policy_val)], by = .(id_10, NRT, policy_name)]
-
-colsToDelete <- c('L_base', 'Y_base', 'P_base','Y_corn_change')
-set(map_dt,, colsToDelete, NULL)
-
-hist(map_dt2$abat_cost)
-
-grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds") 
-value_sf <- merge(grid10_tiles_sf7, map_dt2[,.(id_10, policy_val)], by = 'id_10', all.x = T)
-
-tm_shape(value_sf) + tm_polygons(c('policy_val', 'region_eq'), n=10)
-
-(p1 <- tm_shape(value_sf) + tm_polygons(c('corn_avg_ha'), 
-                                        n =10, 
-                                        title = c("Corn area (ha/cell)"),
-                                        style ="cont", 
-                                        # border.col = 'black',
-                                        palette = "Greys")+
-    tm_layout(panel.labels = 'a)',
-              main.title.position = c(0,0),
-              legend.text.size = 0.7,
-              main.title.size = 1.2,
-              title.snap.to.legend =F,
-              legend.width = 1,
-              legend.position = c('left', 'bottom')))
 
 
 #--------------------------------------------------------------------------------
