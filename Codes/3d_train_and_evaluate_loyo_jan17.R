@@ -678,7 +678,7 @@ for(file_n in files_path){
 
 }
 field_perfomances_dt <- rbindlist(perfomances_list)
-
+field_perfomances_dt <- merge(field_perfomances_dt, unique(grid10_soils_dt5[,.(id_10, region_eq)]), by = 'id_10')
 
 field_perfomances_dt[,.N, z][order(z)]
 

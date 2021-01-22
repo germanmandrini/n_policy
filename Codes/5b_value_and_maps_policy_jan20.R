@@ -21,11 +21,8 @@ if(FALSE){
   # grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
   
   perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
+
   perfomances_dt <- perfomances_dt[!(NRT == 'static' & policy != 'ratio_5')]
-  perfomances_dt <- merge(perfomances_dt, unique(grid10_soils_dt5[,.(id_10, region_eq)]), by = 'id_10')
-  
-  
-  
   perfomances_dt[,.(area_ha = sum(area_ha)), by = .(policy, NRT, id_10, id_field, z)]$area_ha %>% summary()
   
   perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
@@ -260,7 +257,7 @@ ggsave(plot = p,
 
 
 #--------------------------------------------------------------------------------
-# region_eqal table
+# region_eq al table
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 percent20_dt <- readRDS("./n_policy_box/Data/files_rds/percent20_dt.rds")
 

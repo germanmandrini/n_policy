@@ -14,6 +14,7 @@ source('./Codes_useful/gm_functions.R')
 source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 "~/n_policy_git/Codes/parameters.R"
 
+perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 opt_list <- list()
 #=============================================================================================================================================
 # MG ABATEMENT COST OPTIMIZATION
@@ -123,6 +124,7 @@ reduction_strategies_dt <- rbindlist(opt_list, fill = T)
 baselevel_dt <- perfomances_dt4[policy == 'ratio_5' & NRT == 'static', .(region_eq, L_base = L, Y_base = Y_corn, P_base = P)]
 reduction_strategies_dt1 <- merge(reduction_strategies_dt, baselevel_dt, by = 'region_eq')
 
+
 baselevel_dt <- perfomances_dt5[policy == 'ratio_5' & NRT == 'static', .(L_base = L, Y_base = Y_corn, P_base = P)][,region_eq := 'state']
 reduction_strategies_dt2 <- merge(reduction_strategies_dt, baselevel_dt, by = 'region_eq')
 reduction_strategies_dt <- rbind(reduction_strategies_dt1, reduction_strategies_dt2)
@@ -132,7 +134,7 @@ reduction_strategies_dt[,L_change := round((L / L_base) - 1,3)*100 ]
 #---------
 #Calculate policy_cost
 reduction_strategies_dt[,policy_cost := P  + G - P_base]
-reduction_strategies_dt[,abatement_cost := policy_cost/(L_base-  L)]
+reduction_strategies_dt[,abatement_cost := policy_cost/(L_base - L)]
 
 #---------
 #remove yields modifications of more that 5%
@@ -154,7 +156,6 @@ ggplot(data = reduction_strategies_dt[region_eq != 'state']) +
   facet_free(region_eq~.)
 #=============================================================================================================================================
 # BAR CHARTS 20% REDUCTION
-
 levels20_dt <- reduction_strategies_dt[region_eq == 'state' & L_change <= -20][, .SD[ L_change == max( L_change)], by = .(type, policy_name)]
 levels20_dt[,loop := as.character(loop)]
 levels20_dt[is.na(loop), loop := policy]
