@@ -50,22 +50,73 @@ baselevel_dt <- field_perfomances_dt2[policy == 'ratio_5' & NRT == 'static', .(i
 
 field_perfomances_dt2 <- merge(field_perfomances_dt2[NRT != 'static'], baselevel_dt, by = c('id_10', 'id_field'))
 
-ggplot(data=field_perfomances_dt2, aes(x = P_base, y = P_return, color = policy_name)) +
-  geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + ylim(700, 2000)+ xlim(700, 2000) +
+field_perfomances_dt2[,policy_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
+                                 labels = c("N:Corn price ratio",
+                                            "Leaching fee",
+                                            "N balance fee",
+                                            "N reduction"))]
+ggplot(data=field_perfomances_dt2) +
+  geom_point(aes(x = P_base, y = P_return, color = policy_labels))+
+  theme_bw()+
   theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=14,face="bold"))+
-  # ggtitle('Sequential vs Continuous') +
-  theme_bw()
+        axis.title=element_text(size=14,face="bold"),
+        legend.position = "none")+
+  facet_free(.~policy_labels, scale = 'free')
 
-ggplot(data=field_perfomances_dt2, aes(x = L_base, y = L, color = policy_name)) +
-  geom_point()+ theme(aspect.ratio=1) + coord_fixed() + geom_abline() + ylim(0, 100)+ xlim(0, 100) +
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=14,face="bold"))+
-  # ggtitle('Sequential vs Continuous') +
-  theme_bw()
+
+summary(field_perfomances_dt2$P_return)
+
+(p1 <- ggplot(data=field_perfomances_dt2) +
+  geom_point(aes(x = P_base, y = P_return, color = policy_labels))+ #theme(aspect.ratio=1) + #coord_fixed() + 
+  # geom_histogram(aes(x = P_base))+
+  geom_abline() + ylim(700, 2000)+ xlim(700, 2000) +
+  theme_bw()+
+  theme(#axis.text=element_text(size=12),
+        #axis.title=element_text(size=14),
+        legend.position = "none")+
+  xlab('Baselevel profits ($/ha)')+
+  ylab('After policy profits ($/ha)')+
+  # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
+  facet_free(.~policy_labels, scale = 'free'))
+
+(p2 <- ggplot(data=field_perfomances_dt2) +
+  geom_point(aes(x = L_base, y = L, color = policy_labels))+ #theme(aspect.ratio=1) + #coord_fixed() + 
+  # geom_histogram(aes(x = P_base))+
+  geom_abline() +  ylim(0, 136)+ xlim(0, 136) +
+  theme_bw()+
+  theme(#axis.text=element_text(size=12),
+        #axis.title=element_text(size=14),
+        legend.position = "none")+
+  xlab('Baselevel N leaching (kg/ha)')+
+  ylab('After policy N leaching (kg/ha)')+
+  # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
+  facet_free(.~policy_labels, scale = 'free'))
+
+field_perfomances_dt2[,P_diff := P_return - P_base]
+
+
+(p3 <- ggplot(data=field_perfomances_dt2, aes(x = L_base, y = P_diff, color = policy_labels)) +
+  geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
+    geom_smooth(color = 'black')+
+  # geom_histogram(aes(x = P_base))+
+  # geom_abline() +  ylim(0, 100)+ xlim(0, 100) +
+  theme_bw()+
+  theme(#axis.text=element_text(size=12),
+        #axis.title=element_text(size=14),
+        legend.position = "none")+
+  xlab('Baselevel N leaching (kg/ha)')+
+  ylab('Profits difference ($/ha)')+
+  # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
+  facet_free(.~policy_labels, scale = 'free'))
+
+
+library(ggpubr)
+ggarrange(p1,p2,p3 , ncol = 1, labels = c("a)","b)", "c)"), label.x = 0)
+
+
 
 #----------------------------------------------------------
-# Barplot with error bars
+# Barplot with error bars (BY REGION)
 # http://www.sthda.com/english/wiki/ggplot2-barplots-quick-start-guide-r-software-and-data-visualization
 field_perfomances_dt2[,L_diff := L - L_base]
 field_perfomances_dt2[,P_diff := P_return - P_base]
@@ -78,6 +129,19 @@ field_perfomances_dt2[is.na(L_base_bin)]
 field_perfomances_dt2[,P_base_bin := cut(P_base, breaks = quantile(round(P_base,0), probs=seq(0,1, by=0.25)), ordered = TRUE, dig.lab=4,
                                          labels = NULL, include.lowest=TRUE), by = region_eq]
 
+#------------------
+# Profits
+
+plot_bar_dt <- field_perfomances_dt2[!is.na(P_base_bin), .(P_diff_mean = mean(P_diff),
+                                                           P_diff_sd = sd(P_diff)), by = .(region_eq, policy_name, P_base_bin)]
+
+(p1 <- ggplot(plot_bar_dt, aes(x=P_base_bin , y=P_diff_mean , fill=policy_name )) + 
+    geom_errorbar(aes(ymin=P_diff_mean-P_diff_sd, ymax=P_diff_mean+P_diff_sd), width=.2,
+                  position=position_dodge(.9))+ #first to avoid errors in both directions
+    geom_bar(stat="identity", position=position_dodge()) +
+    xlab('Baselevel profits ($/ha)')+
+    ylab('Profits difference ($/ha)')+
+    facet_free(~region_eq, scale = 'free'))
 
 #------------------
 # Leaching
@@ -85,38 +149,90 @@ plot_bar_dt <- field_perfomances_dt2[!is.na(L_base_bin), .(L_diff_mean = mean(L_
                                          L_diff_sd = sd(L_diff)), by = .(region_eq, policy_name, L_base_bin)]
 
 
-ggplot(plot_bar_dt, aes(x=L_base_bin , y=L_diff_mean , fill=policy_name )) + 
+(p2 <- ggplot(plot_bar_dt, aes(x=L_base_bin , y=L_diff_mean , fill=policy_name )) + 
   geom_errorbar(aes(ymin=L_diff_mean-L_diff_sd, ymax=L_diff_mean+L_diff_sd), width=.2,
                 position=position_dodge(.9))+ #first to avoid errors in both directions
   geom_bar(stat="identity", position=position_dodge()) +
-  facet_free(~region_eq, scale = 'free')
+    xlab('Baselevel N leaching (kg/ha)')+
+    ylab('N leaching difference (kg/ha)')+
+  facet_free(~region_eq, scale = 'free'))
+
+#------------------
+# Externality
+plot_bar_dt <- field_perfomances_dt2[!is.na(L_base_bin), .(P_diff_mean = mean(P_diff),
+                                                           P_diff_sd = sd(P_diff)), by = .(region_eq, policy_name, L_base_bin)]
+
+(p3 <- ggplot(plot_bar_dt, aes(x=L_base_bin , y=P_diff_mean , fill=policy_name )) + 
+   geom_errorbar(aes(ymin=P_diff_mean-P_diff_sd, ymax=P_diff_mean+P_diff_sd), width=.2,
+                 position=position_dodge(.9))+ #first to avoid errors in both directions
+   geom_bar(stat="identity", position=position_dodge()) +
+   xlab('Baselevel N leaching (kg/ha)')+
+    ylab('Profits difference ($/ha)')+
+   facet_free(~region_eq, scale = 'free'))
+
+
+ggarrange(p1,p2,p3 , ncol = 1, labels = c("a)","b)", "c)"), label.x = 0)
+
+#=============================================================================================================================================
+# Barplot with error bars (STATE)
+# http://www.sthda.com/english/wiki/ggplot2-barplots-quick-start-guide-r-software-and-data-visualization
+field_perfomances_dt2[,L_diff := L - L_base]
+field_perfomances_dt2[,P_diff := P_return - P_base]
+
+
+field_perfomances_dt2[,L_base_bin := cut(L_base, breaks = quantile(round(L_base,0), probs=seq(0,1, by=0.25)), ordered = TRUE, dig.lab=4, 
+                                         labels = NULL, include.lowest=TRUE)]
+field_perfomances_dt2[is.na(L_base_bin)]
+
+field_perfomances_dt2[,P_base_bin := cut(P_base, breaks = quantile(round(P_base,0), probs=seq(0,1, by=0.25)), ordered = TRUE, dig.lab=4,
+                                         labels = NULL, include.lowest=TRUE)]
 
 #------------------
 # Profits
 
 plot_bar_dt <- field_perfomances_dt2[!is.na(P_base_bin), .(P_diff_mean = mean(P_diff),
-                                                           P_diff_sd = sd(P_diff)), by = .(region_eq, policy_name, P_base_bin)]
+                                                           P_diff_sd = sd(P_diff)), by = .(policy_name, P_base_bin)]
 
-ggplot(plot_bar_dt, aes(x=P_base_bin , y=P_diff_mean , fill=policy_name )) + 
-  geom_errorbar(aes(ymin=P_diff_mean-P_diff_sd, ymax=P_diff_mean+P_diff_sd), width=.2,
-                position=position_dodge(.9))+ #first to avoid errors in both directions
-  geom_bar(stat="identity", position=position_dodge()) +
-  facet_free(~region_eq, scale = 'free')
+(p1 <- ggplot(plot_bar_dt, aes(x=P_base_bin , y=P_diff_mean  )) + 
+    geom_errorbar(aes(ymin=P_diff_mean-P_diff_sd, ymax=P_diff_mean+P_diff_sd), width=.2,
+                  position=position_dodge(.9))+ #first to avoid errors in both directions
+    geom_bar(stat="identity", position=position_dodge()) +
+    xlab('Baselevel profits ($/ha)')+
+    ylab('Profits difference ($/ha)')+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+    facet_free(~policy_name, scale = 'free'))
 
-
-# Standard deviation of the mean as error bar
-p <- ggplot(df3, aes(x=dose, y=len, fill=supp)) + 
-  geom_bar(stat="identity", position=position_dodge()) +
-  geom_errorbar(aes(ymin=len-sd, ymax=len+sd), width=.2,
-                position=position_dodge(.9))
-
-p + scale_fill_brewer(palette="Paired") + theme_minimal()
-
+#------------------
+# Leaching
+plot_bar_dt <- field_perfomances_dt2[!is.na(L_base_bin), .(L_diff_mean = mean(L_diff),
+                                                           L_diff_sd = sd(L_diff)), by = .(policy_name, L_base_bin)]
 
 
-ggplot(field_perfomances_dt2, aes(fill=policy_name, y=L_diff, x=L_base)) + 
-  geom_bar(stat="identity")
+(p2 <- ggplot(plot_bar_dt, aes(x=L_base_bin , y=L_diff_mean  )) + 
+    geom_errorbar(aes(ymin=L_diff_mean-L_diff_sd, ymax=L_diff_mean+L_diff_sd), width=.2,
+                  position=position_dodge(.9))+ #first to avoid errors in both directions
+    geom_bar(stat="identity", position=position_dodge()) +
+    xlab('Baselevel N leaching (kg/ha)')+
+    ylab('N leaching difference (kg/ha)')+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+    facet_free(~policy_name, scale = 'free'))
 
+#------------------
+# Externality
+plot_bar_dt <- field_perfomances_dt2[!is.na(L_base_bin), .(P_diff_mean = mean(P_diff),
+                                                           P_diff_sd = sd(P_diff)), by = .( policy_name, L_base_bin)]
+
+(p3 <- ggplot(plot_bar_dt, aes(x=L_base_bin , y=P_diff_mean)) + 
+    geom_errorbar(aes(ymin=P_diff_mean-P_diff_sd, ymax=P_diff_mean+P_diff_sd), width=.2,
+                  position=position_dodge(.9))+ #first to avoid errors in both directions
+    geom_bar(stat="identity", position=position_dodge()) +
+    xlab('Baselevel N leaching (kg/ha)')+
+    ylab('Profits difference ($/ha)')+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+    facet_free(~policy_name, scale = 'free'))
+
+
+ggarrange(p1,p2,p3 , ncol = 1, labels = c("a)","b)", "c)"), label.x = 0)
 
 
 #=============================================================================================================================================
