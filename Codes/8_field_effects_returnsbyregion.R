@@ -102,7 +102,37 @@ field_perfomances_dt2[,P_diff := P_return - P_base]
 
 library(ggpubr)
 ggarrange(p1,p2,p3 , ncol = 1, labels = c("a)","b)", "c)"), label.x = 0)
+#----------------------------------------------------------
+# Why balance does not hurt high leaching areas?
 
+
+field_perfomances_dt2[P_diff == min(P_diff)]
+
+field_perfomances_dt2[id_10 == 256 & id_field == 4 & policy_name %in% c('bal', 'leach')]
+field_perfomances_dt[id_10 == 256 & id_field == 4 & policy_name %in% c('bal', 'leach')]
+
+ggplot(data = field_perfomances_dt[policy_name %in% c('leach')]) +
+  geom_point(aes(x = L, y = G))
+
+
+
+
+yc_field_dt2 <- readRDS( "./n_policy_box/Data/files_rds/yc_field_dt2.rds")
+bal_threshold <- yc_field_dt2[station == 1 & N_fert == 100] %>%
+  .[,N_balance := N_fert - Y_corn * 11.5/1000] %>%
+  .[, .(N_balance_thr = quantile(N_balance, probs = 0.5)), region] %>%
+  .[order(region)] # not change with z_n
+
+field_perfomances_dt <- merge(field_perfomances_dt[,-'N_balance_thr'], bal_threshold, by = 'region')
+field_perfomances_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
+field_perfomances_dt[,N_extra := N_balance - N_balance_thr]
+field_perfomances_dt[N_extra <= 0, N_extra := 0]
+
+plot_dt <- field_perfomances_dt[policy_name %in% c('bal')][sample(1:.N, 1000)]
+ggplot(data = plot_dt, aes(x = N_balance, y = L)) +
+  geom_point()+
+  geom_smooth()+
+  facet_free(.~region_eq, scale = 'free')
 
 
 #----------------------------------------------------------

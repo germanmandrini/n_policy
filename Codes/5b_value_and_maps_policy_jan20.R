@@ -99,7 +99,7 @@ if(FALSE){
   perfomances_dt4 <- perfomances_dt4[Y_corn_change >=0.95 & Y_corn_change <= 1.05] #remove yields modifications of more that 5%
   #---------------------------------------------------------------------------
   # Some cleaning
-  colsToDelete <- c('L_base', 'Y_base', 'P_base','Y_corn_change')
+  colsToDelete <- c('L1', 'L2', 'Y_base', 'P_base','Y_corn_change')
   set(perfomances_dt4,, colsToDelete, NULL)
   
   saveRDS(perfomances_dt4, "./n_policy_box/Data/files_rds/perfomances_dt4.rds")
@@ -133,7 +133,7 @@ if(FALSE){
   # Some cleaning
 
   
-  colsToDelete <- c('L1', 'L2', 'corn_avg_ha', 'L_base', 'Y_base', 'P_base','Y_corn_change')
+  colsToDelete <- c('L1', 'L2', 'corn_avg_ha', 'Y_base', 'P_base','Y_corn_change')
   set(perfomances_dt5,, colsToDelete, NULL)
   
   saveRDS(perfomances_dt5, "./n_policy_box/Data/files_rds/perfomances_dt5.rds")
@@ -266,33 +266,35 @@ ggsave(plot = p,
 
 
 #--------------------------------------------------------------------------------
-# region_eq al table
+# REGION TABLE
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 percent20_dt <- readRDS("./n_policy_box/Data/files_rds/percent20_dt.rds")
 
-percent20_dt <- percent20_dt[NRT == 'static',.(policy, NRT)]
-percent20_dt <- rbind(data.table(policy = c('ratio_5'), NRT = c('dynamic')), 
-                      percent20_dt)
+percent20_dt <- percent20_dt[NRT == 'dynamic' & policy_name %in% policies_paper,.(policy, NRT)]
 
 region_eq_dt <- filter_dt_in_dt(perfomances_dt4, filter_dt = percent20_dt, return_table = T)
-region_eq_dt[region_eq == 1,region_eq_lab := '1-South']
-region_eq_dt[region_eq == 2,region_eq_lab := '2-Central']
-region_eq_dt[region_eq == 3,region_eq_lab := '3-North']
 
-region_eq_dt_base <- region_eq_dt[policy == 'ratio_5', .(region_eq_lab, Y_corn, L, N_fert, P)]
-region_eq_dt_20down <- region_eq_dt[policy != 'ratio_5', .(region_eq_lab, policy_name, NRT, Y_corn, L, N_fert, P, G, net_balance)]
+baselevel_dt <- perfomances_dt4[NRT == 'dynamic',.SD[policy_val == min(policy_val)], by = .(policy_name, region_eq)] %>%
+  .[,.(policy_name, region_eq, L_base = L, Y_base = Y_corn, P_base = P, N_base = N_fert)]
 
-region_eq_dt2 <- merge(region_eq_dt_20down, region_eq_dt_base, by = 'region_eq_lab', suffixes = c("", "_base"))
-region_eq_dt2[, Y_corn_diff := Y_corn - Y_corn_base]
+# colsToDelete <- c('L1', 'L2', 'corn_avg_ha', 'Y_base', 'P_base','Y_corn_change')
+# set(perfomances_dt5,, colsToDelete, NULL)
+
+region_eq_dt2 <- merge(region_eq_dt[policy != 'ratio_5', .(region_eq, policy_name, Y_corn, L, N_fert, P, G, policy_cost)],
+                       baselevel_dt, by = c('policy_name','region_eq'))
+
+region_eq_dt2[, Y_corn_diff := Y_corn - Y_base]
 region_eq_dt2[, L_diff := L - L_base]
-region_eq_dt2[, N_fert_diff := N_fert - N_fert_base]
+region_eq_dt2[, N_fert_diff := N_fert - N_base]
 region_eq_dt2[, P_diff := P - P_base]
-region_eq_dt2[, policy_cost := P + G - P_base]
-region_eq_dt2 <- region_eq_dt2[,.(region_eq_lab, policy_name, NRT, Y_corn, L, N_fert, P, G,Y_corn_diff, L_diff, N_fert_diff, P_diff, policy_cost)]
-region_eq_dt2[order(-region_eq_lab)]
+region_eq_dt2 <- region_eq_dt2[,.(region_eq, policy_name, NRT, Y_corn, L, N_fert, P, G,policy_cost, Y_corn_diff, L_diff, N_fert_diff)]
+region_eq_dt2[order(-region_eq)]
+
+fwrite(region_eq_dt2, "./n_policy_box/Data/figures/region_effects.csv")
+
 region_eq_dt2[,.(L_diff = mean(L_diff),
               N_fert_diff = mean(N_fert_diff),
-              net_balance = mean(net_balance)), by = .(NRT, region_eq_lab) ]
+              policy_cost = mean(policy_cost)), by = .(NRT, region_eq) ]
 
 #--------------------------------------------------------------------------------
 # N Balance
@@ -304,20 +306,20 @@ perfomances_dt2[,N_balance := N_fert - Y_corn * 11/1000]
 perfomances_dt2[,L_ton_grain := L/(Y_corn / 1000)]
 balance_dt <- perfomances_dt2[policy == 'ratio_5']
 
-balance_dt[region_eq == 1,region_eq_lab := '1-South']
-balance_dt[region_eq == 2,region_eq_lab := '2-Central']
-balance_dt[region_eq == 3,region_eq_lab := '3-North']
+balance_dt[region_eq == 1,region_eq := '1-South']
+balance_dt[region_eq == 2,region_eq := '2-Central']
+balance_dt[region_eq == 3,region_eq := '3-North']
 
 
 (p1 <- ggplot(data = balance_dt)+ geom_density(aes(x = N_balance, colour = NRT), size =1)+
-  facet_free(region_eq_lab~.)+
+  facet_free(region_eq~.)+
   ggtitle('N Balance'))
 
 ggsave(plot = p1, 
        filename = "./n_policy_box/Data/figures/balance1.png")
 
 (p2 <- ggplot(data = balance_dt)+ geom_density(aes(x = L2, colour = NRT), size =1)+
-  facet_free(region_eq_lab~.)+
+  facet_free(region_eq~.)+
   ggtitle('Leaching'))
 
 ggsave(plot = p2, 
@@ -326,7 +328,7 @@ ggsave(plot = p2,
 (p3 <- ggplot(data = balance_dt[sample(1:nrow(balance_dt), 5000)], aes(x = N_balance, y = L)) + 
   geom_point()+
   geom_smooth()+
-  facet_free(region_eq_lab~.))
+  facet_free(region_eq~.))
 
 ggsave(plot = p3, 
        filename = "./n_policy_box/Data/figures/balance3.png")
@@ -334,7 +336,7 @@ ggsave(plot = p3,
 (p4 <- ggplot(data = balance_dt[sample(1:nrow(balance_dt), 5000)], aes(x = N_balance, y = L_ton_grain)) + 
   geom_point()+
   geom_smooth()+
-  facet_free(region_eq_lab~.))
+  facet_free(region_eq~.))
 
 ggsave(plot = p4, 
        filename = "./n_policy_box/Data/figures/balance4.png")
@@ -360,23 +362,23 @@ state_agg_dt2[,N_balance := N_fert - Y_corn * 11/1000]
 state_agg_dt2[,L := L1 + L2]
 state_agg_dt2[,L_ton_grain := L/(Y_corn / 1000)]
 
-state_agg_dt2[region_eq == 1,region_eq_lab := '1-South']
-state_agg_dt2[region_eq == 2,region_eq_lab := '2-Central']
-state_agg_dt2[region_eq == 3,region_eq_lab := '3-North']
+state_agg_dt2[region_eq == 1,region_eq := '1-South']
+state_agg_dt2[region_eq == 2,region_eq := '2-Central']
+state_agg_dt2[region_eq == 3,region_eq := '3-North']
 
 ggplot() + 
   geom_line(data = state_agg_dt2, aes(x = N_fert, y = L_ton_grain))+
   geom_point(data = state_agg_dt2[,.SD[L_ton_grain == min(L_ton_grain)], by = region_eq], aes(x = N_fert, y = L_ton_grain))+
-  facet_free(region_eq_lab~.)
+  facet_free(region_eq~.)
 
 ggplot(data = state_agg_dt2) + 
   geom_point( aes(x = N_balance, y = L))+
-  facet_free(region_eq_lab~.)
+  facet_free(region_eq~.)
 
 ggplot(data = state_agg_dt2) + 
   geom_point( aes(x = N_balance, y = L_ton_grain))+
   geom_point( aes(x = N_balance, y =  Y_corn/1000))+
-  facet_free(region_eq_lab~.)
+  facet_free(region_eq~.)
 
 #-----------------------------------------------------------------------------------------------------#
 #POSTER

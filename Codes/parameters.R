@@ -24,3 +24,4 @@ high_var <- c("whc",  "oc_20cm_v5", "sw_dep_v5", "n_0_60cm_v5",
               "surfaceom_wt_v5", "sand_40cm", "clay_40cm") #"root_wt_v5",, "n_deep_v5", "esw_pct_v5", 
 
 NRS_paper <- c('staticmrtn', 'staticmean', "extra20", "forecast", "rfhigh", "rflow")
+policies_paper <-  c('ratio', 'leach', 'bal', 'red')

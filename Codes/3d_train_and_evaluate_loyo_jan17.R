@@ -229,7 +229,9 @@ for(z_n in z_seq){
     prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
     
     #Update threholds
-    leach_threshold <- training_set_dt[N_fert == 100, .(L_thr = quantile(L, probs = 0.5)), region][order(region)]
+    leach_threshold <- yc_field_dt2[station == 1 & N_fert == 100] %>%
+      .[, .(L_thr = quantile(L, probs = 0.5)), region] %>%
+      .[order(region)] # not change with z_n
     
     training_set_dt <- merge(training_set_dt, leach_threshold, by = 'region')
     
@@ -368,7 +370,12 @@ for(z_n in z_seq){
     #Update threholds
   
     training_set_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
-    bal_threshold <- training_set_dt[N_fert == 100, .(N_balance_thr = quantile(N_balance, probs = 0.5)), region][order(region)]
+    
+    bal_threshold <- yc_field_dt2[station == 1 & N_fert == 100] %>%
+      .[,N_balance := N_fert - Y_corn * 11.5/1000] %>%
+      .[, .(N_balance_thr = quantile(N_balance, probs = 0.5)), region] %>%
+      .[order(region)] # not change with z_n
+    
     training_set_dt <- merge(training_set_dt[,-'N_balance_thr'], bal_threshold, by = 'region')
     
     training_set_dt[,N_extra := N_balance - N_balance_thr]

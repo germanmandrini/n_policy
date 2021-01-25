@@ -19,7 +19,7 @@ perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 
 #=============================================================================================================================================
 # UNIFORM SUBLEVEL
-perfomances_dt5[,region_eq := 'state']
+perfomances_dt5[,region_eq := 'State']
 
 plot_dt <- rbind(perfomances_dt4, perfomances_dt5, fill = T)%>% 
   .[policy_name %in% c('ratio', 'leach', 'bal', 'red') & NRT %in% c('dynamic')]
@@ -33,9 +33,28 @@ ggplot(data = plot_dt[region_eq == 'state']) +
   xlab('N Leaching reduction (%)')+
   ylab('Policy Cost ($/ha)')
 
-ggplot(data = reduction_strategies_dt[region_eq != 'state']) +
-  geom_line(aes(x = -L, y =  policy_cost , color = policy_name), size = 1)+
+#In relative L reduction
+ggplot(data = plot_dt) +
+  geom_line(aes(x = -L_change, y =  policy_cost , color = policy_name), size = 1)+
+  xlab('N Leaching reduction (%)')+
+  ylab('Policy Cost ($/ha)')+
+  theme_bw()+
+  theme(legend.position = 'bottom')+
+  facet_free(~region_eq)
+
+#In absolute L reduction
+plot_dt[,L_diff := L - L_base]
+
+
+ggplot(data = plot_dt[region_eq != 'state']) +
+  geom_line(aes(x = -L_diff, y =  policy_cost , color = policy_name), size = 1)+
+  xlab('N Leaching reduction (kg/ha)')+
+  ylab('Policy Cost ($/ha)')+
+  theme_bw()+
   facet_free(region_eq~.)
+
+
+
 
 #=============================================================================================================================================
 # BAR CHARTS 20% REDUCTION
