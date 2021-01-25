@@ -22,7 +22,7 @@ if(FALSE){
   
   perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
 
-  perfomances_dt <- perfomances_dt[!(NRT == 'static' & policy != 'ratio_5')]
+  perfomances_dt <- perfomances_dt[NRT != 'static']
   perfomances_dt[,.(area_ha = sum(area_ha)), by = .(policy, NRT, id_10, id_field, z)]$area_ha %>% summary()
   
   perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
@@ -78,25 +78,27 @@ if(FALSE){
   
   # ---------
   # Make leaching relative to baselevel
-  baselevel_dt <- perfomances_dt4[policy == 'ratio_5' & NRT == 'static', .(region_eq, L_base = L, Y_base = Y_corn, P_base = P)]
+  perfomances_dt4[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
+  perfomances_dt4[,policy_val := as.numeric(policy_val)]
   
-  perfomances_dt4 <- merge(perfomances_dt4, baselevel_dt, by = 'region_eq')
+  
+  baselevel_dt <- perfomances_dt4[NRT == 'dynamic',.SD[policy_val == min(policy_val)], by = .(policy_name, region_eq)] %>%
+    .[,.(policy_name, region_eq, L_base = L, Y_base = Y_corn, P_base = P)]
+  perfomances_dt4 <- merge(perfomances_dt4, baselevel_dt, by = c('policy_name','region_eq'))
   perfomances_dt4[,L_change := round((L / L_base) - 1,3)*100 ]
   
   #---------
   #Calculate net_balance
   # perfomances_dt4[,net_balance := P + G]
   perfomances_dt4[,policy_cost := P  + G - P_base]
-  perfomances_dt4[,abatement_cost := policy_cost/(L_base-  L)]
+  perfomances_dt4[,abatement_cost := policy_cost/(L_base -  L)]
+  perfomances_dt4[is.na(abatement_cost), abatement_cost := 0]
   #---------
   #remove yields modifications of more that 5%
   perfomances_dt4[,Y_corn_change := Y_corn/Y_base]
   perfomances_dt4 <- perfomances_dt4[Y_corn_change >=0.95 & Y_corn_change <= 1.05] #remove yields modifications of more that 5%
   #---------------------------------------------------------------------------
   # Some cleaning
-  perfomances_dt4[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
-  perfomances_dt4[,policy_val := as.numeric(policy_val)]
-  
   colsToDelete <- c('L_base', 'Y_base', 'P_base','Y_corn_change')
   set(perfomances_dt4,, colsToDelete, NULL)
   
@@ -108,16 +110,20 @@ if(FALSE){
                                        weight = 'corn_avg_ha', by_c = c('policy', 'NRT')) #state level, weighted by corn_ha
   # ---------
   # Make leaching relative to baselevel
-  baselevel_dt <- perfomances_dt5[policy == 'ratio_5' & NRT == 'static', .( L_base = L, Y_base = Y_corn, P_base = P)]
+  perfomances_dt5[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
+  perfomances_dt5[,policy_val := as.numeric(policy_val)]
+  
+  baselevel_dt <- perfomances_dt5[NRT == 'dynamic',.SD[policy_val == min(policy_val)], by = .(policy_name)] %>%
+    .[,.(policy_name, L_base = L, Y_base = Y_corn, P_base = P)]
 
-  perfomances_dt5 <- cbind(perfomances_dt5, baselevel_dt)
+  perfomances_dt5 <- merge(perfomances_dt5, baselevel_dt, by = c('policy_name'))
   perfomances_dt5[,L_change := round((L / L_base) - 1,3)*100 ]
   
   #---------
   #Calculate policy_cost
   perfomances_dt5[,policy_cost := P  + G - P_base]
   perfomances_dt5[,abatement_cost := policy_cost/(L_base-  L)]
-  
+  perfomances_dt5[is.na(abatement_cost), abatement_cost := 0]
   #---------
   #remove yields modifications of more that 5%
   perfomances_dt5[,Y_corn_change := Y_corn/Y_base]
@@ -125,8 +131,7 @@ if(FALSE){
   
   #---------------------------------------------------------------------------
   # Some cleaning
-  perfomances_dt5[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
-  perfomances_dt5[,policy_val := as.numeric(policy_val)]
+
   
   colsToDelete <- c('L1', 'L2', 'corn_avg_ha', 'L_base', 'Y_base', 'P_base','Y_corn_change')
   set(perfomances_dt5,, colsToDelete, NULL)
@@ -193,6 +198,8 @@ plot_dt2 <- perfomances_dt5[policy_name %in% c('ratio', 'leach', 'bal', 'red') &
 
 plot_dt <- rbind(plot_dt1, plot_dt2, fill = T)
 
+plot_dt[abatement_cost >0,abatement_cost := 0 ] #the graph looks ugly
+
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'region_eq'), measure.vars = c('Y_corn', 'L', 'N_fert', 
                                                                                                'P', 'G', 'policy_cost',
@@ -226,6 +233,8 @@ plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal'
                                             expression("Leaching fee ($ " * kg^"-1" * ha^"-1"*")"),
                                             expression("N balance fee($ " * kg^"-1" * ha^"-1"*")"),
                                             expression("N reduction (%"*")")))]
+
+
 
 
 ggplot(data = plot_dt_long) +
@@ -262,7 +271,7 @@ perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 percent20_dt <- readRDS("./n_policy_box/Data/files_rds/percent20_dt.rds")
 
 percent20_dt <- percent20_dt[NRT == 'static',.(policy, NRT)]
-percent20_dt <- rbind(data.table(policy = c('ratio_5'), NRT = c('static')), 
+percent20_dt <- rbind(data.table(policy = c('ratio_5'), NRT = c('dynamic')), 
                       percent20_dt)
 
 region_eq_dt <- filter_dt_in_dt(perfomances_dt4, filter_dt = percent20_dt, return_table = T)

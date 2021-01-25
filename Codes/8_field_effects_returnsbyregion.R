@@ -21,7 +21,7 @@ field_perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances
 #-----------------
 # Prepare data
 percent20_dt <- percent20_dt[policy_name %in% c('ratio', 'leach', 'bal', 'red'),.(policy, NRT)]
-percent20_dt <- rbind(data.table(policy = c('ratio_5'), NRT = c('static')), 
+percent20_dt <- rbind(data.table(policy = c('ratio_5'), NRT = c('dynamic')), 
                       percent20_dt)
 
 perfomances_dt4 <- filter_dt_in_dt(perfomances_dt4, filter_dt = percent20_dt, return_table = T)
@@ -37,7 +37,6 @@ field_perfomances_dt2 <- field_perfomances_dt[,.(Y_corn = mean(Y_corn),
                                      P = mean(P),
                                      G = mean(G)), by = do_not_aggregate]
 
-
 #=============================================================================================================================================
 # Farmers get returned the long term G + policy_cost from the region as a lump sum
 perfomances_dt4[,return := G - policy_cost]
@@ -46,24 +45,15 @@ field_perfomances_dt2[,P_return := P + return]
 
 # ---------
 # Make leaching relative to baselevel
-baselevel_dt <- field_perfomances_dt2[policy == 'ratio_5' & NRT == 'static', .(id_10, id_field, L_base = L, P_base = P)]
+baselevel_dt <- field_perfomances_dt2[policy == 'ratio_5' & NRT == 'dynamic', .(id_10, id_field, L_base = L, P_base = P)]
 
-field_perfomances_dt2 <- merge(field_perfomances_dt2[NRT != 'static'], baselevel_dt, by = c('id_10', 'id_field'))
+field_perfomances_dt2 <- merge(field_perfomances_dt2[policy != 'ratio_5'], baselevel_dt, by = c('id_10', 'id_field'))
 
 field_perfomances_dt2[,policy_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
                                  labels = c("N:Corn price ratio",
                                             "Leaching fee",
                                             "N balance fee",
                                             "N reduction"))]
-ggplot(data=field_perfomances_dt2) +
-  geom_point(aes(x = P_base, y = P_return, color = policy_labels))+
-  theme_bw()+
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=14,face="bold"),
-        legend.position = "none")+
-  facet_free(.~policy_labels, scale = 'free')
-
-
 summary(field_perfomances_dt2$P_return)
 
 (p1 <- ggplot(data=field_perfomances_dt2) +
@@ -97,7 +87,7 @@ field_perfomances_dt2[,P_diff := P_return - P_base]
 
 (p3 <- ggplot(data=field_perfomances_dt2, aes(x = L_base, y = P_diff, color = policy_labels)) +
   geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
-    geom_smooth(color = 'black')+
+    # geom_smooth(color = 'black')+
   # geom_histogram(aes(x = P_base))+
   # geom_abline() +  ylim(0, 100)+ xlim(0, 100) +
   theme_bw()+
