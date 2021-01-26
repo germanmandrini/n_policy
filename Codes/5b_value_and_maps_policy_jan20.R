@@ -296,50 +296,9 @@ region_eq_dt2[,.(L_diff = mean(L_diff),
               N_fert_diff = mean(N_fert_diff),
               policy_cost = mean(policy_cost)), by = .(NRT, region_eq) ]
 
-#--------------------------------------------------------------------------------
-# N Balance
-
-perfomances_dt2 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt2.rds") 
-
-perfomances_dt2[,N_balance := N_fert - Y_corn * 11/1000]
-
-perfomances_dt2[,L_ton_grain := L/(Y_corn / 1000)]
-balance_dt <- perfomances_dt2[policy == 'ratio_5']
-
-balance_dt[region_eq == 1,region_eq := '1-South']
-balance_dt[region_eq == 2,region_eq := '2-Central']
-balance_dt[region_eq == 3,region_eq := '3-North']
 
 
-(p1 <- ggplot(data = balance_dt)+ geom_density(aes(x = N_balance, colour = NRT), size =1)+
-  facet_free(region_eq~.)+
-  ggtitle('N Balance'))
 
-ggsave(plot = p1, 
-       filename = "./n_policy_box/Data/figures/balance1.png")
-
-(p2 <- ggplot(data = balance_dt)+ geom_density(aes(x = L2, colour = NRT), size =1)+
-  facet_free(region_eq~.)+
-  ggtitle('Leaching'))
-
-ggsave(plot = p2, 
-       filename = "./n_policy_box/Data/figures/balance2.png")
-
-(p3 <- ggplot(data = balance_dt[sample(1:nrow(balance_dt), 5000)], aes(x = N_balance, y = L)) + 
-  geom_point()+
-  geom_smooth()+
-  facet_free(region_eq~.))
-
-ggsave(plot = p3, 
-       filename = "./n_policy_box/Data/figures/balance3.png")
-
-(p4 <- ggplot(data = balance_dt[sample(1:nrow(balance_dt), 5000)], aes(x = N_balance, y = L_ton_grain)) + 
-  geom_point()+
-  geom_smooth()+
-  facet_free(region_eq~.))
-
-ggsave(plot = p4, 
-       filename = "./n_policy_box/Data/figures/balance4.png")
 
 #-------------------------------------------------------------------------
 # YC graph
