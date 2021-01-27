@@ -33,6 +33,7 @@ balance_dt <- filter_dt_in_dt(x_dt = yc_field_sample_dt, filter_dt = trials_samp
 (p1 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
     geom_smooth()+
+        theme_bw()+
     facet_free(region~.)+
     ggtitle('One trial'))
 
@@ -41,6 +42,7 @@ balance_dt <- yc_field_sample_dt[N_fert %in% c(0,100,200,320)]
 (p2 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
     geom_smooth()+
+        theme_bw()+
     facet_free(region~.)+
     ggtitle('45 trials (0,100,200,320 kg/ha)'))
 
@@ -50,6 +52,7 @@ balance_dt <- yc_field_sample_dt[N_fert %in% c(180)]
 (p3 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
     geom_smooth()+
+        theme_bw()+
     facet_free(region~.)+
     ggtitle('45 fields (180 kg/ha)'))
 
@@ -63,6 +66,7 @@ balance_dt <- filter_dt_in_dt(x_dt = balance_dt[id_10 %in% trials_sample_dt$id_1
 (p4 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
     geom_smooth()+
+    theme_bw()+
     facet_free(region~.)+
     ggtitle('45 fields (using dynamic rec)'))
 
@@ -71,6 +75,7 @@ balance_dt <- field_perfomances_dt[policy == 'ratio_5' & NRT == 'dynamic']
 (p5 <- ggplot(data = balance_dt[sample(1:nrow(balance_dt), 5000)], aes(x = N_balance, y = L)) + 
         geom_point()+
         geom_smooth()+
+        theme_bw()+
         facet_free(region~.)+
         ggtitle('5000 fields (using dynamic rec)'))
 
@@ -89,13 +94,17 @@ balance_dt <- field_perfomances_dt[policy == 'ratio_5' & NRT == 'dynamic']
 
 
 (p1 <- ggplot(data = balance_dt)+ geom_density(aes(x = N_balance, colour = region_eq), size =1)+
+        theme_bw()+
     ggtitle('N Balance'))
 
 # ggsave(plot = p1, 
 #        filename = "./n_policy_box/Data/figures/balance1.png")
 
 (p2 <- ggplot(data = balance_dt[L < 100])+ geom_density(aes(x = L, colour = region_eq), size =1)+
+        theme_bw()+
     ggtitle('Leaching'))
+
+ggarrange(p1,p2, labels = c("a)","b)"), label.x = 0, common.legend = TRUE, legend = 'bottom')
 
 # ggsave(plot = p2, 
 #        filename = "./n_policy_box/Data/figures/balance2.png")
