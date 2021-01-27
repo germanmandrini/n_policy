@@ -26,6 +26,7 @@ percent20_dt <- rbind(data.table(policy = c('ratio_5'), NRT = c('dynamic')),
 
 perfomances_dt4 <- filter_dt_in_dt(perfomances_dt4, filter_dt = percent20_dt, return_table = T)
 field_perfomances_dt <- filter_dt_in_dt(field_perfomances_dt, filter_dt = percent20_dt, return_table = T)
+field_perfomances_dt[,N_balance := N_fert - Y_corn * 11/1000]
 
 # AGGREGATE THE DATA TO FIELD LEVEL (z is out)
 names(field_perfomances_dt)
@@ -35,7 +36,8 @@ field_perfomances_dt2 <- field_perfomances_dt[,.(Y_corn = mean(Y_corn),
                                      L = mean(L),
                                      N_fert = mean(N_fert),
                                      P = mean(P),
-                                     G = mean(G)), by = do_not_aggregate]
+                                     G = mean(G),
+                                     N_balance = mean(N_balance)), by = do_not_aggregate]
 
 #=============================================================================================================================================
 # Farmers get returned the long term G + policy_cost from the region as a lump sum
@@ -45,7 +47,7 @@ field_perfomances_dt2[,P_return := P + return]
 
 # ---------
 # Make leaching relative to baselevel
-baselevel_dt <- field_perfomances_dt2[policy == 'ratio_5' & NRT == 'dynamic', .(id_10, id_field, L_base = L, P_base = P)]
+baselevel_dt <- field_perfomances_dt2[policy == 'ratio_5' & NRT == 'dynamic', .(id_10, id_field, L_base = L, P_base = P, Nbalance_base = N_balance)]
 
 field_perfomances_dt2 <- merge(field_perfomances_dt2[policy != 'ratio_5'], baselevel_dt, by = c('id_10', 'id_field'))
 
@@ -99,6 +101,20 @@ field_perfomances_dt2[,P_diff := P_return - P_base]
   # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
   facet_free(.~policy_labels, scale = 'free'))
 
+
+(p4 <- ggplot(data=field_perfomances_dt2, aes(x = Nbalance_base, y = P_diff, color = policy_labels)) +
+    geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
+    # geom_smooth(color = 'black')+
+    # geom_histogram(aes(x = P_base))+
+    # geom_abline() +  ylim(0, 100)+ xlim(0, 100) +
+    theme_bw()+
+    theme(#axis.text=element_text(size=12),
+      #axis.title=element_text(size=14),
+      legend.position = "none")+
+    xlab('Baselevel N balance (kg/ha)')+
+    ylab('Profits difference ($/ha)')+
+    # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
+    facet_free(.~policy_labels, scale = 'free'))
 
 library(ggpubr)
 ggarrange(p1,p2,p3 , ncol = 1, labels = c("a)","b)", "c)"), label.x = 0)
