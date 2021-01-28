@@ -114,7 +114,7 @@ for(z_n in z_seq){
   prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
   
   
-  ratio_seq <- 5#sort(c(seq(5, 20, by = 1)))
+  ratio_seq <- sort(c(seq(5, 20, by = 1)))
   ratio5_recommendations_list <- list()
   
   for(level_n in ratio_seq){
@@ -218,7 +218,7 @@ for(z_n in z_seq){
   }#end of ratio loop
   
   
-  if(FALSE){
+  if(TRUE){
     # =========================================================================================================================================================
     # CREATE THE LEACHING FEE MODEL
     source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
@@ -685,6 +685,9 @@ for(file_n in files_path){
 
 }
 field_perfomances_dt <- rbindlist(perfomances_list)
+
+#add region_eq
+grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
 field_perfomances_dt <- merge(field_perfomances_dt, unique(grid10_soils_dt5[,.(id_10, region_eq)]), by = 'id_10')
 
 field_perfomances_dt[,.N, z][order(z)]

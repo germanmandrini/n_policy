@@ -90,7 +90,7 @@ if(FALSE){
   #---------
   #Calculate net_balance
   # perfomances_dt4[,net_balance := P + G]
-  perfomances_dt4[,policy_cost := P  + G - P_base]
+  perfomances_dt4[,policy_cost := P_base - P  - G]
   perfomances_dt4[,abatement_cost := policy_cost/(L_base -  L)]
   perfomances_dt4[is.na(abatement_cost), abatement_cost := 0]
   #---------
@@ -121,7 +121,7 @@ if(FALSE){
   
   #---------
   #Calculate policy_cost
-  perfomances_dt5[,policy_cost := P  + G - P_base]
+  perfomances_dt5[,policy_cost := P_base - P  - G]
   perfomances_dt5[,abatement_cost := policy_cost/(L_base-  L)]
   perfomances_dt5[is.na(abatement_cost), abatement_cost := 0]
   #---------
@@ -198,7 +198,7 @@ plot_dt2 <- perfomances_dt5[policy_name %in% c('ratio', 'leach', 'bal', 'red') &
 
 plot_dt <- rbind(plot_dt1, plot_dt2, fill = T)
 
-plot_dt[abatement_cost >0,abatement_cost := 0 ] #the graph looks ugly
+plot_dt[abatement_cost < 0,abatement_cost := 0 ] #the graph looks ugly
 
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'region_eq'), measure.vars = c('Y_corn', 'L', 'N_fert', 

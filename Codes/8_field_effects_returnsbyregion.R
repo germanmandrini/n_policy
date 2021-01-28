@@ -42,7 +42,7 @@ field_perfomances_dt2 <- field_perfomances_dt[,.(Y_corn = mean(Y_corn),
 
 #=============================================================================================================================================
 # Farmers get returned the long term G + policy_cost from the region as a lump sum
-perfomances_dt4[,return := G - policy_cost]
+perfomances_dt4[,return := G + policy_cost]
 field_perfomances_dt2 <- merge(field_perfomances_dt2, perfomances_dt4[,.(region_eq, policy, NRT, return)], by =c('region_eq', 'policy', 'NRT'))
 field_perfomances_dt2[,P_return := P + return]
 
@@ -57,6 +57,7 @@ field_perfomances_dt2[,policy_labels := factor(policy_name, levels = c('ratio', 
                                             "Leaching fee",
                                             "N balance fee",
                                             "N reduction"))]
+#-----
 lm_eqn = function(dt){
   m = lm(P_return~P_base, dt)
   eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
@@ -68,21 +69,22 @@ lm_eqn = function(dt){
 
 reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
 
-(p1 <- ggplot(data=field_perfomances_dt2) +
-  geom_point(aes(x = P_base, y = P_return, color = policy_labels))+ #theme(aspect.ratio=1) + #coord_fixed() + 
+(p1 <- ggplot(data=field_perfomances_dt2,aes(x = P_base, y = P_return, color = policy_labels)) +
+  geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
   geom_smooth(color = 'blue', formula = y~x, method = 'lm')+
-  geom_abline() + ylim(700, 2000)+ xlim(700, 2000) +
+  geom_abline(linetype = 'dashed') + ylim(700, 2000)+ xlim(700, 2000) +
   theme_bw()+
   theme(#axis.text=element_text(size=12),
         #axis.title=element_text(size=14),
         legend.position = "none")+
-  geom_text(data = reg_dt, aes(x = 700, y = 1500, label = V1, angle = 90), parse = TRUE, inherit.aes=FALSE)+
+  geom_text(data = reg_dt, aes(x = 700, y = 1800, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
   xlab('Baselevel profits ($/ha)')+
-  ylab('After policy profits ($/ha)')+
+  ylab('After policy income ($/ha)')+
   # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
   facet_free(.~policy_labels, scale = 'free'))
 
 
+#-----
 lm_eqn = function(dt){
   m = lm(L~L_base, dt)
   eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
@@ -101,18 +103,21 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
 (p2 <- ggplot(data=field_perfomances_dt2, aes(x = L_base, y = L, color = policy_labels)) +
   geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
   geom_smooth(color = 'blue', formula = y~x, method = 'lm')+
-  geom_abline() +  ylim(0, 136)+ xlim(0, 136) +
+  geom_abline(linetype = 'dashed') +  ylim(0, 136)+ xlim(0, 136) +
   theme_bw()+
   theme(#axis.text=element_text(size=12),
         #axis.title=element_text(size=14),
         legend.position = "none")+
     # geom_text(data=eq,aes(x = 25, y = 300,label=V1), parse = TRUE, inherit.aes=FALSE) + facet_grid(group~.)
-  geom_text(data = reg_dt, aes(x = 10, y = 100, label = V1, angle = 90), parse = TRUE, inherit.aes=FALSE)+
+  geom_text(data = reg_dt, aes(x = 0, y = 120, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
   xlab('Baselevel N leaching (kg/ha)')+
   ylab('After policy N leaching (kg/ha)')+
   # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
   facet_free(.~policy_labels, scale = 'free'))
 
+
+
+#-----
 field_perfomances_dt2[,P_diff := P_return - P_base]
 
 lm_eqn = function(dt){
@@ -137,7 +142,7 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
   theme(#axis.text=element_text(size=12),
         #axis.title=element_text(size=14),
         legend.position = "none")+
-  geom_text(data = reg_dt, aes(x = 5, y = -500, label = V1, angle = 90), parse = TRUE, inherit.aes=FALSE)+
+  geom_text(data = reg_dt, aes(x = 5, y = -500, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
   xlab('Baselevel N leaching (kg/ha)')+
   ylab('Profits difference ($/ha)')+
   # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
@@ -146,20 +151,6 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
 library(ggpubr)
 ggarrange(p1,p2,p3 , ncol = 1, labels = c("a)","b)", "c)"), label.x = 0)
 
-
-(p4 <- ggplot(data=field_perfomances_dt2, aes(x = Nbalance_base, y = P_diff, color = policy_labels)) +
-    geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
-    # geom_smooth(color = 'black')+
-    # geom_histogram(aes(x = P_base))+
-    # geom_abline() +  ylim(0, 100)+ xlim(0, 100) +
-    theme_bw()+
-    theme(#axis.text=element_text(size=12),
-      #axis.title=element_text(size=14),
-      legend.position = "none")+
-    xlab('Baselevel N balance (kg/ha)')+
-    ylab('Profits difference ($/ha)')+
-    # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
-    facet_free(.~policy_labels, scale = 'free'))
 
 
 #==========================================================================================================
@@ -203,7 +194,7 @@ baselevel_dt <- field_perfomances_dt[policy == 'ratio_5' & NRT == 'dynamic',
 balance_dt <- merge(balance_dt, baselevel_dt, by = c('id_10', 'id_field', 'z'))
 
 #Add the return: Farmers get returned the long term G + policy_cost from the region as a lump sum
-perfomances_dt4[,return := G - policy_cost]
+perfomances_dt4[,return := G + policy_cost]
 balance_dt <- merge(balance_dt, perfomances_dt4[,.(region_eq, policy, NRT, return)], by =c('region_eq', 'policy', 'NRT'))
 balance_dt[,P_return := P + return]
 balance_dt[, P_diff := P_return - P_base]
@@ -252,7 +243,88 @@ balance_dt[, N_diff := N_fert - N_base]
   facet_free(.~region_eq, scale = 'free'))
 
 ggarrange(p1,p2,p3,p4)
+#==========================================================================================================
+# Why N balance transfer funds from low income fields to high income fields?
 
+balance_dt <- field_perfomances_dt2[policy_name == 'bal']
+
+#-----
+lm_eqn = function(dt){
+  m = lm(P_return~P_base, dt)
+  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+                   list(a = format(unname(coef(m)[1]), digits = 2),
+                        b = format(unname(coef(m)[2]), digits = 2),
+                        r2 = format(summary(m)$r.squared, digits = 3)))
+  as.character(as.expression(eq));                 
+}
+
+reg_dt <- ddply(field_perfomances_dt2,.(region_eq),lm_eqn)
+
+(p1 <- ggplot(data=balance_dt,aes(x = P_base, y = P_return, color = policy_labels)) +
+    geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
+    geom_smooth(color = 'blue', formula = y~x, method = 'lm')+
+    geom_abline(linetype = 'dashed') + ylim(700, 2000)+ xlim(700, 2000) +
+    theme_bw()+
+    theme(#axis.text=element_text(size=12),
+      #axis.title=element_text(size=14),
+      legend.position = "none")+
+    geom_text(data = reg_dt, aes(x = 700, y = 1800, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+    xlab('Baselevel profits ($/ha)')+
+    ylab('After policy income ($/ha)')+
+    # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
+    facet_free(.~region_eq, scale = 'free'))
+
+#-----
+lm_eqn = function(dt){
+  m = lm(N_balance~P_base, dt)
+  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+                   list(a = format(unname(coef(m)[1]), digits = 2),
+                        b = format(unname(coef(m)[2]), digits = 2),
+                        r2 = format(summary(m)$r.squared, digits = 3)))
+  as.character(as.expression(eq));                 
+}
+
+reg_dt <- ddply(balance_dt,.(region_eq),lm_eqn)
+
+(p2 <- ggplot(data=balance_dt,aes(x = P_base, y = N_balance, color = policy_labels)) +
+    geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
+    geom_smooth(color = 'blue', formula = y~x, method = 'lm')+
+    # geom_abline(linetype = 'dashed') + #ylim(700, 2000)+ xlim(700, 2000) +
+    theme_bw()+
+    theme(#axis.text=element_text(size=12),
+      #axis.title=element_text(size=14),
+      legend.position = "none")+
+    geom_text(data = reg_dt, aes(x = 700, y = 80, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+    xlab('Baselevel profits ($/ha)')+
+    ylab('N Balance (kg/ha)')+
+    # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
+    facet_free(.~region_eq, scale = 'free'))
+
+#-----
+lm_eqn = function(dt){
+  m = lm(L_base~P_base, dt)
+  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+                   list(a = format(unname(coef(m)[1]), digits = 2),
+                        b = format(unname(coef(m)[2]), digits = 2),
+                        r2 = format(summary(m)$r.squared, digits = 3)))
+  as.character(as.expression(eq));                 
+}
+reg_dt <- ddply(balance_dt,.(region_eq),lm_eqn)
+
+(p3 <- ggplot(data=balance_dt,aes(x = P_base, y = L_base, color = policy_labels)) +
+    geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
+    geom_smooth(color = 'blue', formula = y~x, method = 'lm')+
+    # geom_abline(linetype = 'dashed') + #ylim(700, 2000)+ xlim(700, 2000) +
+    theme_bw()+
+    theme(#axis.text=element_text(size=12),
+      #axis.title=element_text(size=14),
+      legend.position = "none")+
+    geom_text(data = reg_dt, aes(x = 700, y = 80, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+    xlab('Baselevel profits ($/ha)')+
+    ylab('Baselevel leaching ($/ha)')+
+    # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
+    facet_free(.~region_eq, scale = 'free'))
+ggarrange(p1,p2,p3 , ncol = 1, labels = c("a)","b)", "c)"), label.x = 0)
 
 #==========================================================================================================
 # Barplot with error bars (BY REGION)

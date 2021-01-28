@@ -34,13 +34,24 @@ ggplot(data = plot_dt[region_eq == 'state']) +
   ylab('Policy Cost ($/ha)')
 
 #In relative L reduction
-ggplot(data = plot_dt) +
+(p1 <- ggplot(data = plot_dt) +
   geom_line(aes(x = -L_change, y =  policy_cost , color = policy_name), size = 1)+
   xlab('N Leaching reduction (%)')+
   ylab('Policy Cost ($/ha)')+
   theme_bw()+
   theme(legend.position = 'bottom')+
-  facet_free(~region_eq)
+  facet_free(~region_eq))
+
+
+#abatement cost
+(p2 <- ggplot(data = plot_dt) +
+  geom_line(aes(x = -L_change, y =  abatement_cost, color = policy_name), size = 1)+
+  xlab('N Leaching reduction (%)')+
+  ylab('Abatement Cost ($/kg ha)')+
+  theme_bw()+
+  theme(legend.position = 'bottom')+
+  facet_free(~region_eq))
+
 
 #In absolute L reduction
 plot_dt[,L_diff := L - L_base]
