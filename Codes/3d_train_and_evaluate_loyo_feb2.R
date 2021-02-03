@@ -588,8 +588,13 @@ field_perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, .(id_10)] %>% .[,N] %>%
 field_perfomances_dt[,.N, .(id_10, id_field, policy, NRT, z)] %>% .[,.N, .(NRT)] #field x year by NRT
 
 saveRDS(field_perfomances_dt, "./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
+
+field_perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
 thresholds_dt <- field_perfomances_dt[policy == 'ratio_5' & NRT == 'dynamic']
+
 thresholds_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
+
+
 thresholds_dt <- thresholds_dt[,
                            .(N_balance = mean(N_balance),
                              L = mean(L)), by = region]
