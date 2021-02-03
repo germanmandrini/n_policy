@@ -115,7 +115,7 @@ ggarrange(p1,p2,p4, p5, labels = c("a)","b)", "c)", "d)"), label.x = 0)
 # N Balance
 
 field_perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
-field_perfomances_dt[,N_balance := N_fert - Y_corn * 11/1000]
+field_perfomances_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
 
 field_perfomances_dt[,L_ton_grain := L/(Y_corn / 1000)]
 balance_dt <- field_perfomances_dt[policy == 'ratio_5' & NRT == 'dynamic']
