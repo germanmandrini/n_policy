@@ -65,15 +65,15 @@ if(FALSE){
   saveRDS(perfomances_dt3, "./n_policy_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
   perfomances_dt3 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
   #---------------------------------------------------------------------------
-  # AGGREGATE AGAIN BY region_eq CONSIDERING THE CORN PRODUCTION OF THE CELL
-  grid10_tiles_dt <- data.table(grid10_tiles_sf7)[,.N, .(id_tile,id_10, corn_avg_ha,corn5_tile )][,-'N']
-  grid10_tiles_dt[,.(corn_avg_ha = sum(corn_avg_ha))]
-  summary(grid10_tiles_dt$corn_avg_ha)
-  perfomances_dt3[,id_10 := as.integer(id_10)]
-  perfomances_dt3 <- merge(perfomances_dt3, grid10_tiles_dt, by = 'id_10')
+  # AGGREGATE AGAIN BY REGION CONSIDERING THE FIELDS
+  # grid10_tiles_dt <- data.table(grid10_tiles_sf7)[,.N, .(id_tile,id_10, corn_avg_ha,corn5_tile )][,-'N']
+  # grid10_tiles_dt[,.(corn_avg_ha = sum(corn_avg_ha))]
+  # summary(grid10_tiles_dt$corn_avg_ha)
+  # perfomances_dt3[,id_10 := as.integer(id_10)]
+  # perfomances_dt3 <- merge(perfomances_dt3, grid10_tiles_dt, by = 'id_10')
   
   
-  perfomances_dt4 <- aggregate_by_area(data_dt = perfomances_dt3, 
+  perfomances_dt4 <- aggregate_by_area(data_dt = perfomances_dt, 
                                        variables = c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G"), 
                                        weight = 'corn_avg_ha', by_c = c('policy','NRT', 'region_eq')) #region_eq level, weighted by corn_ha
   
