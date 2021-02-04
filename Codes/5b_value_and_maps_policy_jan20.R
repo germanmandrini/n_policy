@@ -49,21 +49,21 @@ if(FALSE){
   }
   #-------------------------------------------------------------------------
   # AGGREGATE THE DATA TO CELL LEVEL (not by area)
-  names(perfomances_dt)
-  do_not_aggregate = c('policy','id_10', 'region_eq','NRT')
-  
-  perfomances_dt3 <- perfomances_dt[,.(Y_corn = mean(Y_corn), 
-                                        Y_soy = mean(Y_soy),
-                                        L1 = mean(L1),
-                                        L2 = mean(L2),
-                                        L = mean(L),
-                                        N_fert = mean(N_fert),
-                                        P = mean(P),
-                                        G = mean(G)), by = do_not_aggregate]
-  
-  
-  saveRDS(perfomances_dt3, "./n_policy_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
-  perfomances_dt3 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
+  # names(perfomances_dt)
+  # do_not_aggregate = c('policy','id_10', 'region_eq','NRT')
+  # 
+  # perfomances_dt3 <- perfomances_dt[,.(Y_corn = mean(Y_corn), 
+  #                                       Y_soy = mean(Y_soy),
+  #                                       L1 = mean(L1),
+  #                                       L2 = mean(L2),
+  #                                       L = mean(L),
+  #                                       N_fert = mean(N_fert),
+  #                                       P = mean(P),
+  #                                       G = mean(G)), by = do_not_aggregate]
+  # 
+  # 
+  # saveRDS(perfomances_dt3, "./n_policy_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
+  # perfomances_dt3 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt3.rds") #for 5e_validation.R
   #---------------------------------------------------------------------------
   # AGGREGATE AGAIN BY REGION CONSIDERING THE FIELDS
   # grid10_tiles_dt <- data.table(grid10_tiles_sf7)[,.N, .(id_tile,id_10, corn_avg_ha,corn5_tile )][,-'N']
@@ -73,9 +73,11 @@ if(FALSE){
   # perfomances_dt3 <- merge(perfomances_dt3, grid10_tiles_dt, by = 'id_10')
   
   
-  perfomances_dt4 <- aggregate_by_area(data_dt = perfomances_dt, 
-                                       variables = c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G"), 
-                                       weight = 'corn_avg_ha', by_c = c('policy','NRT', 'region_eq')) #region_eq level, weighted by corn_ha
+  perfomances_dt4 <- perfomances_dt[,.(Y_corn = mean(Y_corn), 
+                                       L = mean(L),
+                                       N_fert = mean(N_fert),
+                                       P = mean(P),
+                                       G = mean(G)), by = c('policy','NRT', 'region_eq')]#region_eq level, all fields equal weight
   
   # ---------
   # Make leaching relative to baselevel
@@ -100,15 +102,18 @@ if(FALSE){
   perfomances_dt4 <- perfomances_dt4[Y_corn_change >=0.95 & Y_corn_change <= 1.05] #remove yields modifications of more that 5%
   #---------------------------------------------------------------------------
   # Some cleaning
-  colsToDelete <- c('L1', 'L2', 'Y_base', 'P_base','Y_corn_change')
+  colsToDelete <- c('Y_base', 'P_base','Y_corn_change')
   set(perfomances_dt4,, colsToDelete, NULL)
   
   saveRDS(perfomances_dt4, "./n_policy_box/Data/files_rds/perfomances_dt4.rds")
   #---------------------------------------------------------------------------
   # AGGREGATE AGAIN AT THE STATE LEVEL, CONSIDERING THE CORN PRODUCTION OF THE CELL
-  perfomances_dt5 <- aggregate_by_area(data_dt = perfomances_dt3, #use perfomances_dt3 to avoid the 95% rule by region_eq
-                                       variables = c("Y_corn", 'L1', 'L2', "L", "N_fert","P", "G"), 
-                                       weight = 'corn_avg_ha', by_c = c('policy', 'NRT')) #state level, weighted by corn_ha
+  perfomances_dt5 <- perfomances_dt[,.(Y_corn = mean(Y_corn), 
+                                       Y_soy = mean(Y_soy),
+                                       L = mean(L),
+                                       N_fert = mean(N_fert),
+                                       P = mean(P),
+                                       G = mean(G)), by = c('policy','NRT')]#region_eq level, all fields equal weight
   # ---------
   # Make leaching relative to baselevel
   perfomances_dt5[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
@@ -122,7 +127,7 @@ if(FALSE){
   
   #---------
   #Calculate policy_cost
-  perfomances_dt5[,policy_cost := P_base - P  - G]
+  perfomances_dt5[,policy_cost := round(P_base - P  - G,2)]
   perfomances_dt5[,abatement_cost := policy_cost/(L_base-  L)]
   perfomances_dt5[is.na(abatement_cost), abatement_cost := 0]
   #---------
@@ -134,7 +139,7 @@ if(FALSE){
   # Some cleaning
 
   
-  colsToDelete <- c('L1', 'L2', 'corn_avg_ha', 'Y_base', 'P_base','Y_corn_change')
+  colsToDelete <- c( 'Y_base', 'P_base','Y_corn_change')
   set(perfomances_dt5,, colsToDelete, NULL)
   
   saveRDS(perfomances_dt5, "./n_policy_box/Data/files_rds/perfomances_dt5.rds")
