@@ -149,7 +149,7 @@ if(FALSE){
 
 # Elasticity of Demand Point-Slope Formula: https://pressbooks.bccampus.ca/uvicecon103/chapter/4-2-elasticity/
 if(FALSE){
-  
+  perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
   elasticity_dt <- perfomances_dt5[policy_name == 'ratio' & NRT == 'dynamic' & policy_val %in% c(5,6)]
   
   d_quantity <- (elasticity_dt[policy_val == 6, N_fert]  - elasticity_dt[policy_val == 5, N_fert])/
@@ -157,16 +157,8 @@ if(FALSE){
   
   d_price <- (Pc*6 -  Pc*5)/ (Pc*5)
   
-  d_quantity/d_price
+  d_quantity/d_price #elasticity
   
-  elasticity_dt <- perfomances_dt5[policy_name == 'ratio' & NRT == 'dynamic' & policy_val %in% c(5,6)]
-  
-  d_quantity <- (elasticity_dt[policy_val == 6, N_fert]  - elasticity_dt[policy_val == 5, N_fert])/
-    elasticity_dt[policy_val == 5, N_fert]
-  
-  d_price <- (Pc*6 -  Pc*5)/ (Pc*5)
-  
-  d_quantity/d_price
 }
 
 # Total G collections in IL for 20% reduction
@@ -274,29 +266,37 @@ ggsave(plot = p,
 #--------------------------------------------------------------------------------
 # REGION TABLE
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
+perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 percent20_dt <- readRDS("./n_policy_box/Data/files_rds/percent20_dt.rds")
 
 percent20_dt <- percent20_dt[NRT == 'dynamic' & policy_name %in% policies_paper,.(policy, NRT)]
+percent20_dt <- rbind(percent20_dt, data.table(policy = 'ratio_5', NRT = 'dynamic')) #add baselevel
 
-region_eq_dt <- filter_dt_in_dt(perfomances_dt4, filter_dt = percent20_dt, return_table = T)
+perfomances_dt5[,region_eq := 'state']
+region20_dt <- rbind(perfomances_dt4, perfomances_dt5, fill = T)%>% 
+  .[policy_name %in% policies_paper & NRT %in% c('dynamic')]
 
-baselevel_dt <- perfomances_dt4[NRT == 'dynamic',.SD[policy_val == min(policy_val)], by = .(policy_name, region_eq)] %>%
-  .[,.(policy_name, region_eq, L_base = L, Y_base = Y_corn, P_base = P, N_base = N_fert)]
+region20_dt2 <- filter_dt_in_dt(region20_dt, filter_dt = percent20_dt, return_table = T)
+region20_dt2[policy =='ratio_5', policy_name := 'base-level']
+region20_dt2[policy =='ratio_5', policy_val := 0]
+# 
+# baselevel_dt <- region20_dt[NRT == 'dynamic',.SD[policy_val == min(policy_val)], by = .(policy_name, region_eq)] %>%
+#   .[,.(policy_name, region_eq, L_base = L, Y_base = Y_corn, P_base = P, N_base = N_fert)]
+# 
+# # colsToDelete <- c('L1', 'L2', 'corn_avg_ha', 'Y_base', 'P_base','Y_corn_change')
+# # set(perfomances_dt5,, colsToDelete, NULL)
+# 
+# region20_dt3 <- merge(region20_dt2[policy != 'ratio_5', .(region_eq, policy_name, Y_corn, L, N_fert, P, G, policy_cost)],
+#                        baselevel_dt, by = c('policy_name','region_eq'))
 
-# colsToDelete <- c('L1', 'L2', 'corn_avg_ha', 'Y_base', 'P_base','Y_corn_change')
-# set(perfomances_dt5,, colsToDelete, NULL)
+# region_eq_dt2[, Y_corn_diff := Y_corn - Y_base]
+# region_eq_dt2[, L_diff := L - L_base]
+# region_eq_dt2[, N_fert_diff := N_fert - N_base]
+# region_eq_dt2[, P_diff := P - P_base]
+region20_dt2[,policy_name := factor(policy_name, levels = c('base-level','ratio', 'leach', 'bal', 'red'))]
+region20_dt3 <- region20_dt2[,.(region_eq, policy = policy_name, sublevel = policy_val, Y_corn, L, N_fert, P, G,policy_cost)][order(-region_eq, policy)]
 
-region_eq_dt2 <- merge(region_eq_dt[policy != 'ratio_5', .(region_eq, policy_name, Y_corn, L, N_fert, P, G, policy_cost)],
-                       baselevel_dt, by = c('policy_name','region_eq'))
-
-region_eq_dt2[, Y_corn_diff := Y_corn - Y_base]
-region_eq_dt2[, L_diff := L - L_base]
-region_eq_dt2[, N_fert_diff := N_fert - N_base]
-region_eq_dt2[, P_diff := P - P_base]
-region_eq_dt2 <- region_eq_dt2[,.(region_eq, policy_name, NRT, Y_corn, L, N_fert, P, G,policy_cost, Y_corn_diff, L_diff, N_fert_diff)]
-region_eq_dt2[order(-region_eq)]
-
-fwrite(region_eq_dt2, "./n_policy_box/Data/figures/region_effects.csv")
+fwrite(region20_dt3, "./n_policy_box/Data/figures/region_effects.csv")
 
 region_eq_dt2[,.(L_diff = mean(L_diff),
               N_fert_diff = mean(N_fert_diff),

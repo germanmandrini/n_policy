@@ -27,7 +27,8 @@ percent20_dt <- rbind(data.table(policy = c('ratio_5'), NRT = c('dynamic')),
 
 perfomances_dt4 <- filter_dt_in_dt(perfomances_dt4, filter_dt = percent20_dt, return_table = T)
 field_perfomances_dt <- filter_dt_in_dt(field_perfomances_dt, filter_dt = percent20_dt, return_table = T)
-field_perfomances_dt[,N_balance := N_fert - Y_corn * 11/1000]
+field_perfomances_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
+field_perfomances_dt[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
 
 # AGGREGATE THE DATA TO FIELD LEVEL (z is out)
 names(field_perfomances_dt)
