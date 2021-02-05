@@ -269,7 +269,7 @@ reg_dt <- ddply(field_perfomances_dt2,.(region_eq),lm_eqn)
     theme(#axis.text=element_text(size=12),
       #axis.title=element_text(size=14),
       legend.position = "none")+
-    geom_text(data = reg_dt, aes(x = 700, y = 1800, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+    geom_text(data = reg_dt, aes(x = 700, y = 1900, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
     xlab('Baselevel profits ($/ha)')+
     ylab('After policy income ($/ha)')+
     # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
@@ -295,7 +295,7 @@ reg_dt <- ddply(balance_dt,.(region_eq),lm_eqn)
     theme(#axis.text=element_text(size=12),
       #axis.title=element_text(size=14),
       legend.position = "none")+
-    geom_text(data = reg_dt, aes(x = 700, y = 80, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+    geom_text(data = reg_dt, aes(x = 900, y = 90, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
     xlab('Baselevel profits ($/ha)')+
     ylab('N Balance (kg/ha)')+
     # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
@@ -320,7 +320,7 @@ reg_dt <- ddply(balance_dt,.(region_eq),lm_eqn)
     theme(#axis.text=element_text(size=12),
       #axis.title=element_text(size=14),
       legend.position = "none")+
-    geom_text(data = reg_dt, aes(x = 700, y = 80, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+    geom_text(data = reg_dt, aes(x = 700, y = 125, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
     xlab('Baselevel profits ($/ha)')+
     ylab('Baselevel leaching ($/ha)')+
     # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
