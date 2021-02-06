@@ -30,8 +30,10 @@ trials_sample_dt <- yc_field_dt2[,.N, by = .(id_10, id_field, region, z)][,.SD[s
 # id10_sample <- c(100,  865, 1416)
 # id10_sample <- yc_field_dt2[,.N, by = .(id_10, region)][,.SD[sample(.N, 1)],by = region]$id_10
 
-yc_field_sample_dt <- filter_dt_in_dt(x_dt = yc_field_dt2[id_10 %in% trials_sample_dt$id_10], filter_dt = trials_sample_dt, return_table = T)
+yc_field_sample_dt <- filter_dt_in_dt(x_dt = yc_field_dt2[id_10 %in% trials_sample_dt$id_10], 
+                                      filter_dt = trials_sample_dt, return_table = T)
 
+# One trial --------------
 balance_dt <- filter_dt_in_dt(x_dt = yc_field_sample_dt, filter_dt = trials_sample_dt[,.SD[1],region], return_table = T) %>%
     .[N_fert %in% c(0,100,200,320)]
 
@@ -54,6 +56,7 @@ r2 <- get_r2(balance_dt)
     facet_free(region~.)+
     ggtitle('One trial (0,100,200,320 kg/ha)'))
 
+# Several trials --------------
 balance_dt <- yc_field_sample_dt[N_fert %in% c(0,100,200,320)]
 r2 <- get_r2(balance_dt)
 
@@ -65,6 +68,7 @@ r2 <- get_r2(balance_dt)
     facet_free(region~.)+
     ggtitle('45 trials (0,100,200,320 kg/ha)'))
 
+# Several fields with 180 kg/ha --------------
 balance_dt <- yc_field_sample_dt[N_fert %in% c(180)]
 r2 <- get_r2(balance_dt)
 r2[,y_label := y_label + c(5,0,50)]
@@ -79,7 +83,7 @@ r2[,y_label := y_label + c(5,0,50)]
 
 
 
-
+# Several fields with predicted N rate --------------
 balance_dt <- field_perfomances_dt[policy == 'ratio_5' & NRT == 'dynamic']
 balance_dt <- filter_dt_in_dt(x_dt = balance_dt[id_10 %in% trials_sample_dt$id_10], filter_dt = trials_sample_dt, return_table = T)
 
@@ -94,6 +98,7 @@ r2[,y_label := y_label + c(5,0,0)]
     facet_free(region~.)+
     ggtitle('45 fields (using dynamic rec)'))
 
+# Manu many fields with predicted N rate --------------
 balance_dt <- field_perfomances_dt[policy == 'ratio_5' & NRT == 'dynamic'] %>%
     .[sample(1:.N, 5000)]
 
@@ -108,7 +113,7 @@ r2 <- get_r2(balance_dt)
         ggtitle('5000 fields (using dynamic rec)'))
 
 
-ggarrange(p1,p2,p4, p5, labels = c("a)","b)", "c)", "d)"), label.x = 0)
+ggarrange(p1,p2,p3, p4, p5, labels = c("a)","b)", "c)", "d)", "e)"), label.x = 0, ncol = 2, nrow = 3)
 
 
 #--------------------------------------------------------------------------------

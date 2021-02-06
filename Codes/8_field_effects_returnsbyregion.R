@@ -63,12 +63,13 @@ lm_eqn = function(dt){
   m = lm(P_return~P_base, dt)
   eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
                    list(a = format(unname(coef(m)[1]), digits = 2),
-                        b = format(unname(coef(m)[2]), digits = 2),
+                        b = format(unname(coef(m)[2]), digits = 3),
                         r2 = format(summary(m)$r.squared, digits = 3)))
   as.character(as.expression(eq));                 
 }
 
 reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
+lm(data = field_perfomances_dt2[policy_name == 'bal'], formula = P_return~P_base)
 
 (p1 <- ggplot(data=field_perfomances_dt2,aes(x = P_base, y = P_return, color = policy_labels)) +
   geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
