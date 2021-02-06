@@ -48,17 +48,38 @@ field_perfomances_dt2 <- merge(field_perfomances_dt2, perfomances_dt4[,.(region_
 field_perfomances_dt2[,P_return := P + return]
 
 # ---------
-# Make leaching relative to baselevel
-baselevel_dt <- field_perfomances_dt2[policy == 'ratio_5' & NRT == 'dynamic', .(id_10, id_field, L_base = L, P_base = P, Nbalance_base = N_balance)]
+# Add baselevel information
+baselevel_dt <- field_perfomances_dt2[policy == 'ratio_5' & NRT == 'dynamic', 
+                                      .(region_eq, id_10, id_field, L_base = L, P_base = P, N_base = N_fert, 
+                                        Y_base = Y_corn, Nbalance_base = N_balance)]
 
-field_perfomances_dt2 <- merge(field_perfomances_dt2[policy != 'ratio_5'], baselevel_dt, by = c('id_10', 'id_field'))
 
+#Add base EONR
+yc_field_dt2 <- readRDS("./n_policy_box/Data/files_rds/yc_field_dt2.rds")
+base_eonr_dt <- yc_field_dt2[, .SD[ P == max(P)], by = .(id_10, id_field, z)] %>%
+  .[, .SD[ N_fert == min( N_fert)], by = .(id_10, id_field, z)] %>%
+  .[, .(EONR_base = round(mean(N_fert),0),
+        LEONR_base = round(mean(L),0),
+        YEONR_base = round(mean(Y_corn),0)), .(id_10, id_field)]
+
+baselevel_dt2 <- merge( baselevel_dt, base_eonr_dt, by = c('id_10', 'id_field'))
+
+
+field_perfomances_dt2 <- merge(field_perfomances_dt2[policy != 'ratio_5'], baselevel_dt2, by = c('region_eq','id_10', 'id_field'))
+
+
+
+#-----
+# Add labels for policies
 field_perfomances_dt2[,policy_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
                                  labels = c("N:Corn price ratio",
                                             "Leaching fee",
                                             "N balance fee",
                                             "N reduction"))]
-#-----
+
+#==============================================================================================================
+# Fields effects for main section
+
 lm_eqn = function(dt){
   m = lm(P_return~P_base, dt)
   eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
@@ -153,7 +174,137 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
 library(ggpubr)
 ggarrange(p1,p2,p3 , ncol = 1, labels = c("a)","b)", "c)"), label.x = 0)
 
+#==========================================================================================================
+# Field effects for appendix
+# Does ratio transfer funds from high N rate to low N rate?
+field_perfomances_dt2[,P_diff := P_return - P_base]
 
+
+lm_eqn = function(dt){
+  m = lm(P_diff~N_base, dt)
+  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+                   list(a = format(unname(coef(m)[1]), digits = 2),
+                        b = format(unname(coef(m)[2]), digits = 3),
+                        r2 = format(summary(m)$r.squared, digits = 3)))
+  as.character(as.expression(eq));                 
+}
+
+reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
+
+(p4 <- ggplot(data=field_perfomances_dt2, aes(x = EONR_base, y = P_diff, color = policy_labels)) +
+   geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
+   geom_smooth(color = 'blue', formula = y~x, method = 'lm')+  
+   # geom_smooth(color = 'black')+
+   # geom_histogram(aes(x = P_base))+
+   # geom_abline() +  ylim(0, 100)+ xlim(0, 100) +
+   theme_bw()+
+   theme(#axis.text=element_text(size=12),
+     #axis.title=element_text(size=14),
+     legend.position = "none")+
+   geom_text(data = reg_dt, aes(x = 5, y = -500, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+   xlab('Baselevel N rate (kg/ha)')+
+   ylab('Profits difference ($/ha)')+
+   # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
+   facet_free(.~policy_labels, scale = 'free'))
+
+
+# Does N balance transfer funds from low yield fields to high yield fields?
+lm_eqn = function(dt){
+  m = lm(P_diff~Y_base, dt)
+  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+                   list(a = format(unname(coef(m)[1]), digits = 2),
+                        b = format(unname(coef(m)[2]), digits = 3),
+                        r2 = round(summary(m)$r.squared, 3)))
+  as.character(as.expression(eq));                 
+}
+
+reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
+
+(p5 <- ggplot(data=field_perfomances_dt2, aes(x = Y_base, y = P_diff, color = policy_labels)) +
+    geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
+    geom_smooth(color = 'blue', formula = y~x, method = 'lm')+  
+    # geom_smooth(color = 'black')+
+    # geom_histogram(aes(x = P_base))+
+    # geom_abline() +  ylim(0, 100)+ 
+    # xlim(5000, 14600) +
+    theme_bw()+
+    theme(#axis.text=element_text(size=12),
+      #axis.title=element_text(size=14),
+      legend.position = "none")+
+    geom_text(data = reg_dt, aes(x = 5000, y = 200, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+    xlab('Baselevel Yield (kg/ha)')+
+    ylab('Profits difference ($/ha)')+
+    # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
+    facet_free(.~policy_labels, scale = 'free'))
+
+
+ggarrange(p4,p5 , ncol = 1, labels = c("a)","b)"), label.x = 0)
+#==========================================================================================================
+# Some base-level relationships
+
+# Leaching vs N rate (ex-ante)
+lm_eqn = function(dt){
+  m = lm(L_base ~N_base, dt)
+  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+                   list(a = format(unname(coef(m)[1]), digits = 2),
+                        b = format(unname(coef(m)[2]), digits = 3),
+                        r2 = round(summary(m)$r.squared, 3)))
+  as.character(as.expression(eq));                 
+}
+
+reg_dt <- ddply(baselevel_dt2,.(region_eq),lm_eqn)
+
+(p6 <- ggplot(data=baselevel_dt2, aes(x = N_base, y = L_base)) +
+    geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
+    geom_smooth(color = 'blue', formula = y~x, method = 'lm')+  
+    # geom_smooth(color = 'black')+
+    # geom_histogram(aes(x = P_base))+
+    # geom_abline() +  ylim(0, 100)+ 
+    # xlim(5000, 14600) +
+    theme_bw()+
+    theme(#axis.text=element_text(size=12),
+      #axis.title=element_text(size=14),
+      legend.position = "none")+
+    geom_text(data = reg_dt, aes(x = 100, y = 0, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+    ylab('Baselevel N leaching (kg/ha)')+
+    xlab('Baselevel N rate (kg/ha)')+
+    ggtitle('Ex-ante analysis')+
+    # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
+    facet_free(.~region_eq   , scale = 'free'))
+
+# -------
+# Leaching vs N rate (ex-post)
+
+lm_eqn = function(dt){
+  m = lm(LEONR_base ~ EONR_base , dt)
+  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+                   list(a = format(unname(coef(m)[1]), digits = 2),
+                        b = format(unname(coef(m)[2]), digits = 3),
+                        r2 = round(summary(m)$r.squared, 3)))
+  as.character(as.expression(eq));                 
+}
+
+reg_dt <- ddply(baselevel_dt2,.(region_eq),lm_eqn)
+
+(p7 <- ggplot(data=baselevel_dt2, aes(x = EONR_base, y = LEONR_base)) +
+    geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
+    geom_smooth(color = 'blue', formula = y~x, method = 'lm')+  
+    # geom_smooth(color = 'black')+
+    # geom_histogram(aes(x = P_base))+
+    # geom_abline() +  ylim(0, 100)+ 
+    # xlim(5000, 14600) +
+    theme_bw()+
+    theme(#axis.text=element_text(size=12),
+      #axis.title=element_text(size=14),
+      legend.position = "none")+
+    geom_text(data = reg_dt, aes(x = 100, y = 0, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+    ylab('Baselevel N leaching (kg/ha)')+
+    xlab('Baselevel N rate (kg/ha)')+
+    ggtitle('Ex-post analysis')+
+    # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
+    facet_free(.~region_eq   , scale = 'free'))
+
+ggarrange(p6,p7 , ncol = 1, labels = c("a)","b)"), label.x = 0)
 
 #==========================================================================================================
 # Why balance does not hurt high leaching areas?
