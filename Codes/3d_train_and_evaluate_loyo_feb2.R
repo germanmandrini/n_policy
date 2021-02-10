@@ -115,7 +115,7 @@ for(z_n in z_seq){
   evaluation_set_dt <- yc_field_dt2[station != 1 & z == z_n]
   prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
   
-  
+  if(FALSE){
   ratio_seq <- sort(c(seq(5, 20, by = 1)))
 
   for(level_n in ratio_seq){
@@ -361,6 +361,7 @@ for(z_n in z_seq){
       #===================================================================================================================
     } #end of leaching loop
     
+  }#end of if false chunk
     # =========================================================================================================================================================
     # CREATE THE BALANCE FEE MODEL
     source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
@@ -379,7 +380,7 @@ for(z_n in z_seq){
     #   .[, .(N_balance_thr = quantile(N_balance, probs = 0.5)), region] %>%
     #   .[order(region)] # not change with z_n
     
-    thresholds_dt[, N_balance_thr := round(N_balance - 60,  0)]
+    thresholds_dt[, N_balance_thr := round(N_balance,  0)] #was -60 before
     
     training_set_dt <- merge(training_set_dt[,-'N_balance_thr'], thresholds_dt[,.(region, N_balance_thr)], by = 'region')
     
@@ -394,7 +395,7 @@ for(z_n in z_seq){
     evaluation_set_dt[N_extra <= 0, N_extra := 0]
     
     
-    bal_seq <- sort(seq(0, 5, by = 0.25))
+    bal_seq <- sort(seq(0, 10, by = 0.25))
     
     set.seed(123)
     
@@ -505,9 +506,11 @@ for(z_n in z_seq){
       #===================================================================================================================
     } #end of balance loop
   
-  }#end of if false chunk
+
   # =========================================================================================================================================================
   # VOLUNTARY REDUCTION (REDUCE RATIO 5 RECOMENDATIONS)
+    
+  if(FALSE){  
   source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
   
   #Load datasets again
@@ -560,9 +563,11 @@ for(z_n in z_seq){
     
   }#end of reduction loop
   
+  }#end of if false chunk
+    
   perfomances_z_tmp <- rbindlist(results_list)
   
-  saveRDS(perfomances_z_tmp, paste0("./n_policy_box/Data/files_rds/field_performances_tmp/field_performances_", z_n,'.rds'))
+  saveRDS(perfomances_z_tmp, paste0("./n_policy_box/Data/files_rds/field_performances_tmp/field_performances_bal_", z_n,'.rds'))
 
 }#end of z_n
 
@@ -598,6 +603,8 @@ thresholds_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
 
 thresholds_dt <- thresholds_dt[,
                            .(N_balance = mean(N_balance),
+                             Y_corn = mean(Y_corn),
+                             N_fert = mean(N_fert),
                              L = mean(L)), by = region]
 
 saveRDS(thresholds_dt, "./n_policy_box/Data/files_rds/thresholds_dt.rds")

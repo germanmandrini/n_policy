@@ -238,7 +238,42 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
     facet_free(.~policy_labels, scale = 'free'))
 
 
+# Does N balance lowers more the N rate in low yielding fields because the N balance is higher in them?
+field_perfomances_dt2[,N_diff := N_fert - N_base]
+
+
+lm_eqn = function(dt){
+  m = lm(N_diff~N_base, dt)
+  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+                   list(a = format(unname(coef(m)[1]), digits = 2),
+                        b = format(unname(coef(m)[2]), digits = 3),
+                        r2 = round(summary(m)$r.squared, 3)))
+  as.character(as.expression(eq));                 
+}
+
+reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
+
+(p6 <- ggplot(data=field_perfomances_dt2, aes(x = N_base, y = N_diff, color = region_eq)) +
+    geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
+    geom_smooth(color = 'blue', formula = y~x, method = 'lm')+  
+    # geom_smooth(color = 'black')+
+    # geom_histogram(aes(x = P_base))+
+    # geom_abline() +  ylim(0, 100)+ 
+    # xlim(5000, 14600) +
+    theme_bw()+
+    theme(#axis.text=element_text(size=12),
+      #axis.title=element_text(size=14),
+      legend.position = "none")+
+    geom_text(data = reg_dt, aes(x = 100, y = 0, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+    xlab('Baselevel Yield (kg/ha)')+
+    ylab('Profits difference ($/ha)')+
+    # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
+    facet_free(.~policy_labels, scale = 'free'))
+
 ggarrange(p4,p5 , ncol = 1, labels = c("a)","b)"), label.x = 0)
+
+
+
 #==========================================================================================================
 # Some base-level relationships
 

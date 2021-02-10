@@ -163,7 +163,8 @@ if(FALSE){
 
 # Total G collections in IL for 20% reduction
 if(FALSE){
-  IL_corn_area_ha = 5179976
+  # IL_corn_area_ha = 5179976
+  IL_corn_area_ha = 4400000
   percent20_dt <- perfomances_dt5[ L_change < -19]
   percent20_dt <- percent20_dt[, .SD[ policy_val == min(policy_val)], by = .(NRT, policy_name)]
   saveRDS(percent20_dt, "./n_policy_box/Data/files_rds/percent20_dt.rds")
@@ -172,6 +173,9 @@ if(FALSE){
   percent20_dt[policy_name == 'bal' & NRT == 'dynamic', G] * IL_corn_area_ha / 1000000 #million in IL
 }
 IL_corn_area_ha * 10 / 1000000
+
+
+perfomances_dt5[, .SD[ policy_val == max(policy_val)], by = .(NRT, policy_name)]
 
 
 #---------------------------------------------------------------
