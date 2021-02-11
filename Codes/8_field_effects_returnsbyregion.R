@@ -20,6 +20,32 @@ percent20_dt <- readRDS("./n_policy_box/Data/files_rds/percent20_dt.rds")
 field_perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
 
 #-----------------
+# function to get significance
+get_sign <- function(slope_pvalue){
+  if(slope_pvalue < 0.001){
+  slope_sign <- '***'
+  }else if(slope_pvalue < 0.01){
+    slope_sign <- '**'
+  }else if(slope_pvalue < 0.1){
+    slope_sign <- '*'
+  }else{
+    slope_sign <- 'ns'
+  }
+  return(slope_sign)
+}
+
+lm_eqn = function(dt, y_name, x_name){
+  m = lm(as.formula(paste(y_name, '~', x_name)), dt)
+  slope_pvalue <-summary(m)$coefficients[2,4] 
+  
+  eq <- substitute(italic(s) == b*a*","~~italic(r)^2~"="~r2, 
+                   list(a = unname(get_sign(slope_pvalue)),
+                        b = round(unname(coef(m)[2]), digits = 2),
+                        r2 = round(summary(m)$r.squared, digits = 2)))
+  as.character(as.expression(eq));                 
+}
+
+#-----------------
 # Prepare data
 percent20_dt <- percent20_dt[policy_name %in% c('ratio', 'leach', 'bal', 'red'),.(policy, NRT)]
 percent20_dt <- rbind(data.table(policy = c('ratio_5'), NRT = c('dynamic')), 
@@ -79,18 +105,7 @@ field_perfomances_dt2[,policy_labels := factor(policy_name, levels = c('ratio', 
 
 #==============================================================================================================
 # Fields effects for main section
-
-lm_eqn = function(dt){
-  m = lm(P_return~P_base, dt)
-  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
-                   list(a = format(unname(coef(m)[1]), digits = 2),
-                        b = format(unname(coef(m)[2]), digits = 3),
-                        r2 = format(summary(m)$r.squared, digits = 3)))
-  as.character(as.expression(eq));                 
-}
-
-reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
-lm(data = field_perfomances_dt2[policy_name == 'bal'], formula = P_return~P_base)
+reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_name = 'P_return', x_name = 'P_base'))
 
 (p1 <- ggplot(data=field_perfomances_dt2,aes(x = P_base, y = P_return, color = policy_labels)) +
   geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
@@ -108,20 +123,7 @@ lm(data = field_perfomances_dt2[policy_name == 'bal'], formula = P_return~P_base
 
 
 #-----
-lm_eqn = function(dt){
-  m = lm(L~L_base, dt)
-  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
-                   list(a = format(unname(coef(m)[1]), digits = 2),
-                        b = format(unname(coef(m)[2]), digits = 2),
-                        r2 = format(summary(m)$r.squared, digits = 3)))
-  as.character(as.expression(eq));                 
-}
-
-reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
-
-
-# geom_text(data=r2,aes(label = paste("R^2: ", r2,sep=""), x=x_label,y=y_label),parse=T, show.legend=F)+
-  
+reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_name = 'L', x_name = 'L_base'))
  
 (p2 <- ggplot(data=field_perfomances_dt2, aes(x = L_base, y = L, color = policy_labels)) +
   geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
@@ -143,16 +145,7 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
 #-----
 field_perfomances_dt2[,P_diff := P_return - P_base]
 
-lm_eqn = function(dt){
-  m = lm(P_diff~L_base, dt)
-  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
-                   list(a = format(unname(coef(m)[1]), digits = 2),
-                        b = format(unname(coef(m)[2]), digits = 2),
-                        r2 = format(summary(m)$r.squared, digits = 3)))
-  as.character(as.expression(eq));                 
-}
-
-reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
+reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_name = 'P_diff', x_name = 'L_base'))
 
 
 (p3 <- ggplot(data=field_perfomances_dt2, aes(x = L_base, y = P_diff, color = policy_labels)) +
@@ -180,16 +173,10 @@ ggarrange(p1,p2,p3 , ncol = 1, labels = c("a)","b)", "c)"), label.x = 0)
 field_perfomances_dt2[,P_diff := P_return - P_base]
 
 
-lm_eqn = function(dt){
-  m = lm(P_diff~N_base, dt)
-  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
-                   list(a = format(unname(coef(m)[1]), digits = 2),
-                        b = format(unname(coef(m)[2]), digits = 3),
-                        r2 = format(summary(m)$r.squared, digits = 3)))
-  as.character(as.expression(eq));                 
-}
+reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_name = 'P_diff', x_name = 'EONR_base'))
 
-reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
+
+summary(lm(data = field_perfomances_dt2[policy_name == 'leach'], P_diff ~ EONR_base))
 
 (p4 <- ggplot(data=field_perfomances_dt2, aes(x = EONR_base, y = P_diff, color = policy_labels)) +
    geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
@@ -209,16 +196,7 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
 
 
 # Does N balance transfer funds from low yield fields to high yield fields?
-lm_eqn = function(dt){
-  m = lm(P_diff~Y_base, dt)
-  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
-                   list(a = format(unname(coef(m)[1]), digits = 2),
-                        b = format(unname(coef(m)[2]), digits = 3),
-                        r2 = round(summary(m)$r.squared, 3)))
-  as.character(as.expression(eq));                 
-}
-
-reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
+reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_name = 'P_diff', x_name = 'Y_base'))
 
 (p5 <- ggplot(data=field_perfomances_dt2, aes(x = Y_base, y = P_diff, color = policy_labels)) +
     geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
@@ -242,16 +220,7 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
 field_perfomances_dt2[,N_diff := N_fert - N_base]
 
 
-lm_eqn = function(dt){
-  m = lm(N_diff~N_base, dt)
-  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
-                   list(a = format(unname(coef(m)[1]), digits = 2),
-                        b = format(unname(coef(m)[2]), digits = 3),
-                        r2 = round(summary(m)$r.squared, 3)))
-  as.character(as.expression(eq));                 
-}
-
-reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),lm_eqn)
+reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_name = 'N_diff', x_name = 'N_base'))
 
 (p6 <- ggplot(data=field_perfomances_dt2, aes(x = N_base, y = N_diff, color = region_eq)) +
     geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
@@ -280,10 +249,12 @@ ggarrange(p4,p5 , ncol = 1, labels = c("a)","b)"), label.x = 0)
 # Leaching vs N rate (ex-ante)
 lm_eqn = function(dt){
   m = lm(L_base ~N_base, dt)
-  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
-                   list(a = format(unname(coef(m)[1]), digits = 2),
-                        b = format(unname(coef(m)[2]), digits = 3),
-                        r2 = round(summary(m)$r.squared, 3)))
+  slope_pvalue <-summary(m)$coefficients[2,4] 
+  
+  eq <- substitute(italic(s) == b*a*","~~italic(r)^2~"="~r2, 
+                   list(a = format(unname(get_sign(slope_pvalue)), digits = 2),
+                        b = format(unname(coef(m)[2]), digits = 2),
+                        r2 = format(summary(m)$r.squared, digits = 2)))
   as.character(as.expression(eq));                 
 }
 
@@ -312,14 +283,17 @@ reg_dt <- ddply(baselevel_dt2,.(region_eq),lm_eqn)
 
 lm_eqn = function(dt){
   m = lm(LEONR_base ~ EONR_base , dt)
-  eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
-                   list(a = format(unname(coef(m)[1]), digits = 2),
-                        b = format(unname(coef(m)[2]), digits = 3),
-                        r2 = round(summary(m)$r.squared, 3)))
+  slope_pvalue <-summary(m)$coefficients[2,4] 
+  
+  eq <- substitute(italic(s) == b*a*","~~italic(r)^2~"="~r2, 
+                   list(a = format(unname(get_sign(slope_pvalue)), digits = 2),
+                        b = format(unname(coef(m)[2]), digits = 2),
+                        r2 = format(summary(m)$r.squared, digits = 2)))
   as.character(as.expression(eq));                 
 }
 
-reg_dt <- ddply(baselevel_dt2,.(region_eq),lm_eqn)
+
+reg_dt <- ddply(baselevel_dt2,.(region_eq),function(x) lm_eqn(x, y_name = 'LEONR_base', x_name = 'EONR_base'))
 
 (p7 <- ggplot(data=baselevel_dt2, aes(x = EONR_base, y = LEONR_base)) +
     geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
