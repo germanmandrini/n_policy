@@ -17,10 +17,35 @@ library(plyr)
 library(ggpubr)
 #--------------------------------------------------------------------------------
 yc_field_dt2 <- readRDS("./n_policy_box/Data/files_rds/yc_field_dt2.rds")
-yc_field_dt2[,N_balance := N_fert - Y_corn * 11/1000]
+yc_field_dt2[,N_balance := N_fert - Y_corn * 11.5/1000]
 
 field_perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
-field_perfomances_dt[,N_balance := N_fert - Y_corn * 11/1000]
+field_perfomances_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
+#--------------------------------------------------------------------------------
+# function to get significance
+get_sign <- function(slope_pvalue){
+    if(slope_pvalue < 0.001){
+        slope_sign <- '***'
+    }else if(slope_pvalue < 0.01){
+        slope_sign <- '**'
+    }else if(slope_pvalue < 0.1){
+        slope_sign <- '*'
+    }else{
+        slope_sign <- 'ns'
+    }
+    return(slope_sign)
+}
+
+lm_eqn = function(dt, y_name, x_name){
+    m = lm(as.formula(paste(y_name, '~', x_name)), dt)
+    slope_pvalue <-summary(m)$coefficients[2,4] 
+    
+    eq <- substitute(italic(s) == b*a*","~~italic(r)^2~"="~r2, 
+                     list(a = unname(get_sign(slope_pvalue)),
+                          b = round(unname(coef(m)[2]), digits = 2),
+                          r2 = round(summary(m)$r.squared, digits = 2)))
+    as.character(as.expression(eq));                 
+}
 
 #--------------------------------------------------------------------------------
 
@@ -33,51 +58,46 @@ trials_sample_dt <- yc_field_dt2[,.N, by = .(id_10, id_field, region, z)][,.SD[s
 yc_field_sample_dt <- filter_dt_in_dt(x_dt = yc_field_dt2[id_10 %in% trials_sample_dt$id_10], 
                                       filter_dt = trials_sample_dt, return_table = T)
 
+
 # One trial --------------
 balance_dt <- filter_dt_in_dt(x_dt = yc_field_sample_dt, filter_dt = trials_sample_dt[,.SD[1],region], return_table = T) %>%
     .[N_fert %in% c(0,100,200,320)]
 
-get_r2 <- function(balance_dt){
-    r2<- data.table(ddply(balance_dt,.(region),function(x) summary(lm(x$L ~ x$N_balance))$r.squared))
-    names(r2)<-c("region","r2")
-    r2[,r2 := round(r2,2)]
-    r2 <- merge(r2, balance_dt[,.(x_label =min(N_balance), y_label = max(L)-10), by = region], by = 'region')
-    r2[,x_label := min(x_label)+15]
-    return(r2)
-}
+reg_dt <- ddply(balance_dt,.(region),function(x) lm_eqn(x, y_name = 'L', x_name = 'N_balance'))
+reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)-10), by = region], by = 'region')
 
-r2 <- get_r2(balance_dt)
 
 (p1 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
     geom_smooth(method="lm", se=F) +
     theme_bw()+ xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)")+
-    geom_text(data=r2,aes(label = paste("R^2: ", r2,sep=""), x=x_label,y=y_label),parse=T, show.legend=F)+
+    geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
     ggtitle('One trial (0,100,200,320 kg/ha)'))
 
 # Several trials --------------
 balance_dt <- yc_field_sample_dt[N_fert %in% c(0,100,200,320)]
-r2 <- get_r2(balance_dt)
+reg_dt <- ddply(balance_dt,.(region),function(x) lm_eqn(x, y_name = 'L', x_name = 'N_balance'))
+reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)-10), by = region], by = 'region')
 
 (p2 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
     geom_smooth(method="lm", se=F) +
     theme_bw()+ xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
-    geom_text(data=r2,aes(label = paste("R^2: ", r2,sep=""), x=x_label,y=y_label),parse=T, show.legend=F)+
+    geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
     ggtitle('45 trials (0,100,200,320 kg/ha)'))
 
 # Several fields with 180 kg/ha --------------
 balance_dt <- yc_field_sample_dt[N_fert %in% c(180)]
-r2 <- get_r2(balance_dt)
-r2[,y_label := y_label + c(5,0,50)]
+reg_dt <- ddply(balance_dt,.(region),function(x) lm_eqn(x, y_name = 'L', x_name = 'N_balance'))
+reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)-5), by = region], by = 'region')
 
 (p3 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
     geom_smooth(method="lm", se=F)+
     theme_bw()+ xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
-    geom_text(data=r2,aes(label = paste("R^2: ", r2,sep=""), x=x_label-5,y=y_label),parse=T, show.legend=F)+
+    geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
     ggtitle('45 fields (180 kg/ha)'))
 
@@ -87,14 +107,14 @@ r2[,y_label := y_label + c(5,0,50)]
 balance_dt <- field_perfomances_dt[policy == 'ratio_5' & NRT == 'dynamic']
 balance_dt <- filter_dt_in_dt(x_dt = balance_dt[id_10 %in% trials_sample_dt$id_10], filter_dt = trials_sample_dt, return_table = T)
 
-r2 <- get_r2(balance_dt)
-r2[,y_label := y_label + c(5,0,0)]
+reg_dt <- ddply(balance_dt,.(region),function(x) lm_eqn(x, y_name = 'L', x_name = 'N_balance'))
+reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)-5), by = region], by = 'region')
 
 (p4 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
     geom_smooth(method="lm", se=F)+
     theme_bw()+ xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
-    geom_text(data=r2,aes(label = paste("R^2: ", r2,sep=""), x=x_label-5,y=y_label),parse=T, show.legend=F)+
+    geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
     ggtitle('45 fields (using dynamic rec)'))
 
@@ -102,13 +122,14 @@ r2[,y_label := y_label + c(5,0,0)]
 balance_dt <- field_perfomances_dt[policy == 'ratio_5' & NRT == 'dynamic'] %>%
     .[sample(1:.N, 5000)]
 
-r2 <- get_r2(balance_dt)
+reg_dt <- ddply(balance_dt,.(region),function(x) lm_eqn(x, y_name = 'L', x_name = 'N_balance'))
+reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)-13), by = region], by = 'region')
 
 (p5 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
         geom_point()+
         geom_smooth(method="lm", se=F)+
         theme_bw()+ xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
-        geom_text(data=r2,aes(label = paste("R^2: ", r2,sep=""), x=x_label-5,y=y_label),parse=T, show.legend=F)+
+        geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red', color = 'red')+
         facet_free(region~.)+
         ggtitle('5000 fields (using dynamic rec)'))
 
