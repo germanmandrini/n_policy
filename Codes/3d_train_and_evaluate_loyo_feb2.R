@@ -574,7 +574,7 @@ for(z_n in z_seq){
 # 
 # load all the results
 perfomances_list <- list()
-files_path <- list.files("./n_policy_box/Data/files_rds/field_performances_tmp", full.names = TRUE, pattern = 'field_performances_')
+files_path <- list.files("./n_policy_box/Data/files_rds/field_performances_tmp", full.names = TRUE, pattern = 'field_performances_[1-9]')
 
 for(file_n in files_path){
   # file_n = files_path[1]
