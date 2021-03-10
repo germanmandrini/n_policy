@@ -7,53 +7,40 @@ rm(list=ls())
 setwd('~')#Server
 codes_folder <-'~' #Server
 
+
 source('./Codes_useful/R.libraries.R')
+# library(scales)
 source('./Codes_useful/gm_functions.R')
-source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
+source(paste0(codes_folder, '/n_dynamic_git/Codes/parameters.R'))
+"~/n_dynamic/Codes/parameters.R"
 
 library("foreach")
 library("doParallel")
 # library(randomForest)
 # library(mlr)
-# eonr_mukey_dt3 <- readRDS("./n_policy_box/Data/files_rds/eonr_mukey_dt3.rds")
-# yc_yearly_dt <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt.rds")  
-yc_yearly_dt3 <- readRDS("./n_policy_box/Data/files_rds/yc_yearly_dt3.rds")
-grid10_tiles_sf6 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf6.rds") 
-grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
-reg_model_stuff <- readRDS( "./n_policy_box/Data/files_rds/reg_model_stuff.rds")
+# eonr_mukey_dt3 <- readRDS("./n_dynamic_box/Data/files_rds/eonr_mukey_dt3.rds")
+# yc_yearly_dt <- readRDS("./n_dynamic_box/Data/files_rds/yc_yearly_dt.rds")  
+yc_yearly_dt3 <- readRDS("./n_dynamic_box/Data/files_rds/yc_yearly_dt3.rds")
+# grid10_tiles_sf6 <- readRDS("./n_dynamic_box/Data/Grid/grid10_tiles_sf6.rds") 
+grid10_soils_dt5 <- readRDS("./n_dynamic_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
 
-# grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
-# grid10_soils_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_soils_sf2.rds')
+
+# grid10_fields_sf2 <- readRDS('./n_dynamic_box/Data/Grid/grid10_fields_sf2.rds')
+# grid10_soils_sf2 <- readRDS('./n_dynamic_box/Data/Grid/grid10_soils_sf2.rds')
 
 names(reg_model_stuff)
-
 
 #======================================================================================
 # GET THE FIELDS THAT CAN BE RUN
 # stations_dt2 <- reg_model_stuff2$stations
-full_fields_dt <- reg_model_stuff$full_fields #one row by field x soil
-
-# Clean the fields
-full_fields_dt2 <- full_fields_dt[,.(.N), by = .(id_10, id_field, region)][,-'N'] #one row by field
-table(full_fields_dt2[,.N, .(id_10)]$N)
-
-full_fields_dt2[,N := .N, .(id_10)]
-fields_list_dt <- full_fields_dt2
-# 
-# fields_list_dt <- full_fields_dt2[N != 1][order(id_10)]
-# fields_list_dt[,N := .N, .(id_10)]
-# table(fields_list_dt$N)
-# unique(fields_list_dt)
+fields_list_dt <- grid10_soils_dt5[, .(region, region_eq, id_10, id_field)] %>% unique()#one row by field
 
 # ----------------
-# training_z <- reg_model_stuff$training_z
-pred_vars <- readRDS("./n_policy_box/Data/files_rds/pred_vars.rds")
 
-rm(reg_model_stuff)
 # crop_varb <- reg_model_stuff$crop_varb
 
-process_field_economics <- function(j){
-  # j = 20
+process_field <- function(j){
+  # j = 31
   print(j)
   field_info <- fields_list_dt[j]
   # field_info <- data.table(id_10 = 911, id_field = 3)
@@ -87,7 +74,7 @@ process_field_economics <- function(j){
                    main.title = paste('ONE FIELD MAP -', round(sum(one_field_sf$area_ha),1),' ha'),
                    main.title.position = "center",
                    main.title.size = 1))
-      tmap_save(field, filename = "./n_policy_box/Data/figures/field.jpg", scale = 2)  
+      tmap_save(field, filename = "./n_dynamic_box/Data/figures/field.jpg", scale = 2)  
     }
     #---------------------------------------------------------------------------
     # FILTER APSIM DATA AND ADD VARIABLES NEEDED FOR PREDICTIONS
@@ -106,36 +93,42 @@ process_field_economics <- function(j){
     
     ic_field_dt[,.N, by = .(z, mukey)]
     ic_field_dt$mukey %>% unique()
-    #===================================================================================================================
-    # CHANGE THE RATIO APPROACH
-    testing_set <- ic_field_dt %>%
-        .[,c("mukey", "z", "id_10", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert")]
+    # #===================================================================================================================
+    # # CHANGE THE RATIO APPROACH
+    # testing_set <- ic_field_dt %>%
+    #     .[,c("mukey", "z", "id_10", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert")]
       
 
     #===================================================================================================================
     # AGGREGATE THE INFORMATION AT THE FIELD LEVEL 
   
     ic_field_dt[, P := Y_corn * Pc - N_fert * Pn]
-    prediction_set <- data.table(unique(ic_field_dt[, c('mukey', 'z','area_ha', pred_vars, 'N_fert','P'), with = FALSE])) #this is unique v5 conditions, doesn't have the different N rates
+    # prediction_set <- data.table(unique(ic_field_dt[, c('mukey', 'z','area_ha', pred_vars, 'N_fert','P'), with = FALSE])) #this is unique v5 conditions, doesn't have the different N rates
 
-    table(prediction_set$z)
-
+    table(ic_field_dt$z)
+    
+    
     # We need to aggregate at the field level because is UR
-    do_aggregate = c(pred_vars, 'P')
+    # do_aggregate = c(pred_vars, 'P')
+    
+    do_aggregate <- names(ic_field_dt)[!names(ic_field_dt) %in% 
+                                         c('region','region_eq','id_10', 'area_ha', 'z', 'N_fert', 'mukey', 'water', 'N', 'sim_name')]
 
-    prediction_set_aggregated  <- aggregate_by_area(data_dt = prediction_set, variables = do_aggregate,
-                                                  weight = 'area_ha', by_c = c('z', 'N_fert')) %>% 
-      .[, .SD[ P == max( P)], by = .(z)] %>%
-      .[, .SD[ N_fert == min(N_fert)], by = .(z)] %>% setnames('N_fert', 'eonr_12') %>% .[,-'P']
+    ic_field_aggregated  <- aggregate_by_area(data_dt = ic_field_dt, variables = do_aggregate,
+                                                  weight = 'area_ha', by_c = c('z', 'N_fert'))
+    # %>% 
+    #   .[, Yld_response := max(Y_corn) - min(Y_corn), by = .(z)] %>% #need for high information
+    #   .[, .SD[ P == max( P)], by = .(z)] %>%
+    #   .[, .SD[ N_fert == min(N_fert)], by = .(z)] %>% setnames('N_fert', 'eonr_12') %>% .[,-'P']
+    # 
+    # sort(names(prediction_set_aggregated))
+    # test <- ic_field_dt[z == 11 & N_fert == 160, .(area_ha, oc_20cm_v5)]
+    # test[,oc := oc_20cm_v5 * area_ha]
+    # round(sum(test$oc)/sum(test$area_ha),2) == round(prediction_set_aggregated[z == 11,  ]$oc_20cm_v5, 2)
+    ic_field_aggregated <- cbind(field_info[1,.(id_10, id_field, region, region_eq)], ic_field_aggregated)
     
 
-    output_list <- list() 
-    output_list[['testing_set']] <- cbind(field_info[1,.(id_10, id_field, region)], testing_set[,-'id_10'])
-    output_list[['prediction_set_aggregated']] <- cbind(field_info[1,.(id_10, id_field, region)], prediction_set_aggregated)
-      
-   
-      
-  return(output_list)
+  return(ic_field_aggregated)
 }
 
 # library('foreach')
@@ -146,31 +139,47 @@ fields_seq <- 1:nrow(fields_list_dt)
 
 #---------------------
 #Get the two sets for each field
-process_field_economics(20)
+process_field(20)
 
 registerDoParallel(cores = detectCores()/2)
-output_list = foreach(j = fields_seq, .combine = "c", .packages = c("data.table", "dplyr")) %do% {
+output_list = foreach(j = fields_seq, .combine = "c", .packages = c("data.table", "dplyr")) %dopar% {
   # j <- 1
-  tmp_dt <- process_field_economics(j)
+  tmp_dt <- process_field(j)
   list(tmp_dt)
 }#end of dopar loop
 
 stopImplicitCluster()
-length(output_list) == nrow(fields_list_dt)
 
-#---------------------
-# Split the sets in two list
-testing_set_list <- list()
-prediction_set_aggregated_list <- list()
+yc_field_dt <- rbindlist(output_list)
 
-for(i in 1:length(output_list)){
-  testing_set_list[[i]] <- output_list[[i]][["testing_set"]]
-  prediction_set_aggregated_list[[i]] <- output_list[[i]][["prediction_set_aggregated"]]
-}
+yc_field_dt[, n_0_60cm_v5 := n_20cm_v5 + n_40cm_v5 + n_60cm_v5]
+yc_field_dt[,L := L1 + L2]
+yc_field_dt[, Yld_response := max(Y_corn) - min(Y_corn), by = .(id_10, id_field,z)]
 
-length(prediction_set_aggregated_list)
-prediction_set_aggregated_dt <- rbindlist(prediction_set_aggregated_list)
-testing_set_dt <- rbindlist(testing_set_list)
+# Add if it is a station or not
+reg_model_stuff <- readRDS( "./n_dynamic_box/Data/files_rds/reg_model_stuff.rds")
+stations_dt <- reg_model_stuff[['stations']] %>%
+  .[,.(id_10, id_field)] %>% unique() %>% .[,station := 1]
 
-saveRDS(prediction_set_aggregated_dt, "./n_policy_box/Data/files_rds/prediction_set_aggregated_dt.rds")
-saveRDS(testing_set_dt, "./n_policy_box/Data/files_rds/testing_set_dt.rds")
+yc_field_dt <- merge(yc_field_dt, stations_dt, by = c('id_10', 'id_field'), all.x = TRUE)
+yc_field_dt[is.na(station), station := 0]
+yc_field_dt[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z, N_fert)]$area_ha %>% summary()
+yc_field_dt[,year := as.numeric(z)+1988]
+
+
+
+
+saveRDS(yc_field_dt, "./n_dynamic_box/Data/files_rds/yc_field_dt.rds")
+
+# yc_field_dt <- readRDS( "./n_dynamic_box/Data/files_rds/yc_field_dt.rds")
+# yc_field_dt[region == 1, region_lab := '1-South']
+# yc_field_dt[region == 2, region_lab := '2-Central']
+# yc_field_dt[region == 3, region_lab := '3-North']
+# yc_field_dt[,region := NULL]
+# setnames(yc_field_dt, 'region_lab', 'region')
+# 
+# 
+# region_dt <- unique(fields_list_dt[,.(id_10, region_eq)])
+# yc_field_dt <- merge(yc_field_dt, region_dt, by = c('id_10') )
+# 
+# setcolorder(yc_field_dt, neworder = c('id_10', 'id_field', 'region', 'region_eq', 'z'))
