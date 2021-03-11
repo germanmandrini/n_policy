@@ -24,7 +24,7 @@ thresholds_dt <- readRDS( "./n_policy_box/Data/files_rds/thresholds_dt.rds") #th
 
 
 z_n = 10
-for(z_n in 1:30){
+for(z_n in 3:30){
   print(z_n)
   results_list <- list()
   
@@ -261,8 +261,7 @@ for(z_n in 1:30){
     evaluation_set_dt[N_extra <= 0, N_extra := 0]
     
     
-    bal_seq <- sort(seq(0, 10, by = 0.25))
-    
+    bal_seq <- sort(seq(0, 4, by = 0.25))
     set.seed(123)
     level_n = 2
     for(level_n in bal_seq){
@@ -354,7 +353,7 @@ for(z_n in 1:30){
   prediction_set_aggregated_dt <- readRDS(paste0("./n_policy_box/Data/files_rds/field_performances_tmp/ratio5_recommendations_",
                                                  z_n, ".rds")) #we lower the ratio5 dynamic recommendation
   
-  red_seq <- unique(sort(c(seq(0,30, by = 1), seq(18,19, by = 0.1))))
+  red_seq <- unique(sort(c(seq(0,26, by = 1), seq(18,19, by = 0.1))))
   level_n = 10
   for(level_n in red_seq){
     print(level_n) 
