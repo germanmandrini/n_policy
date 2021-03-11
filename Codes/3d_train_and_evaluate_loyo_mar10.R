@@ -36,7 +36,7 @@ for(z_n in 1:30){
   evaluation_set_dt <- yc_field_dt[station != 1 & z == z_n]
   prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
   
-  ratio_seq <- sort(unique(c(seq(5,20,2), seq(12,14,0.25))))
+  ratio_seq <- sort(unique(c(seq(5,20,2), seq(12.5,13.5,0.2))))
   level_n <- Pn/Pc
   for(level_n in ratio_seq){
     
@@ -135,7 +135,7 @@ for(z_n in 1:30){
   evaluation_set_dt[L_extra <= 0, L_extra := 0]
   #-------------------------------------
   
-  leach_seq <-  sort(unique(c(seq(0,35,2), seq(13,15,0.25))))
+  leach_seq <-  sort(unique(c(seq(0,40,2), seq(13,14,0.2))))
   
   set.seed(123)
   
@@ -260,7 +260,7 @@ for(z_n in 1:30){
     evaluation_set_dt[N_extra <= 0, N_extra := 0]
     
     
-    bal_seq <- sort(unique(c(seq(0,5,1), seq(1.5,2.5,0.25))))
+    bal_seq <- sort(unique(c(seq(0,5,1), seq(1.5,2,0.1))))
     set.seed(123)
     level_n = 2
     for(level_n in bal_seq){
@@ -351,7 +351,7 @@ for(z_n in 1:30){
   prediction_set_aggregated_dt <- readRDS(paste0("./n_policy_box/Data/files_rds/field_performances_tmp/ratio5_recommendations_",
                                                  z_n, ".rds")) #we lower the ratio5 dynamic recommendation
   
-  red_seq <- sort(unique(c(seq(0,30,2), seq(19,21,0.25))))
+  red_seq <- sort(unique(c(seq(0,30,2), seq(18.5,19.5,0.1))))
   level_n = 10
   for(level_n in red_seq){
     print(level_n) 
