@@ -14,12 +14,12 @@ source('./Codes_useful/gm_functions.R')
 source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 "~/n_policy_git/Codes/parameters.R"
 
-
+♠
 # source('./Codes_useful/gm_functions.R')
 if(FALSE){
-  grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds") 
-  grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
-  # grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
+  # grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds") 
+  # grid10_soils_dt5 <- readRDS("./n_policy_box/Data/Grid/grid10_soils_dt5.rds") %>% data.table()
+  # # grid10_fields_sf2 <- readRDS('./n_policy_box/Data/Grid/grid10_fields_sf2.rds')
   
   perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
 
@@ -31,6 +31,11 @@ if(FALSE){
   perfomances_dt[,.N, .(policy, NRT)]%>% .[,N] %>% table() #number of replications (fielz x z). SHould be all equal
   table(perfomances_dt$NRT) #obs by NRT. SHould be all equal
 
+  #Remove ratios < 5.6
+  perfomances_dt[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
+  perfomances_dt[,policy_val := as.numeric(policy_val)]
+  perfomances_dt <- perfomances_dt[!(policy_name == 'ratio' & policy_val < Pn/Pc)]
+  
   #-------------------------------------------------------------------------
   #Make profits relative to the zero rate
   if(FALSE){
@@ -87,6 +92,8 @@ if(FALSE){
   
   baselevel_dt <- perfomances_dt4[NRT == 'dynamic',.SD[policy_val == min(policy_val)], by = .(policy_name, region_eq)] %>%
     .[,.(policy_name, region_eq, L_base = L, Y_base = Y_corn, P_base = P)]
+  
+  
   perfomances_dt4 <- merge(perfomances_dt4, baselevel_dt, by = c('policy_name','region_eq'))
   perfomances_dt4[,L_change := round((L / L_base) - 1,3)*100 ]
   
@@ -166,6 +173,8 @@ if(FALSE){
   # IL_corn_area_ha = 5179976
   IL_corn_area_ha = 4400000
   percent20_dt <- perfomances_dt5[ L_change < -19]
+  add_me_dt <- perfomances_dt5[policy_name == 'bal'][L == min(L)] #fix balance for now
+  percent20_dt <- rbind(percent20_dt, add_me_dt)
   percent20_dt <- percent20_dt[, .SD[ policy_val == min(policy_val)], by = .(NRT, policy_name)]
   saveRDS(percent20_dt, "./n_policy_box/Data/files_rds/percent20_dt.rds")
   percent20_dt[policy_name == 'ratio' & NRT == 'dynamic', G] * IL_corn_area_ha / 1000000 #million in IL

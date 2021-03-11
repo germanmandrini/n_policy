@@ -68,7 +68,7 @@ for(z_n in 3:30){
     varImpPlot(dynamic, type=2)
     plot(dynamic)
     
-    if(level_n == Pn/Pc){
+    if(level_n == Pn/Pc & z_n == 10){
       pdf("./n_policy_box/Data/figures/VarImportancePlot_ratio.pdf")
       varImpPlot(dynamic, type=2, main = '')
       dev.off() 
@@ -184,7 +184,7 @@ for(z_n in 3:30){
     varImpPlot(dynamic, type=2)
     plot(dynamic)
     
-    if(level_n == 5){
+    if(level_n == 5 & z_n == 10){
       pdf("./n_policy_box/Data/figures/VarImportancePlot_leach.pdf")
       varImpPlot(dynamic, type=2, main = '')
       dev.off() 
@@ -306,7 +306,7 @@ for(z_n in 3:30){
       varImpPlot(dynamic, type=2)
       plot(dynamic)
       
-      if(level_n == 2){
+      if(level_n == 2 & z_n == 10){
         pdf("./n_policy_box/Data/figures/VarImportancePlot_bal.pdf")
         varImpPlot(dynamic, type=2, main = '')
         dev.off() 
