@@ -14,7 +14,7 @@ source('./Codes_useful/gm_functions.R')
 source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 "~/n_policy_git/Codes/parameters.R"
 
-♠
+
 # source('./Codes_useful/gm_functions.R')
 if(FALSE){
   # grid10_tiles_sf7 <- readRDS("./n_policy_box/Data/Grid/grid10_tiles_sf7.rds") 
@@ -23,19 +23,14 @@ if(FALSE){
   
   perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
 
-  perfomances_dt <- perfomances_dt[NRT != 'static']
   perfomances_dt[,.(area_ha = sum(area_ha)), by = .(policy, NRT, id_10, id_field, z)]$area_ha %>% summary()
   
   perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, id_10] %>% .[,N] %>% table() #number of fields by cell
   perfomances_dt[,.N, .(id_10, id_field, policy, NRT)] %>% .[,N] %>% table() #number of z by field SHould be all equal
   perfomances_dt[,.N, .(policy, NRT)]%>% .[,N] %>% table() #number of replications (fielz x z). SHould be all equal
-  table(perfomances_dt$NRT) #obs by NRT. SHould be all equal
+  perfomances_dt[,.N, policy] #obs by policy. Should be all equal
 
-  #Remove ratios < 5.6
-  perfomances_dt[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
-  perfomances_dt[,policy_val := as.numeric(policy_val)]
-  perfomances_dt <- perfomances_dt[!(policy_name == 'ratio' & policy_val < Pn/Pc)]
-  
+
   #-------------------------------------------------------------------------
   #Make profits relative to the zero rate
   if(FALSE){
@@ -106,6 +101,7 @@ if(FALSE){
   #---------
   #remove yields modifications of more that 5%
   perfomances_dt4[,Y_corn_change := Y_corn/Y_base]
+  perfomances_dt4[,.N, policy]
   perfomances_dt4 <- perfomances_dt4[Y_corn_change >=0.95 & Y_corn_change <= 1.05] #remove yields modifications of more that 5%
   #---------------------------------------------------------------------------
   # Some cleaning
@@ -125,6 +121,7 @@ if(FALSE){
   # Make leaching relative to baselevel
   perfomances_dt5[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
   perfomances_dt5[,policy_val := as.numeric(policy_val)]
+  perfomances_dt5[,.N, policy]
   
   baselevel_dt <- perfomances_dt5[NRT == 'dynamic',.SD[policy_val == min(policy_val)], by = .(policy_name)] %>%
     .[,.(policy_name, L_base = L, Y_base = Y_corn, P_base = P)]
@@ -173,8 +170,6 @@ if(FALSE){
   # IL_corn_area_ha = 5179976
   IL_corn_area_ha = 4400000
   percent20_dt <- perfomances_dt5[ L_change < -19]
-  add_me_dt <- perfomances_dt5[policy_name == 'bal'][L == min(L)] #fix balance for now
-  percent20_dt <- rbind(percent20_dt, add_me_dt)
   percent20_dt <- percent20_dt[, .SD[ policy_val == min(policy_val)], by = .(NRT, policy_name)]
   saveRDS(percent20_dt, "./n_policy_box/Data/files_rds/percent20_dt.rds")
   percent20_dt[policy_name == 'ratio' & NRT == 'dynamic', G] * IL_corn_area_ha / 1000000 #million in IL
@@ -183,15 +178,17 @@ if(FALSE){
 }
 IL_corn_area_ha * 10 / 1000000
 
-
-perfomances_dt5[, .SD[ policy_val == max(policy_val)], by = .(NRT, policy_name)]
+#---------------------------------------------------------------
+#Levels selector
+percent20_dt #detail
+perfomances_dt4[, .SD[ policy_val == max(policy_val)], by = .(NRT, policy_name)] #maximum
 
 
 #---------------------------------------------------------------
 # IL NLRS Cos calculation - Cost ($/lb removed)
 percent20_dt
 
-percent20_dt[,kg_removed := (baselevel_L - L)]
+percent20_dt[,kg_removed := (L_base - L)]
 percent20_dt[,cost_red_dlr_kg := policy_cost/kg_removed]
 
 percent20_dt[,lb_removed := kg_removed *2.20462]
@@ -199,7 +196,6 @@ percent20_dt[,cost_red_dlr_lb := policy_cost/lb_removed]
 
 #---------------------------------------------------------------------------
 # REGION LEVEL PLOT 
-
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 
@@ -213,17 +209,16 @@ plot_dt[abatement_cost < 0,abatement_cost := 0 ] #the graph looks ugly
 
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'region_eq'), measure.vars = c('Y_corn', 'L', 'N_fert', 
-                                                                                               'P', 'G', 'policy_cost',
-                                                                                               'abatement_cost'))
+                                                                                               'P', 'G', 'policy_cost'))
 
 plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L', 'Y_corn', 'P', 'G', 'policy_cost', 'abatement_cost'),
-                                 labels = c(expression("N Fert (kg " * ha^"-1"* ")"), 
-                                            expression("N Leach (kg " * ha^"-1"*")"),
+                                 labels = c(expression("N_fert (kg " * ha^"-1"* ")"), 
+                                            expression("Leaching (kgN" * ha^"-1"*")"),
                                             expression("Yield (kg " * ha^"-1" * ")"), 
-                                            expression("Farm profits ($ " * ha^"-1" * ")"),
-                                            expression("G. collections ($ " * ha^"-1" * ")"),
-                                            expression("Pol. cost ($ " * ha^"-1" * ")"),
-                                            expression("Abat. cost ($ " * kg*N^"-1" * ha^"-1"* ")")))]
+                                            expression("Profits ($ " * ha^"-1" * ")"),
+                                            expression("Gov_Col ($ " * ha^"-1" * ")"),
+                                            expression("Pol_cost ($ " * ha^"-1" * ")"),
+                                            expression("Ab_cost($" * kg*N^"-1" * ha^"-1"* ")")))]
 
 
 
@@ -240,7 +235,7 @@ plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L', 'Y_corn', '
 
 
 plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
-                                 labels = c(expression("N:Corn price"*" ratio"),
+                                 labels = c(expression("N:Corn ratio ($ " * "$"^"-1"*")"),
                                             expression("Leaching fee ($ " * kg^"-1" * ha^"-1"*")"),
                                             expression("N balance fee($ " * kg^"-1" * ha^"-1"*")"),
                                             expression("N reduction (%"*")")))]
@@ -248,7 +243,7 @@ plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal'
 
 
 
-ggplot(data = plot_dt_long) +
+(p <- ggplot(data = plot_dt_long) +
   geom_line(aes(x = policy_val, y =  value, linetype = region_eq, color = region_eq), size = 1)+
   scale_linetype_manual(values = c("dashed", "dashed", "dashed", "solid"))+
   facet_free(y_labels~x_labels,
@@ -263,18 +258,18 @@ ggplot(data = plot_dt_long) +
     strip.placement.y = "outside",
     legend.title = element_blank(),
     # panel.spacing = unit(1.5, "lines"),
+    legend.text=element_text(size=12),
     axis.title.x=element_blank(),
     axis.title.y=element_blank(),
     legend.position = "bottom",
+    strip.text = element_text(size = 11),
     plot.margin =  unit(c(1,1,1,1), "lines")
-  )
+  ))
 
 
 ggsave(plot = p, 
-       filename = "./n_policy_box/Data/figures/policies_multiplot_region_eq.pdf", width = 831/300*3, height = 963/300*3,
+       filename = "./n_policy_box/Data/figures/policies_multiplot_region_eq.pdf", width = 830/300*3, height = 900/300*3,
        units = 'in')
-
-
 
 #--------------------------------------------------------------------------------
 # REGION TABLE
