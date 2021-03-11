@@ -1,8 +1,12 @@
 #--------------------------
 # Corn and N price
 #--------------------------
-Pc = 0.158
-# Pn = 0.88
+# Pc = 0.14#3.5/25.4 #$/bu to $/kg https://markets.businessinsider.com/commodities/corn-price
+# Pn = 5*Pc
+
+
+Pc = 0.158 #equivalent to 4.00 $\bu
+# Pn = 0.88 #equivalent to 0.40 $/lbs N
 Pn = 5*Pc #round the ratio
 
 # https://farmdocdaily.illinois.edu/2018/09/fertilizer-prices-higher-for-2019-crop.html
