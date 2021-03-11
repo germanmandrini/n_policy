@@ -27,21 +27,22 @@ plot_dt <- rbind(perfomances_dt4, perfomances_dt5, fill = T)%>%
 #=============================================================================================================================================
 # LEACHING VS COST PLOT
 
-ggplot(data = plot_dt[region_eq == 'state']) +
-  theme_bw()+
-  geom_line(aes(x = -L_change, y =  policy_cost , color = policy_name), size = 1)+
-  xlab('N Leaching reduction (%)')+
-  ylab('Policy Cost ($/ha)')
-
 #In relative L reduction
 (p1 <- ggplot(data = plot_dt) +
   geom_line(aes(x = -L_change, y =  policy_cost , color = policy_name), size = 1)+
   xlab('N Leaching reduction (%)')+
-  ylab('Policy Cost ($/ha)')+
+  ylab(expression("Pol_cost ($ " * ha^"-1" * ")"))+
   theme_bw()+
-  theme(legend.position = 'bottom')+
+  theme(legend.position = 'bottom',
+     text=element_text(size=13)
+     # axis.title=element_blank(size=12)
+   )+
+   guides(color=guide_legend(title="Policy:"))+
   facet_free(~region_eq))
 
+ggsave(plot = p1, 
+       filename = "./n_policy_box/Data/figures/policy_cost.pdf", width = 800/300*3, height = 310/300*3,
+       units = 'in')
 
 #abatement cost
 (p2 <- ggplot(data = plot_dt) +

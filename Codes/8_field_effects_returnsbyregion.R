@@ -114,8 +114,9 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
   theme_bw()+
   theme(#axis.text=element_text(size=12),
         #axis.title=element_text(size=14),
+        # text=element_text(size=13),
         legend.position = "none")+
-  geom_text(data = reg_dt, aes(x = 700, y = 1800, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+  geom_text(data = reg_dt, aes(x = 700, y = 1900, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
   xlab('Baselevel profits ($/ha)')+
   ylab('After policy income ($/ha)')+
   # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
@@ -132,6 +133,7 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
   theme_bw()+
   theme(#axis.text=element_text(size=12),
         #axis.title=element_text(size=14),
+        # text=element_text(size=13),
         legend.position = "none")+
     # geom_text(data=eq,aes(x = 25, y = 300,label=V1), parse = TRUE, inherit.aes=FALSE) + facet_grid(group~.)
   geom_text(data = reg_dt, aes(x = 0, y = 120, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
@@ -157,16 +159,21 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
   theme_bw()+
   theme(#axis.text=element_text(size=12),
         #axis.title=element_text(size=14),
+        # text=element_text(size=13),
         legend.position = "none")+
-  geom_text(data = reg_dt, aes(x = 5, y = -500, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+  geom_text(data = reg_dt, aes(x = 5, y = -800, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
   xlab('Baselevel N leaching (kg/ha)')+
   ylab('Profits difference ($/ha)')+
   # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
   facet_free(.~policy_labels, scale = 'free'))
 
 library(ggpubr)
-ggarrange(p1,p2,p3 , ncol = 1, labels = c("a)","b)", "c)"), label.x = 0)
+(p4 <- ggarrange(plotlist = list(p1, p2, p3) , ncol = 1,
+                 labels = c("a)",  "b)", "c)")))
 
+ggsave(plot = p4, 
+       filename = "./n_policy_box/Data/figures/field_effects.pdf", width = 900/300*3, height = 810/300*3,
+       units = 'in')
 #==========================================================================================================
 # Field effects for appendix
 # Does ratio transfer funds from high N rate to low N rate?

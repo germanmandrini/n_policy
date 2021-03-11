@@ -11,19 +11,26 @@ source('./n_policy_git/Codes/parameters.R')
 source('C:/Users/germanm2/Documents/n_policy_git/Codes/parameters.R')
 
 
-price_ratio_historic <- fread('./n_policy_box/Data/price_ratio_historic.xlsx')
+
 # install.packages('xlsx')
 library('xlsx')
 
 price_ratio_historic_dt <- read.xlsx('./n_policy_box/Data/price_ratio_historic.xlsx', sheetName = "price_ratio_historic") %>% data.table()
 setnames(price_ratio_historic_dt, c('Corn.USD.tn', 'NH3.USD.N.tn'), c('Pc', 'Pn'))
 
+#-------------
+# Try csv
+price_ratio_historic_dt <- fread('./n_policy_box/Data/price_ratio_historic.csv')
+names(price_ratio_historic_dt)[2:3] <- c('Pc', 'Pn')
+
+#--------
+
 price_ratio_long_dt <- melt(price_ratio_historic_dt, id.vars = c("year"), measure.vars = c("Pc", "Pn", "Ratio")) 
 price_ratio_long_dt[variable == 'Ratio' , value := value * 100]
 
 (plot_1 <- ggplot() +
   geom_line(data = price_ratio_long_dt, 
-            aes(x = year, y =  value,color = variable, linetype = variable), size = 0.8) +
+            aes(x = year, y =  value,color = variable, linetype = variable), size = 1) +
   scale_y_continuous(sec.axis = sec_axis(~./100, name = "N:Corn price ratio"))+
   labs(y = 'Price ($/Mg)',
        x = 'Year',
@@ -34,8 +41,11 @@ price_ratio_long_dt[variable == 'Ratio' , value := value * 100]
     labs(color  = "Guide name", linetype = "Guide name")+
   theme(legend.title =  element_blank(),
         legend.position = c(0.15, 0.8),
-        # legend.text=element_text(size=8),
+        legend.text=element_text(size=12),
+        axis.text=element_text(size=12),
+        axis.title=element_text(size=12),
         panel.grid = element_blank()))
 
-ggsave(plot = plot_1, filename = "./n_policy_box/Data/figures/price_ratio_historic.pdf", width = 5, height = 3.5,
+ggsave(plot = plot_1, 
+       filename = "./n_policy_box/Data/figures/price_ratio_historic.pdf", width = 740/300*3, height = 460/300*3,
        units = 'in')
