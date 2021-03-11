@@ -260,7 +260,7 @@ for(z_n in 1:30){
     evaluation_set_dt[N_extra <= 0, N_extra := 0]
     
     
-    bal_seq <- sort(unique(c(seq(0,5,1), seq(1.5,2,0.1))))
+    bal_seq <- sort(unique(c(seq(0,1,0.25), seq(1,5,1), seq(1.5,2,0.1))))
     set.seed(123)
     level_n = 2
     for(level_n in bal_seq){
