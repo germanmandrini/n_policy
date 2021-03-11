@@ -63,7 +63,7 @@ for(z_n in 1:30){
     dynamic <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
                            data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
                            strata = year, #I think it will bootstrap by year
-                           importance = TRUE , mtry = best.m, ntree=200, nodesize = 30)
+                           importance = TRUE , mtry = best.m, ntree=1000, nodesize = 30)
     
     varImpPlot(dynamic, type=2)
     plot(dynamic)
@@ -179,7 +179,7 @@ for(z_n in 1:30){
     dynamic <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
                            data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
                            strata = year, #I think it will bootstrap by year
-                           importance = TRUE , mtry = best.m, ntree=200, nodesize = 30)
+                           importance = TRUE , mtry = best.m, ntree=1000, nodesize = 30)
     
     varImpPlot(dynamic, type=2)
     plot(dynamic)
@@ -245,7 +245,7 @@ for(z_n in 1:30){
     #   .[, .(N_balance_thr = quantile(N_balance, probs = 0.5)), region] %>%
     #   .[order(region)] # not change with z_n
     
-    thresholds_dt[, N_balance_thr := round(N_balance-60,  0)] #was -60 before
+    thresholds_dt[, N_balance_thr := round(N_balance-60,  0)] 
     
     training_set_dt <- merge(training_set_dt[,-'N_balance_thr'], thresholds_dt[,.(region, N_balance_thr)], by = 'region')
     
@@ -300,7 +300,7 @@ for(z_n in 1:30){
       dynamic <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
                              data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
                              strata = year, #I think it will bootstrap by year
-                             importance = TRUE , mtry = best.m, ntree=200, nodesize = 30)
+                             importance = TRUE , mtry = best.m, ntree=1000, nodesize = 30)
       
       varImpPlot(dynamic, type=2)
       plot(dynamic)
@@ -396,14 +396,14 @@ for(z_n in 1:30){
   }#end of reduction loop
   perfomances_z_tmp <- rbindlist(results_list)
   
-  saveRDS(perfomances_z_tmp, paste0("./n_policy_box/Data/files_rds/field_performances_tmp/field_performances_rn_", z_n,'.rds'))
+  saveRDS(perfomances_z_tmp, paste0("./n_policy_box/Data/files_rds/field_performances_tmp/field_performances_", z_n,'.rds'))
 
 }#end of z_n
 
 # 
 # load all the results
 perfomances_list <- list()
-files_path <- list.files("./n_policy_box/Data/files_rds/field_performances_tmp", full.names = TRUE, pattern = 'field_performances_[1-9]')
+files_path <- list.files("./n_policy_box/Data/files_rds/field_performances_tmp", full.names = TRUE, pattern = 'field_performances_rn_[1-9]')
 
 for(file_n in files_path){
   # file_n = files_path[1]
@@ -433,7 +433,8 @@ thresholds_dt <- thresholds_dt[,
                              Y_corn = mean(Y_corn),
                              N_fert = mean(N_fert),
                              L = mean(L)), by = region]
-
+# thresholds_dt[,L_thr := round(L * 0.6, 0)]
+# thresholds_dt[, N_balance_thr := round(N_balance-60,  0)] 
 # saveRDS(thresholds_dt, "./n_policy_box/Data/files_rds/thresholds_dt.rds")
 
 thresholds_dt <- readRDS("./n_policy_box/Data/files_rds/thresholds_dt.rds")
