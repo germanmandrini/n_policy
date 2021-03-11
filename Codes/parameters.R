@@ -3,7 +3,7 @@
 #--------------------------
 Pc = 0.158
 # Pn = 0.88
-Pn = 5.6*Pc #round the ratio
+Pn = 5*Pc #round the ratio
 
 # https://farmdocdaily.illinois.edu/2018/09/fertilizer-prices-higher-for-2019-crop.html
 # https://www.ams.usda.gov/mnreports/gx_gr210.txt

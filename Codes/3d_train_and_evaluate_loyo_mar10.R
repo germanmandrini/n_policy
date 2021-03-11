@@ -2,10 +2,10 @@ rm(list=ls())
 # 
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # codes_folder <-'C:/Users/germa/Documents'#Dell
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
-setwd('~')#Server
-codes_folder <-'~' #Server
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+# setwd('~')#Server
+# codes_folder <-'~' #Server
 
 source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
@@ -24,7 +24,7 @@ thresholds_dt <- readRDS( "./n_policy_box/Data/files_rds/thresholds_dt.rds") #th
 
 
 z_n = 10
-for(z_n in 3:30){
+for(z_n in 1:30){
   print(z_n)
   results_list <- list()
   
@@ -36,7 +36,7 @@ for(z_n in 3:30){
   evaluation_set_dt <- yc_field_dt[station != 1 & z == z_n]
   prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
   
-  ratio_seq <- sort(c(seq(2,20,2), Pn/Pc))
+  ratio_seq <- sort(unique(c(seq(5,20,2), seq(12,14,0.25))))
   level_n <- Pn/Pc
   for(level_n in ratio_seq){
     
@@ -63,7 +63,7 @@ for(z_n in 3:30){
     dynamic <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
                            data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
                            strata = year, #I think it will bootstrap by year
-                           importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
+                           importance = TRUE , mtry = best.m, ntree=200, nodesize = 30)
     
     varImpPlot(dynamic, type=2)
     plot(dynamic)
@@ -92,7 +92,7 @@ for(z_n in 3:30){
                              prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+      .[,c("region", "region_eq", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
     evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
@@ -135,7 +135,7 @@ for(z_n in 3:30){
   evaluation_set_dt[L_extra <= 0, L_extra := 0]
   #-------------------------------------
   
-  leach_seq <-  sort(c(seq(0, 30, by = 2)))
+  leach_seq <-  sort(unique(c(seq(0,35,2), seq(13,15,0.25))))
   
   set.seed(123)
   
@@ -179,7 +179,7 @@ for(z_n in 3:30){
     dynamic <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
                            data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
                            strata = year, #I think it will bootstrap by year
-                           importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
+                           importance = TRUE , mtry = best.m, ntree=200, nodesize = 30)
     
     varImpPlot(dynamic, type=2)
     plot(dynamic)
@@ -203,7 +203,7 @@ for(z_n in 3:30){
     # evaluation_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
     #                          by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
     #   .[N_fert == eonr_pred] %>%
-    #   .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+    #   .[,c("region", "region_eq", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     # 
     # 
     # results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'static'][,policy := paste0('leach_', level_n)]
@@ -217,7 +217,7 @@ for(z_n in 3:30){
                              prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+      .[,c("region", "region_eq", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
     evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
@@ -227,7 +227,6 @@ for(z_n in 3:30){
     #===================================================================================================================
   } #end of leaching loop
     
-
     # =========================================================================================================================================================
     # CREATE THE BALANCE FEE MODEL
     source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
@@ -246,7 +245,7 @@ for(z_n in 3:30){
     #   .[, .(N_balance_thr = quantile(N_balance, probs = 0.5)), region] %>%
     #   .[order(region)] # not change with z_n
     
-    thresholds_dt[, N_balance_thr := round(N_balance,  0)] #was -60 before
+    thresholds_dt[, N_balance_thr := round(N_balance-60,  0)] #was -60 before
     
     training_set_dt <- merge(training_set_dt[,-'N_balance_thr'], thresholds_dt[,.(region, N_balance_thr)], by = 'region')
     
@@ -261,7 +260,7 @@ for(z_n in 3:30){
     evaluation_set_dt[N_extra <= 0, N_extra := 0]
     
     
-    bal_seq <- sort(seq(0, 4, by = 0.25))
+    bal_seq <- sort(unique(c(seq(0,5,1), seq(1.5,2.5,0.25))))
     set.seed(123)
     level_n = 2
     for(level_n in bal_seq){
@@ -301,7 +300,7 @@ for(z_n in 3:30){
       dynamic <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
                              data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
                              strata = year, #I think it will bootstrap by year
-                             importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
+                             importance = TRUE , mtry = best.m, ntree=200, nodesize = 30)
       
       varImpPlot(dynamic, type=2)
       plot(dynamic)
@@ -330,7 +329,7 @@ for(z_n in 3:30){
                                   prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
         .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
         .[N_fert == eonr_pred] %>%
-        .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+        .[,c("region", "region_eq", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
       
       evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
       
@@ -343,7 +342,6 @@ for(z_n in 3:30){
 
   # =========================================================================================================================================================
   # VOLUNTARY REDUCTION (REDUCE RATIO 5 RECOMENDATIONS)
-    
   
   source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
   
@@ -353,7 +351,7 @@ for(z_n in 3:30){
   prediction_set_aggregated_dt <- readRDS(paste0("./n_policy_box/Data/files_rds/field_performances_tmp/ratio5_recommendations_",
                                                  z_n, ".rds")) #we lower the ratio5 dynamic recommendation
   
-  red_seq <- unique(sort(c(seq(0,26, by = 1), seq(18,19, by = 0.1))))
+  red_seq <- sort(unique(c(seq(0,30,2), seq(19,21,0.25))))
   level_n = 10
   for(level_n in red_seq){
     print(level_n) 
@@ -373,7 +371,7 @@ for(z_n in 3:30){
     # evaluation_set_tmp <- merge(evaluation_set_dt, static_mrtn_dt, 
     #                             by = c('region')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
     #   .[N_fert == eonr_pred] %>%
-    #   .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+    #   .[,c("region", "region_eq", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     # 
     # results_list[[length(results_list)+1]] <- evaluation_set_tmp[,NRT := 'static'][,policy := paste0('red_', level_n)]
     #===================================================================================================================
@@ -386,7 +384,7 @@ for(z_n in 3:30){
                                 prediction_set_aggregated_dt[,.(id_10, id_field, z, eonr_pred)], by = c('id_10', 'id_field','z')) %>% #here we joing back the predictions with the data with all the N rates and then filter the N rate = to the predicted to measure testing
       .[,eonr_pred := ifelse(eonr_pred <0, 0, ifelse(eonr_pred > 320, 320, eonr_pred))] %>%
       .[N_fert == eonr_pred] %>%
-      .[,c("region", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
+      .[,c("region", "region_eq", "id_10", 'id_field', "z", "area_ha", "Y_corn", 'Y_soy', 'L1', 'L2', "L", "n_deep_v5","N_fert",'P', "G")]
     
     evaluation_set_tmp[,.(area_ha = sum(area_ha)), by = .(id_10, id_field, z)]$area_ha %>% table()
     
@@ -396,10 +394,9 @@ for(z_n in 3:30){
     #===================================================================================================================
     
   }#end of reduction loop
-    
   perfomances_z_tmp <- rbindlist(results_list)
   
-  saveRDS(perfomances_z_tmp, paste0("./n_policy_box/Data/files_rds/field_performances_tmp/field_performances_", z_n,'.rds'))
+  saveRDS(perfomances_z_tmp, paste0("./n_policy_box/Data/files_rds/field_performances_tmp/field_performances_rn_", z_n,'.rds'))
 
 }#end of z_n
 
@@ -418,15 +415,15 @@ field_perfomances_dt <- rbindlist(perfomances_list)
 
 field_perfomances_dt[,.N, z][order(z)]
 field_perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, .(id_10)] %>% .[,N] %>% table() #number of fields by cell
-field_perfomances_dt[,.N, .(id_10, id_field, policy, NRT, z)] %>% .[,.N, .(NRT)] #field x year by NRT
-
+field_perfomances_dt[,.N, .(id_10, id_field, policy, NRT, z)] %>% .[,.N, .(policy)] #field x year by NRT
+4030/2*15 + 4030/2*14
 
 saveRDS(field_perfomances_dt, "./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
 #--------------------------------------------------------------------------------
 
 field_perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
 
-thresholds_dt <- field_perfomances_dt[policy == 'ratio_5.6' & NRT == 'dynamic']
+thresholds_dt <- field_perfomances_dt[policy == Pn/Pc & NRT == 'dynamic']
 
 thresholds_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
 
@@ -437,8 +434,8 @@ thresholds_dt <- thresholds_dt[,
                              N_fert = mean(N_fert),
                              L = mean(L)), by = region]
 
-saveRDS(thresholds_dt, "./n_policy_box/Data/files_rds/thresholds_dt.rds")
+# saveRDS(thresholds_dt, "./n_policy_box/Data/files_rds/thresholds_dt.rds")
 
-
+thresholds_dt <- readRDS("./n_policy_box/Data/files_rds/thresholds_dt.rds")
 
 
