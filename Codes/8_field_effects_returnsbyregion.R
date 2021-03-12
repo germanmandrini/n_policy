@@ -194,8 +194,9 @@ summary(lm(data = field_perfomances_dt2[policy_name == 'leach'], P_diff ~ EONR_b
    theme_bw()+
    theme(#axis.text=element_text(size=12),
      #axis.title=element_text(size=14),
+     text=element_text(size=13),
      legend.position = "none")+
-   geom_text(data = reg_dt, aes(x = 5, y = -500, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+   geom_text(data = reg_dt, aes(x = 5, y = -750, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
    xlab('Baselevel N rate (kg/ha)')+
    ylab('Profits difference ($/ha)')+
    # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
@@ -212,11 +213,14 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
     # geom_histogram(aes(x = P_base))+
     # geom_abline() +  ylim(0, 100)+ 
     # xlim(5000, 14600) +
+    scale_x_continuous(breaks=seq(6000, 15000, by = 2000), labels = seq(6000, 15000, by = 2000))+
     theme_bw()+
     theme(#axis.text=element_text(size=12),
       #axis.title=element_text(size=14),
+      # axis.text.x = element_text(angle = 90),
+      text=element_text(size=13),
       legend.position = "none")+
-    geom_text(data = reg_dt, aes(x = 5000, y = 200, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+    geom_text(data = reg_dt, aes(x = 5000, y = -750, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
     xlab('Baselevel Yield (kg/ha)')+
     ylab('Profits difference ($/ha)')+
     # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
@@ -239,6 +243,7 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
     theme_bw()+
     theme(#axis.text=element_text(size=12),
       #axis.title=element_text(size=14),
+      text=element_text(size=13),
       legend.position = "none")+
     geom_text(data = reg_dt, aes(x = 100, y = 0, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
     xlab('Baselevel Yield (kg/ha)')+
@@ -246,9 +251,11 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
     # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
     facet_free(.~policy_labels, scale = 'free'))
 
-ggarrange(p4,p5 , ncol = 1, labels = c("a)","b)"), label.x = 0)
+(p7 <- ggarrange(p4,p5 , ncol = 1, labels = c("a)","b)"), label.x = 0))
 
-
+ggsave(plot = p7, 
+       filename = "./n_policy_box/Data/figures/field_effects_appendix.pdf", width = 900/300*3, height = 520/300*3,
+       units = 'in')
 
 #==========================================================================================================
 # Some base-level relationships

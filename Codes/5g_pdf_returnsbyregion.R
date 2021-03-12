@@ -74,10 +74,15 @@ plot_dt_long[, q := seq_len(.N)/.N, by = .(region_eq, variable)]
 library(scales)
 show_col(hue_pal()(6))
 
-ggplot(data = plot_dt_long, aes(x=value, color = policy_labels, linetype = policy_labels)) +
+(p <- ggplot(data = plot_dt_long[!(variable == 'farm_income' & value < 1500)], 
+       aes(x=value, color = policy_labels, linetype = policy_labels, fill = policy_labels, alpha = policy_labels)) +
   geom_density(size = 1)+
   scale_color_manual(values=c("#F8766D", "#7CAE00", "#00BFC4", "#C77CFF", '#619CFF'),
                      name="Policy")+
+  scale_fill_manual(values=c("#F8766D", "#7CAE00", "#00BFC4", "#C77CFF", '#619CFF'),
+                     name="Policy")+
+  scale_alpha_manual(values=c(0, 0, 0, 0, 0.5),
+                    name="Policy")+
   scale_linetype_manual(values = c("solid", "solid", "solid", "solid","dashed"),
                         name="Policy")+
   facet_wrap(region_eq ~ variable_labels, 
@@ -89,9 +94,15 @@ ggplot(data = plot_dt_long, aes(x=value, color = policy_labels, linetype = polic
   theme(panel.grid = element_blank(), 
         # strip.placement = "outside",
         # panel.spacing = unit(1.5, "lines"),
+        text=element_text(size=13),
         # strip.background = element_blank(),
         axis.title.x=element_blank(),
         # legend.justification = c(0, 0),
         # legend.direction = "horizontal",
         legend.position = "bottom"
-        )
+        ))
+
+
+ggsave(plot = p, 
+       filename = "./n_policy_box/Data/figures/pdf_variables.pdf", width = 780/300*3, height = 680/300*3,
+       units = 'in')

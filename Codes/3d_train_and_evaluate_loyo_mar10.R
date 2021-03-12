@@ -401,7 +401,7 @@ for(z_n in 1:30){
 
 # load all the results
 perfomances_list <- list()
-files_path <- list.files("./n_policy_box/Data/files_rds/field_perfomances_tmp_rodrigo", full.names = TRUE, pattern = 'field_performances_rn_[1-9]')
+files_path <- list.files("./n_policy_box/Data/files_rds/field_performances_tmp_ntree1000", full.names = TRUE, pattern = 'field_performances_[1-9]')
 
 for(file_n in files_path){
   # file_n = files_path[1]
@@ -414,14 +414,14 @@ field_perfomances_dt <- rbindlist(perfomances_list)
 field_perfomances_dt[,.N, z][order(z)]
 field_perfomances_dt[,.N, .(id_10, id_field)] %>% .[,.N, .(id_10)] %>% .[,N] %>% table() #number of fields by cell
 field_perfomances_dt[,.N, .(id_10, id_field, policy, NRT, z)] %>% .[,.N, .(policy)] #field x year by NRT
-4030/2*15 + 4030/2*14
+4031*15
 
 saveRDS(field_perfomances_dt, "./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
 #--------------------------------------------------------------------------------
 
 field_perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
 
-thresholds_dt <- field_perfomances_dt[policy == Pn/Pc & NRT == 'dynamic']
+thresholds_dt <- field_perfomances_dt[policy == 'ratio_5' & NRT == 'dynamic']
 
 thresholds_dt[,N_balance := N_fert - Y_corn * 11.5/1000]
 
@@ -435,6 +435,6 @@ thresholds_dt <- thresholds_dt[,
 # thresholds_dt[, N_balance_thr := round(N_balance-60,  0)] 
 # saveRDS(thresholds_dt, "./n_policy_box/Data/files_rds/thresholds_dt.rds")
 
-thresholds_dt <- readRDS("./n_policy_box/Data/files_rds/thresholds_dt.rds")
+thresholds_dt2 <- readRDS("./n_policy_box/Data/files_rds/thresholds_dt.rds")
 
 
