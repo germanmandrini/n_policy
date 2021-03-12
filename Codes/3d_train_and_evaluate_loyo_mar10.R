@@ -63,7 +63,7 @@ for(z_n in 1:30){
     dynamic <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
                            data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
                            strata = year, #I think it will bootstrap by year
-                           importance = TRUE , mtry = best.m, ntree=1000, nodesize = 30)
+                           importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
     
     varImpPlot(dynamic, type=2)
     plot(dynamic)
@@ -100,7 +100,7 @@ for(z_n in 1:30){
     
     if(level_n == Pn/Pc){
       setnames(prediction_set_aggregated_dt, 'eonr_pred', 'eonr_ratio5')
-      saveRDS(prediction_set_aggregated_dt, paste0("./n_policy_box/Data/files_rds/field_performances_tmp/ratio5_recommendations_",z_n, ".rds"))
+      saveRDS(prediction_set_aggregated_dt, paste0("./n_policy_box/Data/files_rds/field_perfomances_tmp_rodrigo/ratio5_recommendations_",z_n, ".rds"))
     }
     
   }#end of ratio loop
@@ -179,7 +179,7 @@ for(z_n in 1:30){
     dynamic <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
                            data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
                            strata = year, #I think it will bootstrap by year
-                           importance = TRUE , mtry = best.m, ntree=1000, nodesize = 30)
+                           importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
     
     varImpPlot(dynamic, type=2)
     plot(dynamic)
@@ -300,7 +300,7 @@ for(z_n in 1:30){
       dynamic <- randomForest(formula = as.formula(paste('eonr ~ ', paste(c(low_var, high_var), collapse = ' + '))), 
                              data = training_eonr_dt[,c('eonr', low_var, high_var, 'year'), with = FALSE],
                              strata = year, #I think it will bootstrap by year
-                             importance = TRUE , mtry = best.m, ntree=1000, nodesize = 30)
+                             importance = TRUE , mtry = best.m, ntree=2000, nodesize = 30)
       
       varImpPlot(dynamic, type=2)
       plot(dynamic)
@@ -348,14 +348,13 @@ for(z_n in 1:30){
   #Load datasets again
   training_set_dt <- yc_field_dt[station == 1 & z != z_n]
   evaluation_set_dt <- yc_field_dt[station != 1 & z == z_n]
-  prediction_set_aggregated_dt <- readRDS(paste0("./n_policy_box/Data/files_rds/field_performances_tmp/ratio5_recommendations_",
+  prediction_set_aggregated_dt <- readRDS(paste0("./n_policy_box/Data/files_rds/field_perfomances_tmp_rodrigo/ratio5_recommendations_",
                                                  z_n, ".rds")) #we lower the ratio5 dynamic recommendation
   
   red_seq <- sort(unique(c(seq(0,30,2), seq(18.5,19.5,0.1))))
   level_n = 10
   for(level_n in red_seq){
     print(level_n) 
-    ratio5_recommendations_dt <- readRDS(paste0("./n_policy_box/Data/files_rds/field_performances_tmp/ratio5_recommendations_",z_n, ".rds"))
     #===================================================================================================================
     # EVALUATION
     
@@ -396,14 +395,13 @@ for(z_n in 1:30){
   }#end of reduction loop
   perfomances_z_tmp <- rbindlist(results_list)
   
-  saveRDS(perfomances_z_tmp, paste0("./n_policy_box/Data/files_rds/field_performances_tmp/field_performances_", z_n,'.rds'))
+  saveRDS(perfomances_z_tmp, paste0("./n_policy_box/Data/files_rds/field_perfomances_tmp_rodrigo/field_performances_", z_n,'.rds'))
 
 }#end of z_n
 
-# 
 # load all the results
 perfomances_list <- list()
-files_path <- list.files("./n_policy_box/Data/files_rds/field_performances_tmp", full.names = TRUE, pattern = 'field_performances_rn_[1-9]')
+files_path <- list.files("./n_policy_box/Data/files_rds/field_perfomances_tmp_rodrigo", full.names = TRUE, pattern = 'field_performances_rn_[1-9]')
 
 for(file_n in files_path){
   # file_n = files_path[1]
