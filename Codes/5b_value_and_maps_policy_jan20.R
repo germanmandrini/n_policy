@@ -216,7 +216,7 @@ plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L', 'Y_corn', '
                                             expression("Leaching (kgN" * ha^"-1"*")"),
                                             expression("Yield (kg " * ha^"-1" * ")"), 
                                             expression("Profits ($ " * ha^"-1" * ")"),
-                                            expression("Gov_Col ($ " * ha^"-1" * ")"),
+                                            expression("Gov_col ($ " * ha^"-1" * ")"),
                                             expression("Pol_cost ($ " * ha^"-1" * ")"),
                                             expression("Ab_cost($" * kg*N^"-1" * ha^"-1"* ")")))]
 
@@ -303,6 +303,7 @@ region20_dt2[policy =='ratio_5', policy_val := 0]
 # region_eq_dt2[, P_diff := P - P_base]
 region20_dt2[,policy_name := factor(policy_name, levels = c('base-level','ratio', 'leach', 'bal', 'red'))]
 region20_dt3 <- region20_dt2[,.(region_eq, policy = policy_name, sublevel = policy_val, Y_corn, L, N_fert, P, G,policy_cost)][order(-region_eq, policy)]
+
 
 fwrite(region20_dt3, "./n_policy_box/Data/figures/region_effects.csv")
 
