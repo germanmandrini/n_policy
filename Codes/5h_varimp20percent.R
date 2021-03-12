@@ -44,5 +44,5 @@
   p1 <- grid.arrange(plots_list[['ratio']], plots_list[['leach']], plots_list[['bal']], nrow = 1)
   
   ggsave(plot = p1, 
-         filename = "./n_policy_box/Data/figures/varimp20percent.pdf", width = 1150/300, height = 360/300, units = 'in')
+         filename = "./n_policy_box/Data/figures/varimp20percent.pdf", width = 1150/100, height = 360/100, units = 'in')
 }
