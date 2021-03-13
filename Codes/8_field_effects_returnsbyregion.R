@@ -156,7 +156,7 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
     # geom_smooth(color = 'black')+
   # geom_histogram(aes(x = P_base))+
   # geom_abline() +  ylim(0, 100)+ xlim(0, 100) +
-  theme_bw()+
+  theme_bw(base_size = 15)+
   theme(#axis.text=element_text(size=12),
         #axis.title=element_text(size=14),
         text=element_text(size=15),
