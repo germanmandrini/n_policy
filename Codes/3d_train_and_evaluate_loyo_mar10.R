@@ -37,7 +37,7 @@ for(z_n in 1:30){
   prediction_set_aggregated_dt <- evaluation_set_dt[N_fert == 180][,-c('N_fert')] #one line per field, not yield curve
   
   ratio_seq <- sort(unique(c(seq(5,20,2), seq(12.5,13.5,0.2))))
-  level_n <- Pn/Pc
+  level_n <- 12.9#Pn/Pc
   for(level_n in ratio_seq){
     
     Pn_tmp = level_n * Pc
@@ -139,7 +139,7 @@ for(z_n in 1:30){
   
   set.seed(123)
   
-  level_n = 5
+  level_n = 13.2
   for(level_n in leach_seq){
     print(level_n)
     
@@ -262,7 +262,7 @@ for(z_n in 1:30){
     
     bal_seq <- sort(unique(c(seq(0,1,0.25), seq(1,5,1), seq(1.5,2,0.1))))
     set.seed(123)
-    level_n = 2
+    level_n = 1.8
     for(level_n in bal_seq){
       # 
       print(level_n)
