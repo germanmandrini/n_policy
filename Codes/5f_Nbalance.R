@@ -70,7 +70,9 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
 (p1 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
     geom_smooth(method="lm", se=F) +
-    theme_bw()+ xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)")+
+    theme_bw()+ 
+    theme(text=element_text(size=13))+    
+    xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)")+
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
     ggtitle('One trial (0,100,200,320 kg/ha)'))
@@ -83,7 +85,9 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
 (p2 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
     geom_smooth(method="lm", se=F) +
-    theme_bw()+ xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
+    theme_bw()+      
+    theme(text=element_text(size=13))+  
+    xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
     ggtitle('45 trials (0,100,200,320 kg/ha)'))
@@ -96,7 +100,9 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
 (p3 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
     geom_smooth(method="lm", se=F)+
-    theme_bw()+ xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
+    theme_bw()+ 
+    theme(text=element_text(size=13))+     
+    xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
     ggtitle('45 fields (180 kg/ha)'))
@@ -113,7 +119,8 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
 (p4 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
     geom_smooth(method="lm", se=F)+
-    theme_bw()+ xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
+    theme_bw()+      
+    theme(text=element_text(size=13))+  xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
     ggtitle('45 fields (using dynamic rec)'))
@@ -126,17 +133,21 @@ reg_dt <- ddply(balance_dt,.(region),function(x) lm_eqn(x, y_name = 'L', x_name 
 reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)-13), by = region], by = 'region')
 
 (p5 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
-        geom_point()+
+        geom_point(size= 0.1)+
         geom_smooth(method="lm", se=F)+
-        theme_bw()+ xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
-        geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red', color = 'red')+
+        theme_bw()+ 
+        theme(text=element_text(size=13))+ 
+        xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
+        geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
         facet_free(region~.)+
         ggtitle('5000 fields (using dynamic rec)'))
 
 
-ggarrange(p1,p2,p3, p4, p5, labels = c("a)","b)", "c)", "d)", "e)"), label.x = 0, ncol = 2, nrow = 3)
+(p <- ggarrange(p1,p2,p3, p4, p5, labels = c("a)","b)", "c)", "d)", "e)"), label.x = 0, ncol = 2, nrow = 3))
 
-
+ggsave(plot = p, 
+       filename = "./n_policy_box/Data/figures/n_balance_internalization.pdf", width = 780/300*3, height = 680/300*3,
+       units = 'in')
 #--------------------------------------------------------------------------------
 # N Balance
 

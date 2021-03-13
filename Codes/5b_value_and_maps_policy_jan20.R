@@ -154,12 +154,12 @@ if(FALSE){
 # Elasticity of Demand Point-Slope Formula: https://pressbooks.bccampus.ca/uvicecon103/chapter/4-2-elasticity/
 if(FALSE){
   perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
-  elasticity_dt <- perfomances_dt5[policy_name == 'ratio' & NRT == 'dynamic' & policy_val %in% c(5,6)]
+  elasticity_dt <- perfomances_dt5[policy_name == 'ratio' & NRT == 'dynamic' & policy_val %in% c(5,7)]
   
-  d_quantity <- (elasticity_dt[policy_val == 6, N_fert]  - elasticity_dt[policy_val == 5, N_fert])/
+  d_quantity <- (elasticity_dt[policy_val == 7, N_fert]  - elasticity_dt[policy_val == 5, N_fert])/
     elasticity_dt[policy_val == 5, N_fert]
   
-  d_price <- (Pc*6 -  Pc*5)/ (Pc*5)
+  d_price <- (Pc*7 -  Pc*5)/ (Pc*5)
   
   d_quantity/d_price #elasticity
   
@@ -181,7 +181,7 @@ IL_corn_area_ha * 10 / 1000000
 #---------------------------------------------------------------
 #Levels selector
 percent20_dt #detail
-perfomances_dt4[, .SD[ policy_val == max(policy_val)], by = .(NRT, policy_name)] #maximum
+perfomances_dt5[, .SD[ policy_val == max(policy_val)], by = .(NRT, policy_name)] #maximum
 
 
 #---------------------------------------------------------------

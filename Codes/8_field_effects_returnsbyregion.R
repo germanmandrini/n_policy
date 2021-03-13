@@ -108,15 +108,15 @@ field_perfomances_dt2[,policy_labels := factor(policy_name, levels = c('ratio', 
 reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_name = 'P_return', x_name = 'P_base'))
 
 (p1 <- ggplot(data=field_perfomances_dt2,aes(x = P_base, y = P_return, color = policy_labels)) +
-  geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
+  geom_point(size = 0.4)+ #theme(aspect.ratio=1) + #coord_fixed() + 
   geom_smooth(color = 'blue', formula = y~x, method = 'lm')+
   geom_abline(linetype = 'dashed') + ylim(700, 2000)+ xlim(700, 2000) +
   theme_bw()+
   theme(#axis.text=element_text(size=12),
         #axis.title=element_text(size=14),
-        # text=element_text(size=13),
+        text=element_text(size=15),
         legend.position = "none")+
-  geom_text(data = reg_dt, aes(x = 700, y = 1900, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+  geom_text(data = reg_dt, aes(x = 700, y = 800, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
   xlab('Baselevel profits ($/ha)')+
   ylab('After policy income ($/ha)')+
   # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
@@ -127,16 +127,16 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
 reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_name = 'L', x_name = 'L_base'))
  
 (p2 <- ggplot(data=field_perfomances_dt2, aes(x = L_base, y = L, color = policy_labels)) +
-  geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
+  geom_point(size = 0.4)+ #theme(aspect.ratio=1) + #coord_fixed() + 
   geom_smooth(color = 'blue', formula = y~x, method = 'lm')+
   geom_abline(linetype = 'dashed') +  ylim(0, 136)+ xlim(0, 136) +
   theme_bw()+
   theme(#axis.text=element_text(size=12),
         #axis.title=element_text(size=14),
-        # text=element_text(size=13),
+        text=element_text(size=15),
         legend.position = "none")+
     # geom_text(data=eq,aes(x = 25, y = 300,label=V1), parse = TRUE, inherit.aes=FALSE) + facet_grid(group~.)
-  geom_text(data = reg_dt, aes(x = 0, y = 120, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+  geom_text(data = reg_dt, aes(x = 0, y = 120, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
   xlab('Baselevel N leaching (kg/ha)')+
   ylab('After policy N leaching (kg/ha)')+
   # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
@@ -151,7 +151,7 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
 
 
 (p3 <- ggplot(data=field_perfomances_dt2, aes(x = L_base, y = P_diff, color = policy_labels)) +
-  geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
+  geom_point(size = 0.4)+ #theme(aspect.ratio=1) + #coord_fixed() + 
   geom_smooth(color = 'blue', formula = y~x, method = 'lm')+  
     # geom_smooth(color = 'black')+
   # geom_histogram(aes(x = P_base))+
@@ -159,20 +159,21 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
   theme_bw()+
   theme(#axis.text=element_text(size=12),
         #axis.title=element_text(size=14),
-        # text=element_text(size=13),
+        text=element_text(size=15),
         legend.position = "none")+
-  geom_text(data = reg_dt, aes(x = 5, y = -800, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+  geom_text(data = reg_dt, aes(x = 5, y = -800, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
   xlab('Baselevel N leaching (kg/ha)')+
   ylab('Profits difference ($/ha)')+
   # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
   facet_free(.~policy_labels, scale = 'free'))
 
-library(ggpubr)
-(p4 <- ggarrange(plotlist = list(p1, p2, p3) , ncol = 1,
-                 labels = c("a)",  "b)", "c)")))
 
-ggsave(plot = p4, 
-       filename = "./n_policy_box/Data/figures/field_effects.pdf", width = 900/300*3, height = 810/300*3,
+library(ggpubr)
+(p <- ggarrange(plotlist = list(NA, p1, NA, p2, NA, p3) , ncol = 2, nrow = 3, widths = c(0.05, 1),
+                 labels = c(NA, "a)", NA, "b)", NA,  "c)"), hjust = 1.5))
+
+ggsave(plot = p, 
+       filename = "./n_policy_box/Data/figures/field_effects.pdf", width = 880/300*3, height = 830/300*3,
        units = 'in')
 #==========================================================================================================
 # Field effects for appendix
@@ -186,7 +187,7 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
 summary(lm(data = field_perfomances_dt2[policy_name == 'leach'], P_diff ~ EONR_base))
 
 (p4 <- ggplot(data=field_perfomances_dt2, aes(x = EONR_base, y = P_diff, color = policy_labels)) +
-   geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
+   geom_point(size = 0.4)+ #theme(aspect.ratio=1) + #coord_fixed() + 
    geom_smooth(color = 'blue', formula = y~x, method = 'lm')+  
    # geom_smooth(color = 'black')+
    # geom_histogram(aes(x = P_base))+
@@ -194,9 +195,9 @@ summary(lm(data = field_perfomances_dt2[policy_name == 'leach'], P_diff ~ EONR_b
    theme_bw()+
    theme(#axis.text=element_text(size=12),
      #axis.title=element_text(size=14),
-     text=element_text(size=13),
+     text=element_text(size=15),
      legend.position = "none")+
-   geom_text(data = reg_dt, aes(x = 5, y = -750, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+   geom_text(data = reg_dt, aes(x = 5, y = -750, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
    xlab('Baselevel N rate (kg/ha)')+
    ylab('Profits difference ($/ha)')+
    # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
@@ -207,20 +208,20 @@ summary(lm(data = field_perfomances_dt2[policy_name == 'leach'], P_diff ~ EONR_b
 reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_name = 'P_diff', x_name = 'Y_base'))
 
 (p5 <- ggplot(data=field_perfomances_dt2, aes(x = Y_base, y = P_diff, color = policy_labels)) +
-    geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
+    geom_point(size = 0.4)+ #theme(aspect.ratio=1) + #coord_fixed() + 
     geom_smooth(color = 'blue', formula = y~x, method = 'lm')+  
     # geom_smooth(color = 'black')+
     # geom_histogram(aes(x = P_base))+
     # geom_abline() +  ylim(0, 100)+ 
     # xlim(5000, 14600) +
-    scale_x_continuous(breaks=seq(6000, 15000, by = 2000), labels = seq(6000, 15000, by = 2000))+
+    scale_x_continuous(breaks=seq(6000, 15000, by = 4000), labels = seq(6000, 15000, by = 4000))+
     theme_bw()+
     theme(#axis.text=element_text(size=12),
       #axis.title=element_text(size=14),
       # axis.text.x = element_text(angle = 90),
-      text=element_text(size=13),
+      text=element_text(size=15),
       legend.position = "none")+
-    geom_text(data = reg_dt, aes(x = 5000, y = -750, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
+    geom_text(data = reg_dt, aes(x = 5000, y = -750, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     xlab('Baselevel Yield (kg/ha)')+
     ylab('Profits difference ($/ha)')+
     # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
@@ -231,10 +232,10 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
 field_perfomances_dt2[,N_diff := N_fert - N_base]
 
 
-reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_name = 'N_diff', x_name = 'N_base'))
+reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_name = 'N_diff', x_name = 'L_base'))
 
-(p6 <- ggplot(data=field_perfomances_dt2, aes(x = N_base, y = N_diff, color = region_eq)) +
-    geom_point()+ #theme(aspect.ratio=1) + #coord_fixed() + 
+(p6 <- ggplot(data=field_perfomances_dt2, aes(x = L_base, y = N_diff, color = policy_labels)) +
+    geom_point(size = 0.4)+ #theme(aspect.ratio=1) + #coord_fixed() + 
     geom_smooth(color = 'blue', formula = y~x, method = 'lm')+  
     # geom_smooth(color = 'black')+
     # geom_histogram(aes(x = P_base))+
@@ -243,19 +244,21 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
     theme_bw()+
     theme(#axis.text=element_text(size=12),
       #axis.title=element_text(size=14),
-      text=element_text(size=13),
+      text=element_text(size=15),
       legend.position = "none")+
-    geom_text(data = reg_dt, aes(x = 100, y = 0, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE)+
-    xlab('Baselevel Yield (kg/ha)')+
-    ylab('Profits difference ($/ha)')+
+    geom_text(data = reg_dt, aes(x = 0, y = 0, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
+    xlab('Baselevel N leaching (kg/ha)')+
+    ylab('N difference (kg/ha)')+
     # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
     facet_free(.~policy_labels, scale = 'free'))
 
-(p7 <- ggarrange(p4,p5 , ncol = 1, labels = c("a)","b)"), label.x = 0))
+(p <- ggarrange(plotlist = list(NA, p4, NA, p5, NA, p6) , ncol = 2, nrow = 3, widths = c(0.05, 1),
+                labels = c(NA, "a)", NA, "b)", NA,  "c)"), hjust = 1.5))
 
-ggsave(plot = p7, 
-       filename = "./n_policy_box/Data/figures/field_effects_appendix.pdf", width = 900/300*3, height = 520/300*3,
+ggsave(plot = p, 
+       filename = "./n_policy_box/Data/figures/field_effects_appendix.pdf", width = 880/300*3, height = 830/300*3,
        units = 'in')
+
 
 #==========================================================================================================
 # Some base-level relationships
