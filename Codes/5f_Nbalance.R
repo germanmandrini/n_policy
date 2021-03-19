@@ -114,7 +114,7 @@ balance_dt <- field_perfomances_dt[policy == 'ratio_5' & NRT == 'dynamic']
 balance_dt <- filter_dt_in_dt(x_dt = balance_dt[id_10 %in% trials_sample_dt$id_10], filter_dt = trials_sample_dt, return_table = T)
 
 reg_dt <- ddply(balance_dt,.(region),function(x) lm_eqn(x, y_name = 'L', x_name = 'N_balance'))
-reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)-5), by = region], by = 'region')
+reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)-10), by = region], by = 'region')
 
 (p4 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
@@ -130,7 +130,7 @@ balance_dt <- field_perfomances_dt[policy == 'ratio_5' & NRT == 'dynamic'] %>%
     .[sample(1:.N, 5000)]
 
 reg_dt <- ddply(balance_dt,.(region),function(x) lm_eqn(x, y_name = 'L', x_name = 'N_balance'))
-reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)-13), by = region], by = 'region')
+reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)-25), by = region], by = 'region')
 
 (p5 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
         geom_point(size= 0.1)+
@@ -146,7 +146,7 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
 (p <- ggarrange(p1,p2,p3, p4, p5, labels = c("a)","b)", "c)", "d)", "e)"), label.x = 0, ncol = 2, nrow = 3))
 
 ggsave(plot = p, 
-       filename = "./n_policy_box/Data/figures/n_balance_internalization.pdf", width = 780/300*3, height = 680/300*3,
+       filename = "./n_policy_box/Data/figures/n_balance_internalization.pdf", width = 730/300*3, height = 870/300*3,
        units = 'in')
 #--------------------------------------------------------------------------------
 # N Balance
