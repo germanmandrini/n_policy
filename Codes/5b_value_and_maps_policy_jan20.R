@@ -287,7 +287,7 @@ plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val'),
 plot_dt_long[,y_labels := factor(variable, levels = c('L_change', 'P', 'G', 'policy_cost'),
                                  labels = c(expression("Leaching "*"(% change)"),
                                             expression("Farm Profits ($ " * ha^"-1" * ")"),
-                                            expression("Gov. collections ($ " * ha^"-1" * ")"),
+                                            expression("Gov. collections ($  " * ha^"-1" * ")"),
                                             expression("Policy cost ($ " * ha^"-1" * ")")))]
 
 
@@ -327,17 +327,17 @@ breaks_fun <- function(x) {
       strip.placement.y = "outside",
       legend.title = element_blank(),
       # panel.spacing = unit(1.5, "lines"),
+      strip.text = element_text(size = 13),
       legend.text=element_text(size=12),
+      axis.text = element_text(size = 12),
       axis.title.x=element_blank(),
       axis.title.y=element_blank(),
       legend.position = "bottom",
-      strip.text = element_text(size = 11),
       plot.margin =  unit(c(1,1,1,1), "lines")
     ))
 
-
 ggsave(plot = p, 
-       filename = "./n_policy_box/Data/figures/policies_multiplot_slides.png", width = 820/300*3, height = 770/300*3,
+       filename = "./n_policy_box/Data/figures/policies_multiplot_slides.png", width = 950/300*3, height = 920/300*3,
        units = 'in')
 
 #--------------------------------------------------------------------------------
