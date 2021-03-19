@@ -2,10 +2,10 @@ rm(list=ls())
 
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # codes_folder <-'C:/Users/germa/Documents'#Dell
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
-setwd('~')#Server
-codes_folder <-'~' #Server
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+# setwd('~')#Server
+# codes_folder <-'~' #Server
 
 
 source('./Codes_useful/R.libraries.R')
@@ -235,7 +235,7 @@ plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L', 'Y_corn', '
 
 
 plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
-                                 labels = c(expression("N:Corn ratio ($ " * "$"^"-1"*")"),
+                                 labels = c(expression("N:Corn "*"ratio"),
                                             expression("Leaching fee ($ " * kg^"-1" * ha^"-1"*")"),
                                             expression("N balance fee($ " * kg^"-1" * ha^"-1"*")"),
                                             expression("N reduction (%"*")")))]
@@ -250,7 +250,7 @@ plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal'
              labeller = label_parsed,
              scales="free",
              switch = 'both') +
-  theme_bw()+
+    theme_bw(base_size = 15)+
   theme(# panel.grid = element_blank(), 
     strip.background.x = element_blank(),
     strip.placement.x = "outside",
@@ -269,6 +269,75 @@ plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal'
 
 ggsave(plot = p, 
        filename = "./n_policy_box/Data/figures/policies_multiplot_region_eq.pdf", width = 830/300*3, height = 900/300*3,
+       units = 'in')
+
+#---------------------------------------------------------------------------
+# REGION LEVEL PLOT (slides defense)
+perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
+
+# plot_dt1 <- perfomances_dt4[policy_name %in% c('ratio', 'leach', 'bal', 'red') & NRT %in% c('dynamic')] 
+plot_dt <- perfomances_dt5[policy_name %in% c('ratio', 'leach', 'bal', 'red') & NRT %in% c('dynamic')] 
+
+plot_dt[abatement_cost < 0,abatement_cost := 0 ] #the graph looks ugly
+
+
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val'), 
+                     measure.vars = c('L_change', 'P', 'G', 'policy_cost'))
+
+plot_dt_long[,y_labels := factor(variable, levels = c('L_change', 'P', 'G', 'policy_cost'),
+                                 labels = c(expression("Leaching "*"(% change)"),
+                                            expression("Farm Profits ($ " * ha^"-1" * ")"),
+                                            expression("Gov. collections ($ " * ha^"-1" * ")"),
+                                            expression("Policy cost ($ " * ha^"-1" * ")")))]
+
+
+
+
+plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
+                                 labels = c(expression("N:Corn price "*"ratio"),
+                                            expression("Leaching fee ($ " * kg^"-1" * ha^"-1"*")"),
+                                            expression("N balance fee($ " * kg^"-1" * ha^"-1"*")"),
+                                            expression("N reduction (%"*")")))]
+
+
+breaks_fun <- function(x) {
+  if (max(x) > 20) {
+    seq(0, max(x), 10)
+  } else if(max(x) > 10) {
+    seq(0, max(x), 5)
+  } else{
+    seq(0, max(x), 1)
+  }
+}
+
+(p <- ggplot(data = plot_dt_long) +
+    geom_line(aes(x = policy_val, y =  value), size = 1)+
+    # scale_linetype_manual(values = c("dashed", "dashed", "dashed", "solid"))+
+    facet_free(y_labels~x_labels,
+               labeller = label_parsed,
+               scales="free",
+               switch = 'both') +
+    theme_bw(base_size = 15)+
+    scale_x_continuous(breaks = breaks_fun) + 
+    # scale_x_continuous(breaks = seq(5,20,1), labels = seq(5,20,1)) + 
+    theme(# panel.grid = element_blank(), 
+      strip.background.x = element_blank(),
+      strip.placement.x = "outside",
+      strip.background.y = element_blank(),
+      strip.placement.y = "outside",
+      legend.title = element_blank(),
+      # panel.spacing = unit(1.5, "lines"),
+      legend.text=element_text(size=12),
+      axis.title.x=element_blank(),
+      axis.title.y=element_blank(),
+      legend.position = "bottom",
+      strip.text = element_text(size = 11),
+      plot.margin =  unit(c(1,1,1,1), "lines")
+    ))
+
+
+ggsave(plot = p, 
+       filename = "./n_policy_box/Data/figures/policies_multiplot_slides.png", width = 820/300*3, height = 770/300*3,
        units = 'in')
 
 #--------------------------------------------------------------------------------
