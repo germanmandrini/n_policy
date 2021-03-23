@@ -208,17 +208,38 @@ plot_dt <- rbind(plot_dt1, plot_dt2, fill = T)
 plot_dt[abatement_cost < 0,abatement_cost := 0 ] #the graph looks ugly
 
 
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'region_eq'), measure.vars = c('Y_corn', 'L', 'N_fert', 
-                                                                                               'P', 'G', 'policy_cost'))
+# plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'region_eq'), measure.vars = c('Y_corn', 'L', 'N_fert', 
+#                                                                                                'P', 'G', 'policy_cost'))
+# 
+# plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L', 'Y_corn', 'P', 'G', 'policy_cost', 'abatement_cost'),
+#                                  labels = c(expression("N_fert (kg " * ha^"-1"* ")"), 
+#                                             expression("Leaching (kgN" * ha^"-1"*")"),
+#                                             expression("Yield (kg " * ha^"-1" * ")"), 
+#                                             expression("Profits ($ " * ha^"-1" * ")"),
+#                                             expression("Gov_col ($ " * ha^"-1" * ")"),
+#                                             expression("Pol_cost ($ " * ha^"-1" * ")"),
+#                                             expression("Ab_cost($" * kg*N^"-1" * ha^"-1"* ")")))]
 
-plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L', 'Y_corn', 'P', 'G', 'policy_cost', 'abatement_cost'),
+plot_dt <- plot_dt[!(policy_name == 'red' & !policy_val %in% c(0,4,10,14,18,20,22,24))]
+
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'region_eq'), 
+                     measure.vars = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'))
+
+plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'),
                                  labels = c(expression("N_fert (kg " * ha^"-1"* ")"), 
-                                            expression("Leaching (kgN" * ha^"-1"*")"),
-                                            expression("Yield (kg " * ha^"-1" * ")"), 
+                                            expression("Leaching "*"(% change)"),
                                             expression("Profits ($ " * ha^"-1" * ")"),
                                             expression("Gov_col ($ " * ha^"-1" * ")"),
-                                            expression("Pol_cost ($ " * ha^"-1" * ")"),
-                                            expression("Ab_cost($" * kg*N^"-1" * ha^"-1"* ")")))]
+                                            expression("Pol_cost ($ " * ha^"-1" * ")")))]
+
+
+
+
+plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
+                                 labels = c(expression("N:Corn price "*"ratio"),
+                                            expression("Leaching fee ($ " * kg^"-1" * ha^"-1"*")"),
+                                            expression("N balance fee($ " * kg^"-1" * ha^"-1"*")"),
+                                            expression("N reduction (%"*")")))]
 
 
 
@@ -241,16 +262,25 @@ plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal'
                                             expression("N reduction (%"*")")))]
 
 
-
+breaks_fun <- function(x) {
+  if (max(x) > 20) {
+    seq(0, max(x), 10)
+  } else if(max(x) > 10) {
+    seq(0, max(x), 5)
+  } else{
+    seq(0, max(x), 1)
+  }
+}
 
 (p <- ggplot(data = plot_dt_long) +
-  geom_line(aes(x = policy_val, y =  value, linetype = region_eq, color = region_eq), size = 1)+
+  geom_line(aes(x = policy_val, y =  value, linetype = region_eq, color = region_eq), size = 1.2)+
   scale_linetype_manual(values = c("dashed", "dashed", "dashed", "solid"))+
   facet_free(y_labels~x_labels,
              labeller = label_parsed,
              scales="free",
              switch = 'both') +
     theme_bw(base_size = 15)+
+    scale_x_continuous(breaks = breaks_fun) + 
   theme(# panel.grid = element_blank(), 
     strip.background.x = element_blank(),
     strip.placement.x = "outside",
@@ -268,7 +298,11 @@ plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal'
 
 
 ggsave(plot = p, 
-       filename = "./n_policy_box/Data/figures/policies_multiplot_region_eq.pdf", width = 830/300*3, height = 900/300*3,
+       filename = "./n_policy_box/Data/figures/policies_multiplot_region_eq.pdf", width = 890/300*3, height = 999/300*3,
+       units = 'in')
+
+ggsave(plot = p, 
+       filename = "./n_policy_box/Data/figures/policies_multiplot_region_eq.png", width = 890/300*3, height = 999/300*3,
        units = 'in')
 
 #---------------------------------------------------------------------------
