@@ -2,10 +2,10 @@ rm(list=ls())
 
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # codes_folder <-'C:/Users/germa/Documents'#Dell
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
-setwd('~')#Server
-codes_folder <-'~' #Server
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+# setwd('~')#Server
+# codes_folder <-'~' #Server
 
 
 source('./Codes_useful/R.libraries.R')
@@ -19,11 +19,11 @@ perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 
 #=============================================================================================================================================
 # UNIFORM SUBLEVEL
-perfomances_dt5[,region_eq := 'state']
+perfomances_dt5[,region_eq := 'State']
 
 plot_dt <- rbind(perfomances_dt4, perfomances_dt5, fill = T)%>% 
   .[policy_name %in% policies_paper & NRT %in% c('dynamic')]
-
+plot_dt[,policy_name := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'))]
 #=============================================================================================================================================
 # LEACHING VS COST PLOT
 
@@ -44,34 +44,90 @@ ggsave(plot = p1,
        filename = "./n_policy_box/Data/figures/policy_cost.pdf", width = 800/300*3, height = 310/300*3,
        units = 'in')
 
-#abatement cost
-(p2 <- ggplot(data = plot_dt) +
-  geom_line(aes(x = -L_change, y =  abatement_cost, color = policy_name), size = 1)+
-  xlab('N Leaching reduction (%)')+
-  ylab('Abatement Cost ($/kg ha)')+
-  theme_bw()+
-  theme(legend.position = 'bottom')+
-  facet_free(~region_eq))
+# #abatement cost
+# (p2 <- ggplot(data = plot_dt) +
+#   geom_line(aes(x = -L_change, y =  abatement_cost, color = policy_name), size = 1)+
+#   xlab('N Leaching reduction (%)')+
+#   ylab('Abatement Cost ($/kg ha)')+
+#   theme_bw()+
+#   theme(legend.position = 'bottom')+
+#   facet_free(~region_eq))
+# 
+# 
+# #In absolute L reduction
+# plot_dt[,L_diff := L - L_base]
+# 
+# 
+# ggplot(data = plot_dt) +
+#   geom_line(aes(x = -L_diff, y =  policy_cost , color = policy_name), size = 1)+
+#   xlab('N Leaching reduction (kg/ha)')+
+#   ylab('Policy Cost ($/ha)')+
+#   theme_bw()+
+#   theme(legend.position = 'bottom')+
+#   facet_free(~region_eq)
 
+#=============================================================================================================================================
+# LEACHING VS COST PLOT (STATE ONLY, FOR SLIDES)
 
-#In absolute L reduction
-plot_dt[,L_diff := L - L_base]
+#In relative L reduction
+(p1 <- ggplot(data = plot_dt) +
+   geom_line(aes(x = -L_change, y =  policy_cost , color = policy_name), size = 1.5)+
+   xlab('N Leaching reduction (%)')+
+   ylab(expression(bold("Pol_cost ($ " * ha^"-1" * ")")))+
+   theme_bw(base_size = 15)+
+   theme(legend.position = 'bottom',
+         text=element_text(size=13),
+           legend.text = element_text(face = "bold"),
+           legend.title = element_text(face = "bold"),
+           axis.text =element_text(face = "bold"),
+           axis.title = element_text(face = "bold"),
+           strip.text = element_text(face = "bold")
+   )+
+   ggtitle('Cost-efficiecy')+
+   guides(color=guide_legend(title="Policy:"))+
+   facet_free(~region_eq))
 
-
-ggplot(data = plot_dt) +
-  geom_line(aes(x = -L_diff, y =  policy_cost , color = policy_name), size = 1)+
-  xlab('N Leaching reduction (kg/ha)')+
-  ylab('Policy Cost ($/ha)')+
-  theme_bw()+
-  theme(legend.position = 'bottom')+
-  facet_free(~region_eq)
-
+ggsave(plot = p1, 
+       filename = "./n_policy_box/Data/figures/policy_cost.png", width = 800/300*3, height = 310/300*3,
+       units = 'in')
 
 
 
 #=============================================================================================================================================
 # BAR CHARTS 20% REDUCTION
-opt_list <- list()
+percent20_dt <- readRDS("./n_policy_box/Data/files_rds/percent20_dt.rds") %>% .[policy_name %in% c('ratio', 'leach', 'bal', 'red'),.(policy, NRT)]
+
+plot20_dt <- filter_dt_in_dt(plot_dt, filter_dt = percent20_dt, return_table = T)
+
+
+
+(p2 <- ggplot(data = plot20_dt)+
+  geom_bar(stat="identity", aes(x = policy_name, y = policy_cost ,  fill=policy_name))+
+  theme_bw(base_size = 15)+
+  xlab('Policy')+
+    ylab(expression(bold("Pol_cost ($ " * ha^"-1" * ")")))+
+    ggtitle('Cost at 20% reduction')+
+  theme(legend.position = 'bottom',
+        text=element_text(size=13),
+        legend.text = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"),
+        axis.text =element_text(face = "bold"),
+        axis.title = element_text(face = "bold"),
+        strip.text = element_text(face = "bold")
+  )+
+  facet_free(~region_eq))
+
+
+
+library(ggpubr)
+(p <- ggarrange(plotlist = list(p1, p2) , ncol = 1, 
+                labels = c( "a)", "b)"), common.legend = TRUE, legend = 'bottom'))
+
+ggsave(plot = p, 
+       filename = "./n_policy_box/Data/figures/field_effects.pdf", width = 880/300*3, height = 830/300*3,
+       units = 'in')
+
+
 #=============================================================================================================================================
 # MG ABATEMENT COST OPTIMIZATION
 # Plot: leaching reduction vs abatement cost, using the sublevel of the policy by region_eq that leads to the same abatement cost across region_eqs.
