@@ -43,7 +43,9 @@ plot_dt[,policy_name := factor(policy_name, levels = c('ratio', 'leach', 'bal', 
 ggsave(plot = p1, 
        filename = "./n_policy_box/Data/figures/policy_cost.pdf", width = 800/300*3, height = 310/300*3,
        units = 'in')
-
+ggsave(plot = p1, 
+       filename = "./n_policy_box/Data/figures/policy_cost.png", width = 800/300*3, height = 310/300*3,
+       units = 'in')
 # #abatement cost
 # (p2 <- ggplot(data = plot_dt) +
 #   geom_line(aes(x = -L_change, y =  abatement_cost, color = policy_name), size = 1)+
