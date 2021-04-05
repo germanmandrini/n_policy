@@ -27,9 +27,14 @@ plot_dt[,policy_name := factor(policy_name, levels = c('ratio', 'leach', 'bal', 
 #=============================================================================================================================================
 # LEACHING VS COST PLOT
 
+plot_dt[,policy_labels := factor(policy_name, 
+                                 levels = c('ratio', 'leach', 'bal', 'red'),
+                                 labels = c("Price ratio", "Leaching fee","N balance fee",
+                                            "Vol. reduction"))]
+
 #In relative L reduction
 (p1 <- ggplot(data = plot_dt) +
-  geom_line(aes(x = -L_change, y =  policy_cost , color = policy_name), size = 1)+
+  geom_line(aes(x = -L_change, y =  policy_cost , color = policy_labels), size = 1)+
   xlab('N Leaching reduction (%)')+
   ylab(expression("Pol_cost ($ " * ha^"-1" * ")"))+
   theme_bw()+
@@ -46,6 +51,8 @@ ggsave(plot = p1,
 ggsave(plot = p1, 
        filename = "./n_policy_box/Data/figures/policy_cost.png", width = 800/300*3, height = 310/300*3,
        units = 'in')
+
+
 # #abatement cost
 # (p2 <- ggplot(data = plot_dt) +
 #   geom_line(aes(x = -L_change, y =  abatement_cost, color = policy_name), size = 1)+
