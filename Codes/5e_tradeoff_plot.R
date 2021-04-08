@@ -29,7 +29,7 @@ plot_dt[,policy_name := factor(policy_name, levels = c('ratio', 'leach', 'bal', 
 
 plot_dt[,policy_labels := factor(policy_name, 
                                  levels = c('ratio', 'leach', 'bal', 'red'),
-                                 labels = c("Price ratio", "Leaching fee","N balance fee",
+                                 labels = c("Price ratio", "Leaching fee","Balance fee",
                                             "Vol. reduction"))]
 
 #In relative L reduction
@@ -39,7 +39,10 @@ plot_dt[,policy_labels := factor(policy_name,
   ylab(expression("Pol_cost ($ " * ha^"-1" * ")"))+
   theme_bw()+
   theme(legend.position = 'bottom',
-     text=element_text(size=13)
+     text=element_text(size=13),
+     panel.grid.major = element_blank(), 
+     panel.grid.minor = element_blank(),
+     panel.background = element_blank()
      # axis.title=element_blank(size=12)
    )+
    guides(color=guide_legend(title="Policy:"))+

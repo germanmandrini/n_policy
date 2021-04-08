@@ -2,10 +2,10 @@ rm(list=ls())
 
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # codes_folder <-'C:/Users/germa/Documents'#Dell
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
-setwd('~')#Server
-codes_folder <-'~' #Server
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+# setwd('~')#Server
+# codes_folder <-'~' #Server
 
 
 source('./Codes_useful/R.libraries.R')
@@ -98,10 +98,12 @@ field_perfomances_dt2 <- merge(field_perfomances_dt2[policy != 'ratio_5'], basel
 #-----
 # Add labels for policies
 field_perfomances_dt2[,policy_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
-                                 labels = c("N:Corn price ratio",
+                                 labels = c("Price ratio",
                                             "Leaching fee",
-                                            "N balance fee",
-                                            "N reduction"))]
+                                            "Balance fee",
+                                            "Vol. reduction"))]
+
+
 
 #==============================================================================================================
 # Fields effects for main section
@@ -114,6 +116,9 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
   theme_bw()+
   theme(#axis.text=element_text(size=12),
         #axis.title=element_text(size=14),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
         text=element_text(size=15),
         legend.position = "none")+
   geom_text(data = reg_dt, aes(x = 700, y = 800, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
@@ -133,6 +138,9 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
   theme_bw()+
   theme(#axis.text=element_text(size=12),
         #axis.title=element_text(size=14),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
         text=element_text(size=15),
         legend.position = "none")+
     # geom_text(data=eq,aes(x = 25, y = 300,label=V1), parse = TRUE, inherit.aes=FALSE) + facet_grid(group~.)
@@ -159,6 +167,9 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
   theme_bw(base_size = 15)+
   theme(#axis.text=element_text(size=12),
         #axis.title=element_text(size=14),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
         text=element_text(size=15),
         legend.position = "none")+
   geom_text(data = reg_dt, aes(x = 5, y = -800, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
@@ -174,6 +185,10 @@ library(ggpubr)
 
 ggsave(plot = p, 
        filename = "./n_policy_box/Data/figures/field_effects.pdf", width = 880/300*3, height = 830/300*3,
+       units = 'in')
+
+ggsave(plot = p, 
+       filename = "./n_policy_box/Data/figures/field_effects.png", width = 880/300*3, height = 830/300*3,
        units = 'in')
 #==========================================================================================================
 # Field effects for appendix
@@ -195,6 +210,9 @@ summary(lm(data = field_perfomances_dt2[policy_name == 'leach'], P_diff ~ EONR_b
    theme_bw()+
    theme(#axis.text=element_text(size=12),
      #axis.title=element_text(size=14),
+     panel.grid.major = element_blank(), 
+     panel.grid.minor = element_blank(),
+     panel.background = element_blank(), 
      text=element_text(size=15),
      legend.position = "none")+
    geom_text(data = reg_dt, aes(x = 5, y = -750, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
@@ -219,6 +237,9 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
     theme(#axis.text=element_text(size=12),
       #axis.title=element_text(size=14),
       # axis.text.x = element_text(angle = 90),
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(), 
       text=element_text(size=15),
       legend.position = "none")+
     geom_text(data = reg_dt, aes(x = 5000, y = -750, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
@@ -244,6 +265,9 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
     theme_bw()+
     theme(#axis.text=element_text(size=12),
       #axis.title=element_text(size=14),
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(), 
       text=element_text(size=15),
       legend.position = "none")+
     geom_text(data = reg_dt, aes(x = 0, y = 0, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
@@ -259,7 +283,9 @@ ggsave(plot = p,
        filename = "./n_policy_box/Data/figures/field_effects_appendix.pdf", width = 880/300*3, height = 830/300*3,
        units = 'in')
 
-
+ggsave(plot = p, 
+       filename = "./n_policy_box/Data/figures/field_effects_appendix.png", width = 880/300*3, height = 830/300*3,
+       units = 'in')
 #==========================================================================================================
 # Some base-level relationships
 

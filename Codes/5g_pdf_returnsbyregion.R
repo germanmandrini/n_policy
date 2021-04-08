@@ -2,10 +2,10 @@ rm(list=ls())
 
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # codes_folder <-'C:/Users/germa/Documents'#Dell
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
-setwd('~')#Server
-codes_folder <-'~' #Server
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+# setwd('~')#Server
+# codes_folder <-'~' #Server
 
 
 source('./Codes_useful/R.libraries.R')
@@ -60,10 +60,10 @@ plot_dt_long[,variable_labels := factor(variable, levels = c('N_fert', 'L', 'N_b
 
 
 plot_dt_long[,policy_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red', 'base'),
-                                               labels = c("N:Corn price ratio",
+                                               labels = c("Price ratio", 
                                                           "Leaching fee",
-                                                          "N balance fee",
-                                                          "N reduction",
+                                                          "Balance fee",
+                                                          "Vol. reduction",
                                                           "Baselevel"))]
 
 # get the quantile of each row (weird function)
@@ -105,4 +105,7 @@ show_col(hue_pal()(6))
 
 ggsave(plot = p, 
        filename = "./n_policy_box/Data/figures/pdf_variables.pdf", width = 780/300*3, height = 680/300*3,
+       units = 'in')
+ggsave(plot = p, 
+       filename = "./n_policy_box/Data/figures/pdf_variables.png", width = 780/300*3, height = 680/300*3,
        units = 'in')

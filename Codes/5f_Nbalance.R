@@ -2,10 +2,10 @@ rm(list=ls())
 
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
 # codes_folder <-'C:/Users/germa/Documents'#Dell
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
-setwd('~')#Server
-codes_folder <-'~' #Server
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+# setwd('~')#Server
+# codes_folder <-'~' #Server
 
 
 source('./Codes_useful/R.libraries.R')
@@ -71,7 +71,10 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
     geom_point()+
     geom_smooth(method="lm", se=F) +
     theme_bw()+ 
-    theme(text=element_text(size=13))+    
+    theme(text=element_text(size=13),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank())+    
     xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)")+
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
@@ -86,7 +89,10 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
     geom_point()+
     geom_smooth(method="lm", se=F) +
     theme_bw()+      
-    theme(text=element_text(size=13))+  
+    theme(text=element_text(size=13),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank())+  
     xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
@@ -101,7 +107,10 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
     geom_point()+
     geom_smooth(method="lm", se=F)+
     theme_bw()+ 
-    theme(text=element_text(size=13))+     
+    theme(text=element_text(size=13),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank())+     
     xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
@@ -120,7 +129,11 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
     geom_point()+
     geom_smooth(method="lm", se=F)+
     theme_bw()+      
-    theme(text=element_text(size=13))+  xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
+    theme(text=element_text(size=13),
+          panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank())+  
+        xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
     ggtitle('45 fields (using dynamic rec)'))
@@ -136,7 +149,10 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
         geom_point(size= 0.1)+
         geom_smooth(method="lm", se=F)+
         theme_bw()+ 
-        theme(text=element_text(size=13))+ 
+        theme(text=element_text(size=13),
+              panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank())+ 
         xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
         geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
         facet_free(region~.)+
@@ -148,6 +164,11 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
 ggsave(plot = p, 
        filename = "./n_policy_box/Data/figures/n_balance_internalization.pdf", width = 730/300*3, height = 870/300*3,
        units = 'in')
+
+ggsave(plot = p, 
+       filename = "./n_policy_box/Data/figures/n_balance_internalization.png", width = 730/300*3, height = 870/300*3,
+       units = 'in')
+
 #--------------------------------------------------------------------------------
 # N Balance
 

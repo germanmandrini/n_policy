@@ -238,28 +238,10 @@ plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'P',
 plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
                                  labels = c(expression("N:Corn price "*"ratio"),
                                             expression("Leaching fee ($ " * kg^"-1" * ha^"-1"*")"),
-                                            expression("N balance fee($ " * kg^"-1" * ha^"-1"*")"),
-                                            expression("N reduction (%"*")")))]
+                                            expression("Balance fee ($ " * kg^"-1" * ha^"-1"*")"),
+                                            expression("Vol. reduction (%"*")")))]
 
 
-
-# plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val',  'region_eq', 'NRT'), measure.vars = c('L_change', 'L', 'policy_cost', 
-#                                                                                                              'abatement_cost'))
-# 
-# 
-# plot_dt_long[,y_labels := factor(variable, levels = c( 'L_change', 'L', 'policy_cost', 'abatement_cost'),
-#                                  labels = c(expression("N Leaching ("*'%'*" change)"),
-#                                             expression("N Leaching (kg " * ha^"-1"*")"),
-#                                             expression("Policy cost ($ " * ha^"-1" * yr^"-1"* ")"),
-#                                             expression("Abatement cost ($ " * kg^"-1" * ha^"-1"* ")")))]
-
-
-
-plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
-                                 labels = c(expression("N:Corn "*"ratio"),
-                                            expression("Leaching fee ($ " * kg^"-1" * ha^"-1"*")"),
-                                            expression("N balance fee($ " * kg^"-1" * ha^"-1"*")"),
-                                            expression("N reduction (%"*")")))]
 
 
 breaks_fun <- function(x) {
@@ -282,6 +264,9 @@ breaks_fun <- function(x) {
     theme_bw(base_size = 15)+
     scale_x_continuous(breaks = breaks_fun) + 
   theme(# panel.grid = element_blank(), 
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(), 
     strip.background.x = element_blank(),
     strip.placement.x = "outside",
     strip.background.y = element_blank(),
@@ -404,8 +389,23 @@ region20_dt2[policy =='ratio_5', policy_val := 0]
 # region_eq_dt2[, L_diff := L - L_base]
 # region_eq_dt2[, N_fert_diff := N_fert - N_base]
 # region_eq_dt2[, P_diff := P - P_base]
-region20_dt2[,policy_name := factor(policy_name, levels = c('base-level','ratio', 'leach', 'bal', 'red'))]
-region20_dt3 <- region20_dt2[,.(region_eq, policy = policy_name, sublevel = policy_val, Y_corn, L, N_fert, P, G,policy_cost)][order(-region_eq, policy)]
+
+region20_dt2[,policy_name := factor(policy_name, 
+                                      levels = c('base-level','ratio', 'leach', 'bal', 'red'),
+                                      labels = c('base-level', "price ratio", "leaching fee","balance fee",
+                                                 "vol. reduction"))]
+
+region20_dt3 <- region20_dt2[,.(region_eq, policy = policy_name, sublevel = policy_val, Y_corn, L, N_fert, P, G,policy_cost, abatement_cost    )][order(-region_eq, policy)]
+
+#round zero
+cols <- names(region20_dt3)[sapply(region20_dt3,is.numeric)]
+cols <- cols[!cols %in% c('sublevel','L', 'abatement_cost')]
+region20_dt3[,(cols) := round(.SD,0), .SDcols=cols]
+
+#round 1
+cols <- c('L', 'abatement_cost')
+region20_dt3[,(cols) := round(.SD,1), .SDcols=cols]
+
 
 
 fwrite(region20_dt3, "./n_policy_box/Data/figures/region_effects.csv")
@@ -413,8 +413,6 @@ fwrite(region20_dt3, "./n_policy_box/Data/figures/region_effects.csv")
 region_eq_dt2[,.(L_diff = mean(L_diff),
               N_fert_diff = mean(N_fert_diff),
               policy_cost = mean(policy_cost)), by = .(NRT, region_eq) ]
-
-
 
 
 
