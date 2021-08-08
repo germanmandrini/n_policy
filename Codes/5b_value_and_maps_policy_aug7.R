@@ -1,9 +1,9 @@
 rm(list=ls())
 
-# setwd('C:/Users/germa/Box Sync/My_Documents') #dell
-# codes_folder <-'C:/Users/germa/Documents'#Dell
-setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+setwd('C:/Users/germa/Box Sync/My_Documents') #dell
+codes_folder <-'C:/Users/germa/Documents'#Dell
+# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
 # setwd('~')#Server
 # codes_folder <-'~' #Server
 

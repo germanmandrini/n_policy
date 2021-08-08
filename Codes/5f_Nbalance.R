@@ -1,9 +1,9 @@
 rm(list=ls())
 
-# setwd('C:/Users/germa/Box Sync/My_Documents') #dell
-# codes_folder <-'C:/Users/germa/Documents'#Dell
-setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
-codes_folder <-'C:/Users/germanm2/Documents'#CPSC
+setwd('C:/Users/germa/Box Sync/My_Documents') #dell
+codes_folder <-'C:/Users/germa/Documents'#Dell
+# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+# codes_folder <-'C:/Users/germanm2/Documents'#CPSC
 # setwd('~')#Server
 # codes_folder <-'~' #Server
 
@@ -136,7 +136,7 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
         xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
-    ggtitle('45 fields (using dynamic rec)'))
+    ggtitle('45 fields (using predicted N rate)'))
 
 # Manu many fields with predicted N rate --------------
 balance_dt <- field_perfomances_dt[policy == 'ratio_5' & NRT == 'dynamic'] %>%
@@ -156,7 +156,7 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
         xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
         geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
         facet_free(region~.)+
-        ggtitle('5000 fields (using dynamic rec)'))
+        ggtitle('5000 fields (using predicted N rate)'))
 
 
 (p <- ggarrange(p1,p2,p3, p4, p5, labels = c("a)","b)", "c)", "d)", "e)"), label.x = 0, ncol = 2, nrow = 3))
