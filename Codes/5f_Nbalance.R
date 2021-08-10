@@ -72,13 +72,14 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
     geom_smooth(method="lm", se=F) +
     theme_bw()+ 
     theme(text=element_text(size=13),
+          plot.title = element_text(size = 13, face = "bold"),
           panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank())+    
     xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)")+
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
-    ggtitle('One trial (0,100,200,320 kg/ha)'))
+    ggtitle('One location (0,100,200,320 kg/ha)'))
 
 # Several trials --------------
 balance_dt <- yc_field_sample_dt[N_fert %in% c(0,100,200,320)]
@@ -90,13 +91,14 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
     geom_smooth(method="lm", se=F) +
     theme_bw()+      
     theme(text=element_text(size=13),
+          plot.title = element_text(size = 13, face = "bold"),
           panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank())+  
     xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
-    ggtitle('45 trials (0,100,200,320 kg/ha)'))
+    ggtitle('45 locations (0,100,200,320 kg/ha)'))
 
 # Several fields with 180 kg/ha --------------
 balance_dt <- yc_field_sample_dt[N_fert %in% c(180)]
@@ -108,13 +110,14 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
     geom_smooth(method="lm", se=F)+
     theme_bw()+ 
     theme(text=element_text(size=13),
+          plot.title = element_text(size = 13, face = "bold"),
           panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank())+     
     xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
-    ggtitle('45 fields (180 kg/ha)'))
+    ggtitle('45 locations (180 kg/ha)'))
 
 
 
@@ -130,13 +133,14 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
     geom_smooth(method="lm", se=F)+
     theme_bw()+      
     theme(text=element_text(size=13),
+          plot.title = element_text(size = 13, face = "bold"),
           panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank())+  
         xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     facet_free(region~.)+
-    ggtitle('45 fields (using predicted N rate)'))
+    ggtitle('45 locations (predicted N rate)'))
 
 # Manu many fields with predicted N rate --------------
 balance_dt <- field_perfomances_dt[policy == 'ratio_5' & NRT == 'dynamic'] %>%
@@ -150,13 +154,14 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
         geom_smooth(method="lm", se=F)+
         theme_bw()+ 
         theme(text=element_text(size=13),
+              plot.title = element_text(size = 13, face = "bold"),
               panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
               panel.background = element_blank())+ 
         xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
         geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
         facet_free(region~.)+
-        ggtitle('5000 fields (using predicted N rate)'))
+        ggtitle('Multiple locations (predicted N rate)'))
 
 
 (p <- ggarrange(p1,p2,p3, p4, p5, labels = c("a)","b)", "c)", "d)", "e)"), label.x = 0, ncol = 2, nrow = 3))

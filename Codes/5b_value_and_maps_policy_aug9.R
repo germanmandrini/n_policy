@@ -13,7 +13,50 @@ source('./Codes_useful/R.libraries.R')
 source('./Codes_useful/gm_functions.R')
 source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 "~/n_policy_git/Codes/parameters.R"
+#-----------------------------------------
 
+get_sd <- function(){
+  field_perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
+  # Make leaching relative to baselevel
+  field_perfomances_dt[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
+  field_perfomances_dt[,policy_val := as.numeric(policy_val)]
+  
+  
+  baselevel_dt <- field_perfomances_dt[NRT == 'dynamic',.SD[policy_val == min(policy_val)], by = .(policy_name)] %>%
+    .[,.(policy_name, region_eq, id_10, id_field, z, L_base = L, Y_base = Y_corn, P_base = P)]
+  
+  
+  field_perfomances_dt <- merge(field_perfomances_dt, baselevel_dt, by = c('policy_name','region_eq', 'id_10', 'id_field', 'z'))
+  field_perfomances_dt[L_base == 0, L_base := 1]
+  field_perfomances_dt[,L_change := round((L / L_base) - 1,3)*100 ]
+  field_perfomances_dt$L_change %>% summary()
+  
+  #---------
+  #Calculate net_balance
+  # perfomances_dt4[,net_balance := P + G]
+  field_perfomances_dt[,policy_cost := P_base - P  - G]
+  field_perfomances_dt[,abatement_cost := policy_cost/(L_base -  L)]
+  field_perfomances_dt[is.na(abatement_cost), abatement_cost := 0]
+  #---------
+  #remove yields modifications of more that 5%
+  field_perfomances_dt[,Y_corn_change := Y_corn/Y_base]
+  field_perfomances_dt[,.N, policy]
+  field_perfomances_dt <- field_perfomances_dt[Y_corn_change >=0.95 & Y_corn_change <= 1.05] #remove yields modifications of more that 5%
+  #---------------------------------------------------------------------------
+  # Some cleaning
+  colsToDelete <- c('Y_base', 'P_base','Y_corn_change')
+  set(field_perfomances_dt,, colsToDelete, NULL)
+  #---------------------------------------------------------------------------
+  #Prepare data for plot
+  
+  field_perfomances_long_dt <- melt(field_perfomances_dt, id.vars = c('policy_name','policy_val', 'region_eq', 'id_10', 'id_field', 'z'), 
+                                    measure.vars = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'))
+  
+  sd_dt <- field_perfomances_long_dt[, .(sd = sd(value)), by = .(variable, policy_name, policy_val)]
+  return(sd_dt)
+}
+
+#----------------------------------------------
 
 # source('./Codes_useful/gm_functions.R')
 if(FALSE){
@@ -195,6 +238,112 @@ percent20_dt[,lb_removed := kg_removed *2.20462]
 percent20_dt[,cost_red_dlr_lb := policy_cost/lb_removed]
 
 #---------------------------------------------------------------------------
+# STATE WITH SD PLOT
+# perfomances_dt4<- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
+perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
+
+plot_dt <- perfomances_dt5[policy_name %in% c('ratio', 'leach', 'bal', 'red') & NRT %in% c('dynamic')] %>%
+  .[,region_eq := 'State']
+
+plot_dt[abatement_cost < 0,abatement_cost := 0 ] #the graph looks ugly
+
+
+plot_dt <- plot_dt[!(policy_name == 'red' & !policy_val %in% c(0,4,10,14,18,20,22,24))]
+
+plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'region_eq'), 
+                     measure.vars = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'))
+sd_dt <- get_sd()
+
+plot_dt_long <- merge(plot_dt_long, sd_dt, by = c('policy_name','policy_val', 'variable'))
+plot_dt_long[,sd_pos := value + sd]
+plot_dt_long[,sd_neg := value - sd]
+
+breaks_fun <- function(x) {
+  if (max(x) > 20) {
+    seq(0, max(x), 10)
+  } else if(max(x) > 10) {
+    seq(0, max(x), 5)
+  } else{
+    seq(0, max(x), 1)
+  }
+}
+
+
+# plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'),
+#                                  labels = c(expression("N_fert (kg " * ha^"-1"* ")"), 
+#                                             expression("Leaching "*"(% change)"),
+#                                             expression("Profits ($ " * ha^"-1" * ")"),
+#                                             expression("Gov_col ($ " * ha^"-1" * ")"),
+#                                             expression("Pol_cost ($ " * ha^"-1" * ")")))]
+# 
+# plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
+#                                  labels = c(expression("N:Corn price ratio \n"*"(kg of N / kg of corn)"),
+#                                             expression("Leaching fee ($ " * kg^"-1" * ha^"-1"*")"),
+#                                             expression("Balance fee ($ " * kg^"-1" * ha^"-1"*")"),
+#                                             expression("Volundary reduction (%"*")")))]
+
+
+# https://stackoverflow.com/questions/16490331/combining-new-lines-and-italics-in-facet-labels-with-ggplot2
+
+plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'))]
+levels(plot_dt_long$y_labels) <- 
+  c("atop(textstyle('N fertilizer'),'(kg  '* ha^-1*')')", 
+    "atop(textstyle('Leaching'),'(% change)')",
+    "atop(textstyle('Profits'),'($  '* ha^-1*')')",
+    "atop(textstyle('Gov. colllections'),'($  '* ha^-1*')')",
+    "atop(textstyle('Policy cost'),'($  '* ha^-1*')')")
+
+plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'))]
+levels(plot_dt_long$x_labels) <- 
+  c("atop(textstyle('N:Corn price ratio'),'(kg of N / kg of corn)')", 
+    "atop(textstyle('Leaching fee'),'($  '* kg^-1* ha^-1*')')",
+    "atop(textstyle('Balance fee'),'($  '* kg^-1* ha^-1*')')",
+    "atop(textstyle('Voluntary reduction'),'(%)')")
+
+
+
+
+
+
+(p <- ggplot(data = plot_dt_long) +
+    geom_line(aes(x = policy_val, y =  value, color = x_labels), size = 1.2, linetype = 'solid')+
+    geom_line(aes(x = policy_val, y =  sd_pos, color = x_labels), size = 0.8, linetype = 'dotted')+
+    geom_line(aes(x = policy_val, y =  sd_neg, color = x_labels), size = 0.8, linetype = 'dotted')+
+    # geom_line(aes(x = policy_val, y =  -sd, linetype = 'dashed', color = x_labels), size = 1.2)+
+    # scale_linetype_manual(values = c("dashed", "dashed", "dashed", "solid"))+
+    facet_free(y_labels~x_labels,
+               labeller = label_parsed,
+               scales="free",
+               switch = 'both') +
+    theme_bw(base_size = 15)+
+    scale_x_continuous(breaks = breaks_fun) + 
+    theme(# panel.grid = element_blank(), 
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(), 
+      strip.background.x = element_blank(),
+      strip.placement.x = "outside",
+      strip.background.y = element_blank(),
+      strip.placement.y = "outside",
+      legend.title = element_blank(),
+      # panel.spacing = unit(1.5, "lines"),
+      legend.text=element_text(size=12),
+      axis.title.x=element_blank(),
+      axis.title.y=element_blank(),
+      legend.position = "none",
+      strip.text = element_text(size = 11),
+      plot.margin =  unit(c(1,1,1,1), "lines")
+    ))
+
+
+ggsave(plot = p, 
+       filename = "./n_policy_box/Data/figures/policies_multiplot_region_eq.pdf", width = 890/300*3, height = 999/300*3,
+       units = 'in')
+
+ggsave(plot = p, 
+       filename = "./n_policy_box/Data/figures/policies_multiplot_region_eq.png", width = 890/300*3, height = 999/300*3,
+       units = 'in')
+#---------------------------------------------------------------------------
 # REGION LEVEL PLOT 
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
@@ -311,122 +460,7 @@ ggsave(plot = p,
 #============================================================================================================
 #---------------------------------------------------------------------------
 # Multiplot but scatter
-field_perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
-# Make leaching relative to baselevel
-field_perfomances_dt[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
-field_perfomances_dt[,policy_val := as.numeric(policy_val)]
 
-
-baselevel_dt <- field_perfomances_dt[NRT == 'dynamic',.SD[policy_val == min(policy_val)], by = .(policy_name)] %>%
-  .[,.(policy_name, region_eq, id_10, id_field, z, L_base = L, Y_base = Y_corn, P_base = P)]
-
-
-field_perfomances_dt <- merge(field_perfomances_dt, baselevel_dt, by = c('policy_name','region_eq', 'id_10', 'id_field', 'z'))
-field_perfomances_dt[L_base == 0, L_base := 1]
-field_perfomances_dt[,L_change := round((L / L_base) - 1,3)*100 ]
-field_perfomances_dt$L_change %>% summary()
-
-#---------
-#Calculate net_balance
-# perfomances_dt4[,net_balance := P + G]
-field_perfomances_dt[,policy_cost := P_base - P  - G]
-field_perfomances_dt[,abatement_cost := policy_cost/(L_base -  L)]
-field_perfomances_dt[is.na(abatement_cost), abatement_cost := 0]
-#---------
-#remove yields modifications of more that 5%
-field_perfomances_dt[,Y_corn_change := Y_corn/Y_base]
-field_perfomances_dt[,.N, policy]
-field_perfomances_dt <- field_perfomances_dt[Y_corn_change >=0.95 & Y_corn_change <= 1.05] #remove yields modifications of more that 5%
-#---------------------------------------------------------------------------
-# Some cleaning
-colsToDelete <- c('Y_base', 'P_base','Y_corn_change')
-set(field_perfomances_dt,, colsToDelete, NULL)
-#---------------------------------------------------------------------------
-#Prepare data for plot
-plot_dt <- field_perfomances_dt[!(policy_name == 'red' & !policy_val %in% c(0,4,10,14,18,20,22,24))]
-
-plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'region_eq', 'id_10', 'id_field', 'z'), 
-                     measure.vars = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'))
-
-plot_dt_long <- plot_dt_long[sample(1:.N, 10000)]
-plot_dt_long[, .(sd = sd(value)), by = .(variable, policy_name, policy_val)]
-
-plot_dt_long[variable == 'L_change' & policy_name == 'ratio' & policy_val == 7]$value %>% summary()
-
-breaks_fun <- function(x) {
-  if (max(x) > 20) {
-    seq(0, max(x), 10)
-  } else if(max(x) > 10) {
-    seq(0, max(x), 5)
-  } else{
-    seq(0, max(x), 1)
-  }
-}
-
-
-# plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'),
-#                                  labels = c(expression("N_fert (kg " * ha^"-1"* ")"), 
-#                                             expression("Leaching "*"(% change)"),
-#                                             expression("Profits ($ " * ha^"-1" * ")"),
-#                                             expression("Gov_col ($ " * ha^"-1" * ")"),
-#                                             expression("Pol_cost ($ " * ha^"-1" * ")")))]
-# 
-# plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
-#                                  labels = c(expression("N:Corn price ratio \n"*"(kg of N / kg of corn)"),
-#                                             expression("Leaching fee ($ " * kg^"-1" * ha^"-1"*")"),
-#                                             expression("Balance fee ($ " * kg^"-1" * ha^"-1"*")"),
-#                                             expression("Volundary reduction (%"*")")))]
-
-
-# https://stackoverflow.com/questions/16490331/combining-new-lines-and-italics-in-facet-labels-with-ggplot2
-
-plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'))]
-levels(plot_dt_long$y_labels) <- 
-  c("atop(textstyle('N fertilizer'),'(kg  '* ha^-1*')')", 
-    "atop(textstyle('Leaching'),'(% change)')",
-    "atop(textstyle('Profits'),'($  '* ha^-1*')')",
-    "atop(textstyle('Gov. colllections'),'($  '* ha^-1*')')",
-    "atop(textstyle('Policy cost'),'($  '* ha^-1*')')")
-
-plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'))]
-levels(plot_dt_long$x_labels) <- 
-  c("atop(textstyle('N:Corn price ratio'),'(kg of N / kg of corn)')", 
-    "atop(textstyle('Leaching fee'),'($  '* kg^-1* ha^-1*')')",
-    "atop(textstyle('Balance fee'),'($  '* kg^-1* ha^-1*')')",
-    "atop(textstyle('Voluntary reduction'),'(%)')")
-
-
-
-
-
-
-(p <- ggplot(data = plot_dt_long) +
-    geom_smooth(aes(x = policy_val, y =  value), size = 1.2)+
-    # stat_smooth(method="loess", span=0.1, se=TRUE, aes(fill=type), alpha=0.3)+
-    # scale_linetype_manual(values = c("dashed", "dashed", "dashed", "solid"))+
-    facet_free(y_labels~x_labels,
-               labeller = label_parsed,
-               scales="free",
-               switch = 'both') +
-    theme_bw(base_size = 15)+
-    scale_x_continuous(breaks = breaks_fun) + 
-    theme(# panel.grid = element_blank(), 
-      panel.grid.major = element_blank(), 
-      panel.grid.minor = element_blank(),
-      panel.background = element_blank(), 
-      strip.background.x = element_blank(),
-      strip.placement.x = "outside",
-      strip.background.y = element_blank(),
-      strip.placement.y = "outside",
-      legend.title = element_blank(),
-      # panel.spacing = unit(1.5, "lines"),
-      legend.text=element_text(size=12),
-      axis.title.x=element_blank(),
-      axis.title.y=element_blank(),
-      legend.position = "bottom",
-      strip.text = element_text(size = 11),
-      plot.margin =  unit(c(1,1,1,1), "lines")
-    ))
 
 #============================================================================================================
 # REGION LEVEL PLOT (slides defense)
