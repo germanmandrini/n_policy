@@ -337,11 +337,11 @@ levels(plot_dt_long$x_labels) <-
 
 
 ggsave(plot = p, 
-       filename = "./n_policy_box/Data/figures/policies_multiplot_region_eq.pdf", width = 890/300*3, height = 999/300*3,
+       filename = "./n_policy_box/Data/figures/policies_multiplot_sd.pdf", width = 890/300*3, height = 999/300*3,
        units = 'in')
 
 ggsave(plot = p, 
-       filename = "./n_policy_box/Data/figures/policies_multiplot_region_eq.png", width = 890/300*3, height = 999/300*3,
+       filename = "./n_policy_box/Data/figures/policies_multiplot_sd.png", width = 890/300*3, height = 999/300*3,
        units = 'in')
 #---------------------------------------------------------------------------
 # REGION LEVEL PLOT 
