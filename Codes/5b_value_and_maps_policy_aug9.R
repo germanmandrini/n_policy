@@ -306,9 +306,10 @@ levels(plot_dt_long$x_labels) <-
 
 
 (p <- ggplot(data = plot_dt_long) +
-    geom_line(aes(x = policy_val, y =  value, color = x_labels), size = 1.2, linetype = 'solid')+
-    geom_line(aes(x = policy_val, y =  sd_pos, color = x_labels), size = 0.8, linetype = 'dotted')+
-    geom_line(aes(x = policy_val, y =  sd_neg, color = x_labels), size = 0.8, linetype = 'dotted')+
+    geom_line(aes(x = policy_val, y =  value, color = x_labels), size = 1.3, linetype = 'solid')+
+    geom_line(aes(x = policy_val, y =  sd_pos, color = x_labels), size = 0.4, linetype = 'dotted')+
+    geom_line(aes(x = policy_val, y =  sd_neg, color = x_labels), size = 0.4, linetype = 'dotted')+
+    geom_ribbon(aes(x = policy_val, ymin = sd_neg, ymax = sd_pos, fill = x_labels), alpha = 0.2)+
     # geom_line(aes(x = policy_val, y =  -sd, linetype = 'dashed', color = x_labels), size = 1.2)+
     # scale_linetype_manual(values = c("dashed", "dashed", "dashed", "solid"))+
     facet_free(y_labels~x_labels,
