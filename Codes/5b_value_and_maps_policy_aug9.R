@@ -15,13 +15,14 @@ source(paste0(codes_folder, '/n_policy_git/Codes/parameters.R'))
 "~/n_policy_git/Codes/parameters.R"
 #-----------------------------------------
 
-get_sd <- function(){
+get_shade_fieldyear <- function(){
   field_perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
-  # Make leaching relative to baselevel
+  
+  # AGGREGATE THE DATA TO FIELD LEVEL (z is out)
   field_perfomances_dt[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
   field_perfomances_dt[,policy_val := as.numeric(policy_val)]
-  
-  
+
+  # Make leaching relative to baselevel
   baselevel_dt <- field_perfomances_dt[NRT == 'dynamic',.SD[policy_val == min(policy_val)], by = .(policy_name)] %>%
     .[,.(policy_name, region_eq, id_10, id_field, z, L_base = L, Y_base = Y_corn, P_base = P)]
   
@@ -52,10 +53,65 @@ get_sd <- function(){
   field_perfomances_long_dt <- melt(field_perfomances_dt, id.vars = c('policy_name','policy_val', 'region_eq', 'id_10', 'id_field', 'z'), 
                                     measure.vars = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'))
   
-  sd_dt <- field_perfomances_long_dt[, .(sd = sd(value)), by = .(variable, policy_name, policy_val)]
+  sd_dt <- field_perfomances_long_dt[, .(sd = sd(value), 
+                                         q10 = quantile(value, 0.05), 
+                                         q90 = quantile(value, 0.95)), by = .(variable, policy_name, policy_val)]
   return(sd_dt)
 }
 
+get_shade_field <- function(){
+  field_perfomances_dt <- readRDS("./n_policy_box/Data/files_rds/field_perfomances_dt.rds")
+  
+  # AGGREGATE THE DATA TO FIELD LEVEL (z is out)
+  field_perfomances_dt[, c("policy_name", "policy_val") := tstrsplit(policy, "_", fixed=TRUE)]
+  field_perfomances_dt[,policy_val := as.numeric(policy_val)]
+  
+  do_not_aggregate = c('policy', 'policy_name', 'policy_val','id_10', 'id_field','region_eq','NRT')
+  
+  field_perfomances_dt2 <- field_perfomances_dt[,.(Y_corn = mean(Y_corn), 
+                                                   L = mean(L),
+                                                   N_fert = mean(N_fert),
+                                                   P = mean(P),
+                                                   G = mean(G)), by = do_not_aggregate]
+  
+  
+  # Make leaching relative to baselevel
+  baselevel_dt <- field_perfomances_dt2[NRT == 'dynamic',.SD[policy_val == min(policy_val)], by = .(policy_name)] %>%
+    .[,.(policy_name, region_eq, id_10, id_field, L_base = L, Y_base = Y_corn, P_base = P)]
+  
+  
+  field_perfomances_dt2 <- merge(field_perfomances_dt2, baselevel_dt, by = c('policy_name','region_eq', 'id_10', 'id_field'))
+  field_perfomances_dt2[L_base == 0, L_base := 1]
+  field_perfomances_dt2[,L_change := round((L / L_base) - 1,3)*100 ]
+  field_perfomances_dt2$L_change %>% summary()
+  
+  #---------
+  #Calculate net_balance
+  # perfomances_dt4[,net_balance := P + G]
+  field_perfomances_dt2[,policy_cost := P_base - P  - G]
+  field_perfomances_dt2[,abatement_cost := policy_cost/(L_base -  L)]
+  field_perfomances_dt2[is.na(abatement_cost), abatement_cost := 0]
+  #---------
+  #remove yields modifications of more that 5%
+  field_perfomances_dt2[,Y_corn_change := Y_corn/Y_base]
+  field_perfomances_dt2[,.N, policy]
+  field_perfomances_dt2 <- field_perfomances_dt2[Y_corn_change >=0.95 & Y_corn_change <= 1.05] #remove yields modifications of more that 5%
+  #---------------------------------------------------------------------------
+  # Some cleaning
+  colsToDelete <- c('Y_base', 'P_base','Y_corn_change')
+  set(field_perfomances_dt2,, colsToDelete, NULL)
+  #---------------------------------------------------------------------------
+  #Prepare data for plot
+  
+  field_perfomances_long_dt <- melt(field_perfomances_dt2,
+                                    id.vars = c('policy_name','policy_val', 'region_eq', 'id_10', 'id_field'), 
+                                    measure.vars = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'))
+  
+  sd_dt <- field_perfomances_long_dt[, .(sd = sd(value), 
+                                         q10 = quantile(value, 0.05), 
+                                         q90 = quantile(value, 0.95)), by = .(variable, policy_name, policy_val)]
+  return(sd_dt)
+}
 #----------------------------------------------
 
 # source('./Codes_useful/gm_functions.R')
@@ -252,9 +308,10 @@ plot_dt <- plot_dt[!(policy_name == 'red' & !policy_val %in% c(0,4,10,14,18,20,2
 
 plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'region_eq'), 
                      measure.vars = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'))
-sd_dt <- get_sd()
 
-plot_dt_long <- merge(plot_dt_long, sd_dt, by = c('policy_name','policy_val', 'variable'))
+shade_dt <- get_shade_field()
+
+plot_dt_long <- merge(plot_dt_long, shade_dt, by = c('policy_name','policy_val', 'variable'))
 plot_dt_long[,sd_pos := value + sd]
 plot_dt_long[,sd_neg := value - sd]
 
@@ -307,9 +364,9 @@ levels(plot_dt_long$x_labels) <-
 
 (p <- ggplot(data = plot_dt_long) +
     geom_line(aes(x = policy_val, y =  value, color = x_labels), size = 1.3, linetype = 'solid')+
-    geom_line(aes(x = policy_val, y =  sd_pos, color = x_labels), size = 0.4, linetype = 'dotted')+
-    geom_line(aes(x = policy_val, y =  sd_neg, color = x_labels), size = 0.4, linetype = 'dotted')+
-    geom_ribbon(aes(x = policy_val, ymin = sd_neg, ymax = sd_pos, fill = x_labels), alpha = 0.2)+
+    geom_line(aes(x = policy_val, y =  q90, color = x_labels), size = 0.4, linetype = 'dotted')+
+    geom_line(aes(x = policy_val, y =  q10, color = x_labels), size = 0.4, linetype = 'dotted')+
+    geom_ribbon(aes(x = policy_val, ymin = q10, ymax = q90, fill = x_labels), alpha = 0.2)+
     # geom_line(aes(x = policy_val, y =  -sd, linetype = 'dashed', color = x_labels), size = 1.2)+
     # scale_linetype_manual(values = c("dashed", "dashed", "dashed", "solid"))+
     facet_free(y_labels~x_labels,
@@ -338,11 +395,11 @@ levels(plot_dt_long$x_labels) <-
 
 
 ggsave(plot = p, 
-       filename = "./n_policy_box/Data/figures/policies_multiplot_sd.pdf", width = 890/300*3, height = 999/300*3,
+       filename = "./n_policy_box/Data/figures/policies_multiplot_shade.pdf", width = 890/300*3, height = 999/300*3,
        units = 'in')
 
 ggsave(plot = p, 
-       filename = "./n_policy_box/Data/figures/policies_multiplot_sd.png", width = 890/300*3, height = 999/300*3,
+       filename = "./n_policy_box/Data/figures/policies_multiplot_shade.png", width = 890/300*3, height = 999/300*3,
        units = 'in')
 #---------------------------------------------------------------------------
 # REGION LEVEL PLOT 
