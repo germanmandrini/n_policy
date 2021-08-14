@@ -98,12 +98,10 @@ field_perfomances_dt2 <- merge(field_perfomances_dt2[policy != 'ratio_5'], basel
 #-----
 # Add labels for policies
 field_perfomances_dt2[,policy_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
-                                 labels = c("Price ratio",
-                                            "Leaching fee",
-                                            "Balance fee",
-                                            "Vol. reduction"))]
-
-
+                                 labels = c("N:Corn price ratio", 
+                                            "N Leaching fee",
+                                            "N Balance fee",
+                                            "Voluntary reduction"))]
 
 #==============================================================================================================
 # Fields effects for main section
@@ -113,17 +111,22 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
   geom_point(size = 0.4)+ #theme(aspect.ratio=1) + #coord_fixed() + 
   geom_smooth(color = 'blue', formula = y~x, method = 'lm')+
   geom_abline(linetype = 'dashed') + ylim(700, 2000)+ xlim(700, 2000) +
-  theme_bw()+
+  theme_bw(base_size = 15)+
   theme(#axis.text=element_text(size=12),
         #axis.title=element_text(size=14),
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
-        text=element_text(size=15),
+        # panel.border = element_rect(colour = "black", fill = NA),
+        strip.background.x = element_blank(),
+        axis.title = element_text(face = "plain", size = 13),
+        strip.text.x = element_text(size = 13, face = "plain"),
+        plot.margin =  unit(c(1,1,1,1), "lines"),
+        # text=element_text(size=15),
         legend.position = "none")+
   geom_text(data = reg_dt, aes(x = 700, y = 800, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
-  xlab('Baselevel profits ($/ha)')+
-  ylab('After policy income ($/ha)')+
+  xlab('Base-level farm income ($/ha)')+
+  ylab('Farm income ($/ha)')+
   # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
   facet_free(.~policy_labels, scale = 'free'))
 
@@ -135,18 +138,23 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
   geom_point(size = 0.4)+ #theme(aspect.ratio=1) + #coord_fixed() + 
   geom_smooth(color = 'blue', formula = y~x, method = 'lm')+
   geom_abline(linetype = 'dashed') +  ylim(0, 136)+ xlim(0, 136) +
-  theme_bw()+
+  theme_bw(base_size = 15)+
   theme(#axis.text=element_text(size=12),
-        #axis.title=element_text(size=14),
-        panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        text=element_text(size=15),
-        legend.position = "none")+
+    #axis.title=element_text(size=14),
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(), 
+    # panel.border = element_rect(colour = "black", fill = NA),
+    strip.background.x = element_blank(),
+    axis.title = element_text(face = "plain", size = 13),
+    strip.text.x = element_text(size = 13, face = "plain"),
+    plot.margin =  unit(c(1,1,1,1), "lines"),
+    # text=element_text(size=15),
+    legend.position = "none")+
     # geom_text(data=eq,aes(x = 25, y = 300,label=V1), parse = TRUE, inherit.aes=FALSE) + facet_grid(group~.)
   geom_text(data = reg_dt, aes(x = 0, y = 120, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
-  xlab('Baselevel N leaching (kg/ha)')+
-  ylab('After policy N leaching (kg/ha)')+
+  xlab('Base-level N leaching (kg/ha)')+
+  ylab('N leaching (kg/ha)')+
   # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
   facet_free(.~policy_labels, scale = 'free'))
 
@@ -164,16 +172,21 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
     # geom_smooth(color = 'black')+
   # geom_histogram(aes(x = P_base))+
   # geom_abline() +  ylim(0, 100)+ xlim(0, 100) +
-  theme_bw(base_size = 15)+
-  theme(#axis.text=element_text(size=12),
-        #axis.title=element_text(size=14),
-        panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        text=element_text(size=15),
-        legend.position = "none")+
+    theme_bw(base_size = 15)+
+    theme(#axis.text=element_text(size=12),
+      #axis.title=element_text(size=14),
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(), 
+      # panel.border = element_rect(colour = "black", fill = NA),
+      strip.background.x = element_blank(),
+      axis.title = element_text(face = "plain", size = 13),
+      strip.text.x = element_text(size = 13, face = "plain"),
+      plot.margin =  unit(c(1,1,1,1), "lines"),
+      # text=element_text(size=15),
+      legend.position = "none")+
   geom_text(data = reg_dt, aes(x = 5, y = -800, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
-  xlab('Baselevel N leaching (kg/ha)')+
+  xlab('Base-level N leaching (kg/ha)')+
   ylab('Profits difference ($/ha)')+
   # geom_text(aes(x= 1000,y=2000,label='(a)'),size=8,family="serif")+
   facet_free(.~policy_labels, scale = 'free'))

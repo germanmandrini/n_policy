@@ -345,7 +345,7 @@ breaks_fun <- function(x) {
 plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'))]
 levels(plot_dt_long$y_labels) <- 
   c("atop(textstyle('N fertilizer'),'(kg  '* ha^-1*')')", 
-    "atop(textstyle('Leaching'),'(% change)')",
+    "atop(textstyle('N Leaching'),'(% change)')",
     "atop(textstyle('Profits'),'($  '* ha^-1*')')",
     "atop(textstyle('Gov. colllections'),'($  '* ha^-1*')')",
     "atop(textstyle('Policy cost'),'($  '* ha^-1*')')")
@@ -353,8 +353,8 @@ levels(plot_dt_long$y_labels) <-
 plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'))]
 levels(plot_dt_long$x_labels) <- 
   c("atop(textstyle('N:Corn price ratio'),'(kg of N / kg of corn)')", 
-    "atop(textstyle('Leaching fee'),'($  '* kg^-1* ha^-1*')')",
-    "atop(textstyle('Balance fee'),'($  '* kg^-1* ha^-1*')')",
+    "atop(textstyle('N Leaching fee'),'($  '* kg^-1* ha^-1*')')",
+    "atop(textstyle('N Balance fee'),'($  '* kg^-1* ha^-1*')')",
     "atop(textstyle('Voluntary reduction'),'(%)')")
 
 
@@ -418,7 +418,8 @@ plot_dt <- perfomances_dt5[policy_name %in% c('ratio', 'leach', 'bal', 'red') & 
 
 shade_dt <- get_shade_field()
 
-plot_dt <- merge(plot_dt, shade_dt[variable == 'policy_cost'], by = c('policy_name','policy_val')) #OJO: only shade for policy cost
+plot_dt <- merge(plot_dt, shade_dt[variable == 'policy_cost', .(policy_name, policy_val, q10_pc = q10, q90_pc = q90)],
+                 by = c('policy_name','policy_val')) #OJO: only shade for policy cost
 
 
 breaks_fun <- function(x) {
@@ -448,62 +449,56 @@ breaks_fun <- function(x) {
 
 # https://stackoverflow.com/questions/16490331/combining-new-lines-and-italics-in-facet-labels-with-ggplot2
 
-plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'))]
-levels(plot_dt_long$y_labels) <- 
-  c("atop(textstyle('N fertilizer'),'(kg  '* ha^-1*')')", 
-    "atop(textstyle('Leaching'),'(% change)')",
-    "atop(textstyle('Profits'),'($  '* ha^-1*')')",
-    "atop(textstyle('Gov. colllections'),'($  '* ha^-1*')')",
-    "atop(textstyle('Policy cost'),'($  '* ha^-1*')')")
-
-plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'))]
-levels(plot_dt_long$x_labels) <- 
-  c("atop(textstyle('N:Corn price ratio'),'(kg of N / kg of corn)')", 
-    "atop(textstyle('Leaching fee'),'($  '* kg^-1* ha^-1*')')",
-    "atop(textstyle('Balance fee'),'($  '* kg^-1* ha^-1*')')",
-    "atop(textstyle('Voluntary reduction'),'(%)')")
-
+plot_dt[,panel_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'))]
+levels(plot_dt$panel_labels) <- 
+  c("atop(textstyle('N:Corn price ratio'))", 
+    "atop(textstyle('N Leaching fee'))",
+    "atop(textstyle('N Balance fee'))",
+    "atop(textstyle('Voluntary reduction'))")
 
 
 
 (p <- ggplot(data = plot_dt) +
-   geom_line(aes(x = L_change, y =  policy_cost , color = policy_name), size = 1.3, linetype = 'solid')+
-   # geom_line(aes(x = policy_val, y =  q90, color = x_labels), size = 0.4, linetype = 'dotted')+
-   # geom_line(aes(x = policy_val, y =  q10, color = x_labels), size = 0.4, linetype = 'dotted')+
-   # geom_ribbon(aes(x = policy_val, ymin = q10, ymax = q90, fill = x_labels), alpha = 0.2)+
+   geom_line(aes(x = -L_change, y =  policy_cost , color = policy_name), size = 1.3, linetype = 'solid') +
+   geom_line(aes(x = -L_change, y =  q90_pc, color = policy_name), size = 0.4, linetype = 'dotted')+
+   geom_line(aes(x = -L_change, y =  q10_pc, color = policy_name), size = 0.4, linetype = 'dotted')+
+   geom_ribbon(aes(x = -L_change, ymin = q10_pc, ymax = q90_pc, fill = policy_name), alpha = 0.2)+
    # geom_line(aes(x = policy_val, y =  -sd, linetype = 'dashed', color = x_labels), size = 1.2)+
    # scale_linetype_manual(values = c("dashed", "dashed", "dashed", "solid"))+
-   facet_free(y_labels~x_labels,
+   facet_free(.~panel_labels,
               labeller = label_parsed,
-              scales="free",
-              switch = 'both') +
+              scales="fixed") +
+    xlab(expression('N Leaching (% change)'))+
+    ylab(expression("Policy cost ($ " * ha^"-1" * ")"))+
    theme_bw(base_size = 15)+
-   scale_x_continuous(breaks = breaks_fun) + 
+   # scale_x_continuous(breaks = breaks_fun) + 
    theme(# panel.grid = element_blank(), 
      panel.grid.major = element_blank(), 
      panel.grid.minor = element_blank(),
      panel.background = element_blank(), 
+
+     panel.border = element_rect(colour = "black", fill = NA),
      strip.background.x = element_blank(),
-     strip.placement.x = "outside",
-     strip.background.y = element_blank(),
-     strip.placement.y = "outside",
-     legend.title = element_blank(),
+     axis.title = element_text(face = "plain", size = 11),
+     # strip.placement.x = "outside",
+     # strip.background.y = element_blank(),
+     # strip.placement.y = "outside",
+     # legend.title = element_blank(),
      # panel.spacing = unit(1.5, "lines"),
-     legend.text=element_text(size=12),
-     axis.title.x=element_blank(),
-     axis.title.y=element_blank(),
+     # legend.text=element_text(size=12),
+     # axis.title.x=element_blank(),
+     # axis.title.y=element_blank(),
      legend.position = "none",
-     strip.text = element_text(size = 11),
+     strip.text.x = element_text(size = 13, face = "bold"),
      plot.margin =  unit(c(1,1,1,1), "lines")
    ))
 
 
 ggsave(plot = p, 
-       filename = "./n_policy_box/Data/figures/policies_multiplot_shade.pdf", width = 890/300*3, height = 999/300*3,
+       filename = "./n_policy_box/Data/figures/policy_cost_shade.pdf", width = 800/300*3, height = 310/300*3,
        units = 'in')
-
 ggsave(plot = p, 
-       filename = "./n_policy_box/Data/figures/policies_multiplot_shade.png", width = 890/300*3, height = 999/300*3,
+       filename = "./n_policy_box/Data/figures/policy_cost_shade.png", width = 800/300*3, height = 310/300*3,
        units = 'in')
 
 

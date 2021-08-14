@@ -32,27 +32,38 @@ plot_dt[,policy_labels := factor(policy_name,
                                  labels = c("Price ratio", "Leaching fee","Balance fee",
                                             "Vol. reduction"))]
 
+plot_dt[,policy_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'))]
+levels(plot_dt$policy_labels) <- 
+  c("N:Corn price ratio", 
+    "N Leaching fee",
+    "N Balance fee",
+    "Voluntary reduction")
+
 #In relative L reduction
 (p1 <- ggplot(data = plot_dt) +
   geom_line(aes(x = -L_change, y =  policy_cost , color = policy_labels), size = 1)+
-  xlab('N Leaching reduction (%)')+
-  ylab(expression("Pol_cost ($ " * ha^"-1" * ")"))+
+    xlab(expression('Leaching (% change)'))+
+    ylab(expression("Policy cost ($ " * ha^"-1" * ")"))+
   theme_bw()+
   theme(legend.position = 'bottom',
      text=element_text(size=13),
      panel.grid.major = element_blank(), 
      panel.grid.minor = element_blank(),
-     panel.background = element_blank()
-     # axis.title=element_blank(size=12)
+     panel.background = element_blank(),
+     panel.border = element_rect(colour = "black", fill = NA),
+     strip.background.x = element_blank(),
+     axis.title = element_text(face = "plain", size = 11),
+     strip.text.x = element_text(size = 13, face = "plain"),
+     plot.margin =  unit(c(1,1,1,1), "lines")
    )+
    guides(color=guide_legend(title="Policy:"))+
   facet_free(~region_eq))
 
 ggsave(plot = p1, 
-       filename = "./n_policy_box/Data/figures/policy_cost.pdf", width = 800/300*3, height = 310/300*3,
+       filename = "./n_policy_box/Data/figures/policy_cost_regions.pdf", width = 800/300*3, height = 310/300*3,
        units = 'in')
 ggsave(plot = p1, 
-       filename = "./n_policy_box/Data/figures/policy_cost.png", width = 800/300*3, height = 310/300*3,
+       filename = "./n_policy_box/Data/figures/policy_cost_regions.png", width = 800/300*3, height = 310/300*3,
        units = 'in')
 
 
