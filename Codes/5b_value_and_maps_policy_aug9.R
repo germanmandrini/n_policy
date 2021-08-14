@@ -402,6 +402,112 @@ ggsave(plot = p,
        filename = "./n_policy_box/Data/figures/policies_multiplot_shade.png", width = 890/300*3, height = 999/300*3,
        units = 'in')
 #---------------------------------------------------------------------------
+# Tradeoff plot at state level
+perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
+
+plot_dt <- perfomances_dt5[policy_name %in% c('ratio', 'leach', 'bal', 'red') & NRT %in% c('dynamic')] %>%
+  .[,region_eq := 'State']
+
+# plot_dt[abatement_cost < 0,abatement_cost := 0 ] #the graph looks ugly
+
+
+# plot_dt <- plot_dt[!(policy_name == 'red' & !policy_val %in% c(0,4,10,14,18,20,22,24))]
+
+# plot_dt_long <- melt(plot_dt, id.vars = c('policy_name','policy_val', 'region_eq'), 
+#                      measure.vars = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'))
+
+shade_dt <- get_shade_field()
+
+plot_dt <- merge(plot_dt, shade_dt[variable == 'policy_cost'], by = c('policy_name','policy_val')) #OJO: only shade for policy cost
+
+
+breaks_fun <- function(x) {
+  if (max(x) > 20) {
+    seq(0, max(x), 10)
+  } else if(max(x) > 10) {
+    seq(0, max(x), 5)
+  } else{
+    seq(0, max(x), 1)
+  }
+}
+
+
+# plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'),
+#                                  labels = c(expression("N_fert (kg " * ha^"-1"* ")"), 
+#                                             expression("Leaching "*"(% change)"),
+#                                             expression("Profits ($ " * ha^"-1" * ")"),
+#                                             expression("Gov_col ($ " * ha^"-1" * ")"),
+#                                             expression("Pol_cost ($ " * ha^"-1" * ")")))]
+# 
+# plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
+#                                  labels = c(expression("N:Corn price ratio \n"*"(kg of N / kg of corn)"),
+#                                             expression("Leaching fee ($ " * kg^"-1" * ha^"-1"*")"),
+#                                             expression("Balance fee ($ " * kg^"-1" * ha^"-1"*")"),
+#                                             expression("Volundary reduction (%"*")")))]
+
+
+# https://stackoverflow.com/questions/16490331/combining-new-lines-and-italics-in-facet-labels-with-ggplot2
+
+plot_dt_long[,y_labels := factor(variable, levels = c('N_fert', 'L_change', 'P', 'G', 'policy_cost'))]
+levels(plot_dt_long$y_labels) <- 
+  c("atop(textstyle('N fertilizer'),'(kg  '* ha^-1*')')", 
+    "atop(textstyle('Leaching'),'(% change)')",
+    "atop(textstyle('Profits'),'($  '* ha^-1*')')",
+    "atop(textstyle('Gov. colllections'),'($  '* ha^-1*')')",
+    "atop(textstyle('Policy cost'),'($  '* ha^-1*')')")
+
+plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'))]
+levels(plot_dt_long$x_labels) <- 
+  c("atop(textstyle('N:Corn price ratio'),'(kg of N / kg of corn)')", 
+    "atop(textstyle('Leaching fee'),'($  '* kg^-1* ha^-1*')')",
+    "atop(textstyle('Balance fee'),'($  '* kg^-1* ha^-1*')')",
+    "atop(textstyle('Voluntary reduction'),'(%)')")
+
+
+
+
+(p <- ggplot(data = plot_dt) +
+   geom_line(aes(x = L_change, y =  policy_cost , color = policy_name), size = 1.3, linetype = 'solid')+
+   # geom_line(aes(x = policy_val, y =  q90, color = x_labels), size = 0.4, linetype = 'dotted')+
+   # geom_line(aes(x = policy_val, y =  q10, color = x_labels), size = 0.4, linetype = 'dotted')+
+   # geom_ribbon(aes(x = policy_val, ymin = q10, ymax = q90, fill = x_labels), alpha = 0.2)+
+   # geom_line(aes(x = policy_val, y =  -sd, linetype = 'dashed', color = x_labels), size = 1.2)+
+   # scale_linetype_manual(values = c("dashed", "dashed", "dashed", "solid"))+
+   facet_free(y_labels~x_labels,
+              labeller = label_parsed,
+              scales="free",
+              switch = 'both') +
+   theme_bw(base_size = 15)+
+   scale_x_continuous(breaks = breaks_fun) + 
+   theme(# panel.grid = element_blank(), 
+     panel.grid.major = element_blank(), 
+     panel.grid.minor = element_blank(),
+     panel.background = element_blank(), 
+     strip.background.x = element_blank(),
+     strip.placement.x = "outside",
+     strip.background.y = element_blank(),
+     strip.placement.y = "outside",
+     legend.title = element_blank(),
+     # panel.spacing = unit(1.5, "lines"),
+     legend.text=element_text(size=12),
+     axis.title.x=element_blank(),
+     axis.title.y=element_blank(),
+     legend.position = "none",
+     strip.text = element_text(size = 11),
+     plot.margin =  unit(c(1,1,1,1), "lines")
+   ))
+
+
+ggsave(plot = p, 
+       filename = "./n_policy_box/Data/figures/policies_multiplot_shade.pdf", width = 890/300*3, height = 999/300*3,
+       units = 'in')
+
+ggsave(plot = p, 
+       filename = "./n_policy_box/Data/figures/policies_multiplot_shade.png", width = 890/300*3, height = 999/300*3,
+       units = 'in')
+
+
+#---------------------------------------------------------------------------
 # REGION LEVEL PLOT 
 perfomances_dt4 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
