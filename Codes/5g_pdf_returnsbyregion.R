@@ -97,6 +97,7 @@ show_col(hue_pal()(6))
         text=element_text(size=13),
         # strip.background = element_blank(),
         axis.title.x=element_blank(),
+        strip.background =element_rect(fill="white"),
         # legend.justification = c(0, 0),
         # legend.direction = "horizontal",
         legend.position = "bottom"

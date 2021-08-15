@@ -212,7 +212,7 @@ ggsave(plot = p,
 field_perfomances_dt2[,P_diff := P_return - P_base]
 
 
-reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_name = 'P_diff', x_name = 'EONR_base'))
+reg_dt <- ddply(field_perfomances_dt2,.(policy_labels), function(x) lm_eqn(x, y_name = 'P_diff', x_name = 'EONR_base'))
 
 
 summary(lm(data = field_perfomances_dt2[policy_name == 'leach'], P_diff ~ EONR_base))
@@ -223,14 +223,20 @@ summary(lm(data = field_perfomances_dt2[policy_name == 'leach'], P_diff ~ EONR_b
    # geom_smooth(color = 'black')+
    # geom_histogram(aes(x = P_base))+
    # geom_abline() +  ylim(0, 100)+ xlim(0, 100) +
-   theme_bw()+
-   theme(#axis.text=element_text(size=12),
-     #axis.title=element_text(size=14),
-     panel.grid.major = element_blank(), 
-     panel.grid.minor = element_blank(),
-     panel.background = element_blank(), 
-     text=element_text(size=15),
-     legend.position = "none")+
+    theme_bw(base_size = 15)+
+    theme(#axis.text=element_text(size=12),
+      #axis.title=element_text(size=14),
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(), 
+      # panel.border = element_rect(colour = "black", fill = NA),
+      strip.background.x = element_blank(),
+      axis.title = element_text(face = "plain", size = 13),
+      strip.text.x = element_text(size = 13, face = "plain"),
+      strip.placement = "outside",
+      plot.margin =  unit(c(1,1,1,1), "lines"),
+      # text=element_text(size=15),
+      legend.position = "none")+
    geom_text(data = reg_dt, aes(x = 5, y = -750, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
    xlab('Baselevel N rate (kg/ha)')+
    ylab('Profits difference ($/ha)')+
@@ -249,14 +255,19 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
     # geom_abline() +  ylim(0, 100)+ 
     # xlim(5000, 14600) +
     scale_x_continuous(breaks=seq(6000, 15000, by = 4000), labels = seq(6000, 15000, by = 4000))+
-    theme_bw()+
+    theme_bw(base_size = 15)+
     theme(#axis.text=element_text(size=12),
       #axis.title=element_text(size=14),
-      # axis.text.x = element_text(angle = 90),
       panel.grid.major = element_blank(), 
       panel.grid.minor = element_blank(),
       panel.background = element_blank(), 
-      text=element_text(size=15),
+      # panel.border = element_rect(colour = "black", fill = NA),
+      strip.background.x = element_blank(),
+      axis.title = element_text(face = "plain", size = 13),
+      # strip.text.x = element_text(size = 13, face = "plain"),
+      strip.text.x = element_blank(),
+      plot.margin =  unit(c(1,1,1,1), "lines"),
+      # text=element_text(size=15),
       legend.position = "none")+
     geom_text(data = reg_dt, aes(x = 5000, y = -750, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     xlab('Baselevel Yield (kg/ha)')+
@@ -278,13 +289,19 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
     # geom_histogram(aes(x = P_base))+
     # geom_abline() +  ylim(0, 100)+ 
     # xlim(5000, 14600) +
-    theme_bw()+
+    theme_bw(base_size = 15)+
     theme(#axis.text=element_text(size=12),
       #axis.title=element_text(size=14),
       panel.grid.major = element_blank(), 
       panel.grid.minor = element_blank(),
       panel.background = element_blank(), 
-      text=element_text(size=15),
+      # panel.border = element_rect(colour = "black", fill = NA),
+      strip.background.x = element_blank(),
+      axis.title = element_text(face = "plain", size = 13),
+      # strip.text.x = element_text(size = 13, face = "plain"),
+      strip.text.x = element_blank(),
+      plot.margin =  unit(c(1,1,1,1), "lines"),
+      # text=element_text(size=15),
       legend.position = "none")+
     geom_text(data = reg_dt, aes(x = 0, y = 0, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
     xlab('Baselevel N leaching (kg/ha)')+
