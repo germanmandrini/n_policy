@@ -47,6 +47,15 @@ lm_eqn = function(dt, y_name, x_name){
     as.character(as.expression(eq));                 
 }
 
+breaks_fun <- function(x) {
+    if (max(x) > 20) {
+        seq(0, max(x), 50)
+    } else if(max(x) > 10) {
+        seq(0, max(x), 5)
+    } else{
+        seq(0, max(x), 1)
+    }
+}
 #--------------------------------------------------------------------------------
 
 set.seed(123)
@@ -70,11 +79,13 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
 (p1 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
     geom_smooth(method="lm", se=F) +
-    theme_bw()+ 
+    theme_bw(base_size = 13)+
     theme(text=element_text(size=13),
-          plot.title = element_text(size = 13, face = "bold"),
+          plot.title = element_text(size = 13, face = "plain"),
           panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
+          strip.background = element_rect(colour="black",
+                                          fill="white"),
           panel.background = element_blank())+    
     xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)")+
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
@@ -89,11 +100,13 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
 (p2 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
     geom_smooth(method="lm", se=F) +
-    theme_bw()+      
+    theme_bw(base_size = 13)+
     theme(text=element_text(size=13),
-          plot.title = element_text(size = 13, face = "bold"),
+          plot.title = element_text(size = 13, face = "plain"),
           panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
+          strip.background = element_rect(colour="black",
+                                          fill="white"),
           panel.background = element_blank())+  
     xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
@@ -108,11 +121,13 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
 (p3 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
     geom_smooth(method="lm", se=F)+
-    theme_bw()+ 
+    theme_bw(base_size = 13)+
     theme(text=element_text(size=13),
-          plot.title = element_text(size = 13, face = "bold"),
+          plot.title = element_text(size = 13, face = "plain"),
           panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
+          strip.background = element_rect(colour="black",
+                                          fill="white"),
           panel.background = element_blank())+     
     xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
@@ -131,11 +146,13 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
 (p4 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
     geom_point()+
     geom_smooth(method="lm", se=F)+
-    theme_bw()+      
+    theme_bw(base_size = 13)+
     theme(text=element_text(size=13),
-          plot.title = element_text(size = 13, face = "bold"),
+          plot.title = element_text(size = 13, face = "plain"),
           panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
+          strip.background = element_rect(colour="black",
+                                          fill="white"),
           panel.background = element_blank())+  
         xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
     geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
@@ -152,16 +169,20 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
 (p5 <- ggplot(data = balance_dt, aes(x = N_balance, y = L)) + 
         geom_point(size= 0.1)+
         geom_smooth(method="lm", se=F)+
-        theme_bw()+ 
+        theme_bw(base_size = 13)+
+        # scale_y_continuous(breaks = breaks_fun) + 
         theme(text=element_text(size=13),
-              plot.title = element_text(size = 13, face = "bold"),
+              plot.title = element_text(size = 13, face = "plain"),
               panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
+              strip.background = element_rect(colour="black",
+                                              fill="white"),
               panel.background = element_blank())+ 
         xlab("N Balance (kg/ha)") + ylab("N Leaching (kg/ha)") +
         geom_text(data = reg_dt2, aes(x = min(x_label), y = y_label, label = V1, hjust = 0), parse = TRUE, inherit.aes=FALSE, color = 'red')+
         facet_free(region~.)+
-        ggtitle('Multiple locations (predicted N rate)'))
+        ggtitle('5000 locations (predicted N rate)'))
+
 
 
 (p <- ggarrange(p1,p2,p3, p4, p5, labels = c("a)","b)", "c)", "d)", "e)"), label.x = 0, ncol = 2, nrow = 3))

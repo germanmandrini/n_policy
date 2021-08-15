@@ -121,6 +121,7 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
         strip.background.x = element_blank(),
         axis.title = element_text(face = "plain", size = 13),
         strip.text.x = element_text(size = 13, face = "plain"),
+        strip.placement = "outside",
         plot.margin =  unit(c(1,1,1,1), "lines"),
         # text=element_text(size=15),
         legend.position = "none")+
@@ -147,8 +148,9 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
     # panel.border = element_rect(colour = "black", fill = NA),
     strip.background.x = element_blank(),
     axis.title = element_text(face = "plain", size = 13),
-    strip.text.x = element_text(size = 13, face = "plain"),
-    plot.margin =  unit(c(1,1,1,1), "lines"),
+    # strip.text.x = element_text(size = 13, face = "plain"),
+    strip.text.x = element_blank(),
+    plot.margin =  unit(c(1,1,1,1.4), "lines"),
     # text=element_text(size=15),
     legend.position = "none")+
     # geom_text(data=eq,aes(x = 25, y = 300,label=V1), parse = TRUE, inherit.aes=FALSE) + facet_grid(group~.)
@@ -181,7 +183,8 @@ reg_dt <- ddply(field_perfomances_dt2,.(policy_labels),function(x) lm_eqn(x, y_n
       # panel.border = element_rect(colour = "black", fill = NA),
       strip.background.x = element_blank(),
       axis.title = element_text(face = "plain", size = 13),
-      strip.text.x = element_text(size = 13, face = "plain"),
+      # strip.text.x = element_text(size = 13, face = "plain"),
+      strip.text.x = element_blank(),
       plot.margin =  unit(c(1,1,1,1), "lines"),
       # text=element_text(size=15),
       legend.position = "none")+
