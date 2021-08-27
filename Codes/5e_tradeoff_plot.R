@@ -27,10 +27,11 @@ plot_dt[,policy_name := factor(policy_name, levels = c('ratio', 'leach', 'bal', 
 #=============================================================================================================================================
 # LEACHING VS COST PLOT
 
-plot_dt[,policy_labels := factor(policy_name, 
-                                 levels = c('ratio', 'leach', 'bal', 'red'),
-                                 labels = c("Price ratio", "Leaching fee","Balance fee",
-                                            "Vol. reduction"))]
+# plot_dt[,policy_labels := factor(policy_name, 
+#                                  levels = c('ratio', 'leach', 'bal', 'red'),
+#                                  labels = c("Price ratio", "Leaching fee","Balance fee",
+#                                             "Vol. reduction"))]
+
 
 plot_dt[,policy_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'))]
 levels(plot_dt$policy_labels) <- 
@@ -43,21 +44,32 @@ levels(plot_dt$policy_labels) <-
 (p1 <- ggplot(data = plot_dt) +
   geom_line(aes(x = -L_change, y =  policy_cost , color = policy_labels), size = 1)+
     xlab(expression('Leaching (% change)'))+
-    ylab(expression("Policy cost ($ " * ha^"-1" * ")"))+
-  theme_bw()+
-  theme(legend.position = 'bottom',
-     text=element_text(size=13),
-     panel.grid.major = element_blank(), 
-     panel.grid.minor = element_blank(),
-     panel.background = element_blank(),
-     panel.border = element_rect(colour = "black", fill = NA),
-     strip.background.x = element_blank(),
-     axis.title = element_text(face = "plain", size = 11),
-     strip.text.x = element_text(size = 13, face = "plain"),
-     plot.margin =  unit(c(1,1,1,1), "lines")
-   )+
+    ylab(expression("Policy cost ($   " * ha^"-1" * ")"))+
+  theme_bw(base_size = 12)+
+    theme(# panel.grid = element_blank(), 
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(), 
+      panel.border = element_rect(colour = "black", fill = NA),
+      strip.background = element_blank(),
+      axis.title = element_text(face = "plain", size = 12),
+      # strip.placement.x = "outside",
+      # strip.background.y = element_blank(),
+      # strip.placement.y = "outside",
+      # legend.title = element_blank(),
+      # panel.spacing = unit(1.5, "lines"),
+      legend.text=element_text(size=12),
+      # axis.title.x=element_blank(),
+      # axis.title.y=element_blank(),
+      legend.position = "bottom",
+      strip.text = element_text(size = 13, face = "plain"),
+      strip.placement = "outside",
+      strip.switch.pad.grid = unit(0.1, "in"),
+      plot.margin =  unit(c(1,1,1,1), "lines")
+    ) +
    guides(color=guide_legend(title="Policy:"))+
   facet_free(~region_eq))
+
 
 ggsave(plot = p1, 
        filename = "./n_policy_box/Data/figures/policy_cost_regions.pdf", width = 800/300*3, height = 310/300*3,

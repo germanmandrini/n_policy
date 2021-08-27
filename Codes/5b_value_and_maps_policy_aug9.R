@@ -294,7 +294,7 @@ percent20_dt[,lb_removed := kg_removed *2.20462]
 percent20_dt[,cost_red_dlr_lb := policy_cost/lb_removed]
 
 #---------------------------------------------------------------------------
-# STATE WITH SD PLOT
+# STATE WITH SHADE FOR DISTRIBUTION PLOT
 # perfomances_dt4<- readRDS("./n_policy_box/Data/files_rds/perfomances_dt4.rds")
 perfomances_dt5 <- readRDS("./n_policy_box/Data/files_rds/perfomances_dt5.rds")
 
@@ -389,7 +389,7 @@ levels(plot_dt_long$x_labels) <-
       axis.title.x=element_blank(),
       axis.title.y=element_blank(),
       legend.position = "none",
-      strip.text = element_text(size = 11),
+      strip.text = element_text(size = 12),
       plot.margin =  unit(c(1,1,1,1), "lines")
     ))
 
@@ -451,12 +451,10 @@ breaks_fun <- function(x) {
 
 plot_dt[,panel_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'))]
 levels(plot_dt$panel_labels) <- 
-  c("atop(textstyle('N:Corn price ratio'))", 
-    "atop(textstyle('N Leaching fee'))",
-    "atop(textstyle('N Balance fee'))",
-    "atop(textstyle('Voluntary reduction'))")
-
-
+  c("textstyle('N:Corn price ratio')", 
+    "textstyle('N Leaching fee')",
+    "textstyle('N Balance fee')",
+    "textstyle('Voluntary reduction')")
 
 (p <- ggplot(data = plot_dt) +
    geom_line(aes(x = -L_change, y =  policy_cost , color = policy_name), size = 1.3, linetype = 'solid') +
@@ -476,10 +474,9 @@ levels(plot_dt$panel_labels) <-
      panel.grid.major = element_blank(), 
      panel.grid.minor = element_blank(),
      panel.background = element_blank(), 
-
      panel.border = element_rect(colour = "black", fill = NA),
      strip.background.x = element_blank(),
-     axis.title = element_text(face = "plain", size = 11),
+     axis.title = element_text(face = "plain", size = 12),
      # strip.placement.x = "outside",
      # strip.background.y = element_blank(),
      # strip.placement.y = "outside",
@@ -488,11 +485,12 @@ levels(plot_dt$panel_labels) <-
      # legend.text=element_text(size=12),
      # axis.title.x=element_blank(),
      # axis.title.y=element_blank(),
+     strip.placement = "outside",
+     strip.switch.pad.grid = unit(0.1, "in"),
      legend.position = "none",
-     strip.text.x = element_text(size = 13, face = "bold"),
+     strip.text.x = element_text(size = 13, face = "plain"),
      plot.margin =  unit(c(1,1,1,1), "lines")
    ))
-
 
 ggsave(plot = p, 
        filename = "./n_policy_box/Data/figures/policy_cost_shade.pdf", width = 800/300*3, height = 310/300*3,
