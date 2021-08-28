@@ -188,11 +188,11 @@ reg_dt2 <- merge(reg_dt, balance_dt[,.(x_label =min(N_balance), y_label = max(L)
 (p <- ggarrange(p1,p2,p3, p4, p5, labels = c("a)","b)", "c)", "d)", "e)"), label.x = 0, ncol = 2, nrow = 3))
 
 ggsave(plot = p, 
-       filename = "./n_policy_box/Data/figures/n_balance_internalization.pdf", width = 730/300*3, height = 870/300*3,
+       filename = "./n_policy_box/Data/figures/n_balance_internalization.pdf", width = 790/300*3, height = 930/300*3,
        units = 'in')
 
 ggsave(plot = p, 
-       filename = "./n_policy_box/Data/figures/n_balance_internalization.png", width = 730/300*3, height = 870/300*3,
+       filename = "./n_policy_box/Data/figures/n_balance_internalization.png", width = 790/300*3, height = 930/300*3,
        units = 'in')
 
 #--------------------------------------------------------------------------------
