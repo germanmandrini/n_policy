@@ -35,7 +35,7 @@ plot_dt[,policy_name := factor(policy_name, levels = c('ratio', 'leach', 'bal', 
 
 plot_dt[,policy_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'))]
 levels(plot_dt$policy_labels) <- 
-  c("N:Corn price ratio", 
+  c("N:Maize price ratio", 
     "N Leaching fee",
     "N Balance fee",
     "Voluntary reduction")

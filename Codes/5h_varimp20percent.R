@@ -40,7 +40,7 @@ varimp_dt[,policy_labels := factor(policy, levels = c('ratio', 'leach', 'bal', '
                                                  "Balance fee",
                                                  "Vol. reduction",
                                                  "Baselevel"))]
-
+varimp_dt[, variable  := gsub(pattern = 'corn', replacement = 'maize', x = variable)]
 
 plots_list <- list()
 pol_n <- 'ratio'

@@ -352,7 +352,7 @@ levels(plot_dt_long$y_labels) <-
 
 plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'))]
 levels(plot_dt_long$x_labels) <- 
-  c("atop(textstyle('N:Corn price ratio'),'(kg of N / kg of corn)')", 
+  c("atop(textstyle('N:Maize price ratio'),'(kg of N / kg of corn)')", 
     "atop(textstyle('N Leaching fee'),'($  '* kg^-1* ha^-1*')')",
     "atop(textstyle('N Balance fee'),'($  '* kg^-1* ha^-1*')')",
     "atop(textstyle('Voluntary reduction'),'(%)')")
@@ -451,7 +451,7 @@ breaks_fun <- function(x) {
 
 plot_dt[,panel_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'))]
 levels(plot_dt$panel_labels) <- 
-  c("textstyle('N:Corn price ratio')", 
+  c("textstyle('N:Maize price ratio')", 
     "textstyle('N Leaching fee')",
     "textstyle('N Balance fee')",
     "textstyle('Voluntary reduction')")
@@ -568,7 +568,7 @@ levels(plot_dt_long$y_labels) <-
 
 plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'))]
 levels(plot_dt_long$x_labels) <- 
-  c("atop(textstyle('N:Corn price ratio'),'(kg of N / kg of corn)')", 
+  c("atop(textstyle('N:Maize price ratio'),'(kg of N / kg of corn)')", 
     "atop(textstyle('Leaching fee'),'($  '* kg^-1* ha^-1*')')",
     "atop(textstyle('Balance fee'),'($  '* kg^-1* ha^-1*')')",
     "atop(textstyle('Voluntary reduction'),'(%)')")

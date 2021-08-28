@@ -1,5 +1,5 @@
 # setwd('C:/Users/germa/Box Sync/My_Documents') #dell
-# setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
+setwd('C:/Users/germanm2/Box Sync/My_Documents')#CPSC
 # setwd("/home/germanm2")
 # setwd('~')
 rm(list=ls())
@@ -31,12 +31,12 @@ price_ratio_long_dt[variable == 'Ratio' , value := value * 100]
 (plot_1 <- ggplot() +
   geom_line(data = price_ratio_long_dt, 
             aes(x = year, y =  value,color = variable, linetype = variable), size = 1) +
-  scale_y_continuous(sec.axis = sec_axis(~./100, name = "N:Corn price ratio"))+
-  labs(y = 'Price ($/Mg)',
+  scale_y_continuous(sec.axis = sec_axis(~./100, name = "N:Maize price ratio"))+
+  labs(y = 'Price ($  /  Mg)',
        x = 'Year',
        colour = "Variable")+
-  scale_linetype_manual(labels = c("Corn Price", "Nitrogen Price", "Ratio"), values = c('dashed', "dashed", "solid"))+
-  scale_color_discrete(labels = c("Corn Price", "Nitrogen Price", "Ratio"))+
+  scale_linetype_manual(labels = c("Maize Price", "Nitrogen Price", "Ratio"), values = c('dashed', "dashed", "solid"))+
+  scale_color_discrete(labels = c("Maize Price", "Nitrogen Price", "Ratio"))+
   theme_bw()+
     labs(color  = "Guide name", linetype = "Guide name")+
   theme(legend.title =  element_blank(),

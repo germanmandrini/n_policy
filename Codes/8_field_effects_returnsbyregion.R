@@ -98,7 +98,7 @@ field_perfomances_dt2 <- merge(field_perfomances_dt2[policy != 'ratio_5'], basel
 #-----
 # Add labels for policies
 field_perfomances_dt2[,policy_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
-                                 labels = c("N:Corn price ratio", 
+                                 labels = c("N:Maize price ratio", 
                                             "N Leaching fee",
                                             "N Balance fee",
                                             "Voluntary reduction"))]
