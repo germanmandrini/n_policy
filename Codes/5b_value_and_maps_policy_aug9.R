@@ -644,7 +644,7 @@ plot_dt_long[,y_labels := factor(variable, levels = c('L_change', 'P', 'G', 'pol
 plot_dt_long[,x_labels := factor(policy_name, levels = c('ratio', 'leach', 'bal', 'red'),
                                  labels = c(expression("N:Corn price "*"ratio"),
                                             expression("Leaching fee ($ " * kg^"-1" * ha^"-1"*")"),
-                                            expression("N balance fee($ " * kg^"-1" * ha^"-1"*")"),
+                                            expression("N balance fee ($ " * kg^"-1" * ha^"-1"*")"),
                                             expression("N reduction (%"*")")))]
 
 
@@ -721,8 +721,11 @@ region20_dt2[policy =='ratio_5', policy_val := 0]
 
 region20_dt2[,policy_name := factor(policy_name, 
                                       levels = c('base-level','ratio', 'leach', 'bal', 'red'),
-                                      labels = c('base-level', "price ratio", "leaching fee","balance fee",
-                                                 "vol. reduction"))]
+                                      labels = c('Base-level',
+                                                 "N:Maize price ratio", 
+                                                 "N Leaching fee",
+                                                 "N Balance fee",
+                                                 "Voluntary reduction"))]
 
 region20_dt3 <- region20_dt2[,.(region_eq, policy = policy_name, sublevel = policy_val, Y_corn, L, N_fert, P, G,policy_cost, abatement_cost    )][order(-region_eq, policy)]
 
