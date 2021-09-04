@@ -43,7 +43,7 @@ levels(plot_dt$policy_labels) <-
 #In relative L reduction
 (p1 <- ggplot(data = plot_dt) +
   geom_line(aes(x = -L_change, y =  policy_cost , color = policy_labels), size = 1)+
-    xlab(expression('Leaching (% change)'))+
+    xlab(expression('N Leaching (% change)'))+
     ylab(expression("Policy cost ($   " * ha^"-1" * ")"))+
   theme_bw(base_size = 12)+
     theme(# panel.grid = element_blank(), 
